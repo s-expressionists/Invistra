@@ -1,4 +1,4 @@
-(cl:in-package #:sicl-format)
+(cl:in-package #:invistra)
 
 ;;; The base class of all format errors.
 

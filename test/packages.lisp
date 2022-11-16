@@ -8,7 +8,7 @@
 ;;; the symbols in the :shadowing-import-from list, we need to
 ;;; have the reader produce that list, hence the use of the #. reader
 ;;; macro and again of the consing dot followed by a list.
-(defpackage #:sicl-format-test
-    (:shadowing-import-from #:sicl-format .
-                            #.(package-shadowing-symbols '#:sicl-format))
-    (:use #:sicl-format #:cl #:lisp-unit))
+(defpackage #:invistra/test
+    (:shadowing-import-from #:invistra .
+                            #.(package-shadowing-symbols '#:invistra))
+    (:use #:invistra #:cl #:lisp-unit))

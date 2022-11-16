@@ -1,4 +1,4 @@
-(cl:in-package #:sicl-format)
+(cl:in-package #:invistra)
 
 (defun structure-items (items end)
   (loop with result = '()

@@ -1,4 +1,4 @@
-(cl:in-package #:sicl-format)
+(cl:in-package #:invistra)
 
 (defun report-control-string-and-directive-start-position (condition stream)
   (format stream

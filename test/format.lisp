@@ -1,4 +1,4 @@
-(cl:in-package #:sicl-format-test)
+(cl:in-package #:invistra/test)
 
 (define-test general
   ;; multiple occurrences of a modifier

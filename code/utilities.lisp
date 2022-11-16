@@ -1,4 +1,4 @@
-(cl:in-package #:sicl-format)
+(cl:in-package #:invistra)
 
 ;;; For certain common types used by FORMAT, return a string
 ;;; explaining in English what the type means.  For other

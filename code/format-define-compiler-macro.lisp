@@ -1,4 +1,4 @@
-(cl:in-package #:sicl-format)
+(cl:in-package #:invistra)
 
 (define-compiler-macro format (&whole form destination control-string &rest args)
   (if (not (stringp control-string))

@@ -1,4 +1,4 @@
-(cl:in-package #:sicl-format)
+(cl:in-package #:invistra)
 
 ;;; Split a control string into its components.  Each component is
 ;;; either a string to be printed as it is, or a directive.  The list

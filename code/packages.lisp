@@ -1,3 +1,3 @@
-(defpackage #:sicl-format
+(defpackage #:invistra
   (:use #:cl)
   (:export))
