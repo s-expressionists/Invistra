@@ -61,8 +61,8 @@
   :version (:read-file-form "version.sexp")
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
-  :depends-on (:invistra)
-  :perform (asdf:test-op (op c) (uiop:symbol-call :invistra/test :loop-test))
+  :depends-on (:invistra/extrinsic :lisp-unit)
+  :perform (asdf:test-op (op c) (uiop:symbol-call :invistra/test :format-test))
   :serial t
   :components ((:module test
                 :components ((:file "packages")

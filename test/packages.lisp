@@ -9,6 +9,5 @@
 ;;; have the reader produce that list, hence the use of the #. reader
 ;;; macro and again of the consing dot followed by a list.
 (defpackage #:invistra/test
-    (:shadowing-import-from #:invistra .
-                            #.(package-shadowing-symbols '#:invistra))
-    (:use #:invistra #:cl #:lisp-unit))
+  (:use #:cl #:lisp-unit)
+  (:export #:format-test))
