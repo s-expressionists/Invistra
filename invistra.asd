@@ -10,8 +10,8 @@
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
   :depends-on (:acclimation)
   :in-order-to ((asdf:test-op (asdf:test-op #:invistra/test)))
-  :serial t
   :components ((:module code
+                :serial t
                 :components ((:file "packages")
                              (:file "utilities")
                              (:file "generic-functions")
@@ -33,8 +33,8 @@
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
   :depends-on (:invistra)
-  :serial t
   :components ((:module code
+                :serial t
                 :components ((:file "format")
                              (:file "format-define-compiler-macro")))))
 
@@ -47,8 +47,8 @@
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
   :depends-on (:invistra)
-  :serial t
   :components ((:module code
+                :serial t
                 :components ((:file "shadow-export")
                              (:file "format")
                              (:file "format-define-compiler-macro")))))
@@ -63,7 +63,7 @@
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
   :depends-on (:invistra/extrinsic :lisp-unit)
   :perform (asdf:test-op (op c) (uiop:symbol-call :invistra/test :format-test))
-  :serial t
   :components ((:module test
+                :serial t
                 :components ((:file "packages")
                              (:file "format")))))
