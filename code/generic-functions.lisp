@@ -21,7 +21,7 @@
 
 ;;; DIRECTIVE is an instance of a subclass of the DIRECTIVE class
 ;;; describing the directive.
-(defgeneric interpret-format-directive (directive))
+(defgeneric interpret-format-directive (client directive))
 
 ;;; The directive compiler.
-(defgeneric compile-format-directive (directive))
+(defgeneric compile-format-directive (client directive))

@@ -399,7 +399,7 @@
         for i from 0
         until (= x 0)
         do (when (zerop (mod i 1000000))
-             (format *trace-output* "~s~%" x)
+             (cl:format *trace-output* "~s~%" x)
              (finish-output *trace-output*))
         do (multiple-value-bind (d1 k1)
                (burger-dybvig-1 x)
@@ -407,4 +407,4 @@
                  (burger-dybvig-2 x)
                (when (not (and (equal d1 d2)
                                (= k1 k2)))
-                 (format *trace-output* "no: ~s~%" x))))))
+                 (cl:format *trace-output* "no: ~s~%" x))))))

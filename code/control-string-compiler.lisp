@@ -49,8 +49,8 @@
            ;; value we want.
            compile-time-value))))
 
-(defun compile-directive (directive)
-  (let ((parameter-specs (parameter-specs (class-name (class-of directive)))))
+(defun compile-directive (client directive)
+  (let ((parameter-specs (parameter-specs client (class-name (class-of directive)))))
     `(let ,(loop for parameter-spec in parameter-specs
                  collect `(,(car parameter-spec)
                             ,(getf (cdr parameter-spec) :default-value)))
@@ -63,7 +63,7 @@
          (declare (ignorable ,@(loop for parameter-spec in parameter-specs
                                      and given-parameter in (given-parameters directive)
                                      collect (car parameter-spec))))
-         ,(compile-format-directive directive)))))
+         ,(compile-format-directive client directive)))))
 
 (defun compile-item (item)
   (if (stringp item)

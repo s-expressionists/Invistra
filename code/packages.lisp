@@ -1,3 +1,5 @@
 (defpackage #:invistra
   (:use #:cl)
-  (:export))
+  (:shadow #:format)
+  (:export #:format
+           #:format-compiler-macro))

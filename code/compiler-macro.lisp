@@ -1,6 +1,6 @@
 (cl:in-package #:invistra)
 
-(define-compiler-macro format (&whole form destination control-string &rest args)
+(defun format-compiler-macro (client form destination control-string args)
   (if (not (stringp control-string))
       form
       (handler-case
@@ -14,7 +14,7 @@
                          ;; Any unique object will do.
                          (*catch-tag* (list nil)))
                      (catch *catch-tag*
-                       ,@(compile-items items)))))
+                       ,@(compile-items client items)))))
             (let ((destination ,destination))
               (cond ((or (streamp destination)
                          (and (stringp destination)
