@@ -1263,12 +1263,13 @@
          (if (aref *arguments* *next-argument-pointer*)
              ;; Then do not consume the argument and
              ;; process the clause.
-             (interpret-items (aref (clauses directive) 0))
+             (interpret-items client (aref (clauses directive) 0))
              ;; Else, consume the argument and
              ;; do not process the clause
              (incf *next-argument-pointer*)))
         (colonp
-         (interpret-items (aref (clauses directive)
+         (interpret-items client
+                          (aref (clauses directive)
                                 (if (consume-next-argument t)
                                     ;; Then interpret the first clause
                                     ;; (yes that's what the CLHS says)
@@ -1284,10 +1285,12 @@
                ;; Then the argument is out of range
                (when (last-clause-is-default-p directive)
                  ;; Then execute the default-clause
-                 (interpret-items (aref (clauses directive)
+                 (interpret-items client
+                                  (aref (clauses directive)
                                         (1- (length (clauses directive))))))
                ;; Else, execute the corresponding clause
-               (interpret-items (aref (clauses directive) val)))))))
+               (interpret-items client
+                                (aref (clauses directive) val)))))))
 
 (define-format-directive-compiler conditional-directive
   (cond (at-signp
@@ -1296,7 +1299,7 @@
                  (if (aref *arguments* *next-argument-pointer*)
                      ;; Then do not consume the argument and
                      ;; process the clause.
-                     (progn ,@(compile-items (aref (clauses directive) 0))
+                     (progn ,@(compile-items client (aref (clauses directive) 0))
                      ;; Else, consume the argument and
                      ;; do not process the clause
                      (incf *next-argument-pointer*)))))
@@ -1304,9 +1307,9 @@
          `(if (consume-next-argument t)
               ;; Compile the first clause
               ;; (yes that's what the CLHS says)
-              (progn ,@(compile-items (aref (clauses directive) 0)))
+              (progn ,@(compile-items client (aref (clauses directive) 0)))
               ;; Compile the second clause
-              (progn ,@(compile-items (aref (clauses directive) 1)))))
+              (progn ,@(compile-items client (aref (clauses directive) 1)))))
         (t
          ;; If a parameter was given, use it,
          ;; else use the next argument.
@@ -1316,14 +1319,14 @@
                 ;; Then the argument is out of range
                 ,(when (last-clause-is-default-p directive)
                        ;; Then execute the default-clause
-                       `(progn ,@(compile-items
+                       `(progn ,@(compile-items client
                                   (aref (clauses directive)
                                         (1- (length (clauses directive)))))))
                 ;; Else, execute the corresponding clause
                 (case val
                   ,@(loop for i from 0 below (length (clauses directive))
                           for clause across (clauses directive)
-                          collect `(,i ,@(compile-items
+                          collect `(,i ,@(compile-items client
                                           (aref (clauses directive) i))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1364,7 +1367,7 @@
                                :datum arg))
                       (let ((*arguments* (coerce arg 'vector))
                             (*next-argument-pointer* 0))
-                        (interpret-items items))
+                        (interpret-items client items))
                       (incf *next-argument-pointer*))))
              (if (null iteration-limit)
                  (loop until (= *next-argument-pointer* (length *arguments*))
@@ -1383,7 +1386,7 @@
                                :datum args))
                       (let ((*arguments* (coerce args 'vector))
                             (*next-argument-pointer* 0))
-                        (interpret-items items))))
+                        (interpret-items client items))))
                (if (null iteration-limit)
                    (loop for args in arg ; a bit unusual naming perhaps
                          do (one-iteration args))
@@ -1393,10 +1396,10 @@
           (at-signp
            (if (null iteration-limit)
                (loop until (= *next-argument-pointer* (length *arguments*))
-                     do (interpret-items items))
+                     do (interpret-items client items))
                (loop until (= *next-argument-pointer* (length *arguments*))
                      repeat iteration-limit
-                     do (interpret-items items))))
+                     do (interpret-items client items))))
           (t
            ;; no modifiers
            ;; We use one argument, and that should be a list.
@@ -1406,10 +1409,10 @@
                    (*next-argument-pointer* 0))
                (if (null iteration-limit)
                    (loop until (= *next-argument-pointer* (length *arguments*))
-                         do (interpret-items items))
+                         do (interpret-items client items))
                    (loop until (= *next-argument-pointer* (length *arguments*))
                          repeat iteration-limit
-                         do (interpret-items items)))))))))
+                         do (interpret-items client items)))))))))
 
 (define-format-directive-compiler iteration-directive
   ;; eliminate the end-of-iteration directive from the
@@ -1426,7 +1429,7 @@
                                 :datum arg))
                        (let ((*arguments* (coerce arg 'vector))
                              (*next-argument-pointer* 0))
-                         ,@(compile-items items))
+                         ,@(compile-items client items))
                        (incf *next-argument-pointer*))))
               ,(if (null iteration-limit)
                    `(loop until (= *next-argument-pointer* (length *arguments*))
@@ -1445,7 +1448,7 @@
                                 :datum args))
                        (let ((*arguments* (coerce args 'vector))
                              (*next-argument-pointer* 0))
-                         ,@(compile-items items))))
+                         ,@(compile-items client items))))
                 ,(if (null iteration-limit)
                      `(loop for args in arg ; a bit unusual naming perhaps
                             do (one-iteration args))
@@ -1455,10 +1458,10 @@
           (at-signp
            (if (null iteration-limit)
                `(loop until (= *next-argument-pointer* (length *arguments*))
-                      do (progn ,@(compile-items items)))
+                      do (progn ,@(compile-items client items)))
                `(loop until (= *next-argument-pointer* (length *arguments*))
                       repeat ,iteration-limit
-                      do (progn ,@(compile-items items)))))
+                      do (progn ,@(compile-items client items)))))
           (t
            ;; no modifiers
            ;; We use one argument, and that should be a list.
@@ -1468,10 +1471,10 @@
                     (*next-argument-pointer* 0))
                 ,(if (null iteration-limit)
                      `(loop until (= *next-argument-pointer* (length *arguments*))
-                            do (progn ,@(compile-items items)))
+                            do (progn ,@(compile-items client items)))
                      `(loop until (= *next-argument-pointer* (length *arguments*))
                             repeat iteration-limit
-                            do (progn ,@(compile-items items))))))))))
+                            do (progn ,@(compile-items client items))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1530,7 +1533,8 @@
 (define-format-directive-interpreter case-conversion-directive
   (let ((output (with-output-to-string (stream)
                   (let ((*destination* stream))
-                    (interpret-items (items directive))))))
+                    (interpret-items client (subseq (items directive)
+                                                    0 (1- (length (items directive)))))))))
     (cond ((and colonp at-signp)
            (nstring-upcase output))
           (colonp
@@ -1547,7 +1551,7 @@
 (define-format-directive-compiler case-conversion-directive
   `(let ((output (with-output-to-string (stream)
                    (let ((*destination* stream))
-                     ,@(compile-items (items directive))))))
+                     ,@(compile-items client (items directive))))))
      ,(cond ((and colonp at-signp)
              `(nstring-upcase output))
             (colonp
