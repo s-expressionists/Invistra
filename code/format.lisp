@@ -230,14 +230,14 @@
            ;; other than space.
            (if (and (graphic-char-p char) (not (eql char #\Space)))
                (write-char char *destination*)
-               (princ (char-name char) *destination*)))
+               (write-string (char-name char) *destination*)))
           ((not colonp)
            ;; We have only an at-sign modifier.
            ;; The HyperSpec says to print it the way the Lisp
            ;; reader can understand, which I take to mean "use PRIN1".
            ;; It also says to bind *PRINT-ESCAPE* to t.
            (let ((*print-escape* t))
-             (prin1 char *destination*)))
+             (incless:write-object client char *destination*)))
           (t
            ;; We have both a colon and and at-sign.
            ;; The HyperSpec says to do what ~:C does, but
@@ -247,7 +247,7 @@
            ;; as for ~:C.
            (if (and (graphic-char-p char) (not (eql char #\Space)))
                (write-char char *destination*)
-               (princ (char-name char) *destination*))))))
+               (write-string (char-name char) *destination*))))))
 
 (define-format-directive-compiler c-directive
   `(let ((char (consume-next-argument 'character)))
@@ -256,14 +256,14 @@
             ((not at-signp)
              `(if (and (graphic-char-p char) (not (eql char #\Space)))
                  (write-char char *destination*)
-                 (princ (char-name char) *destination*)))
+                 (write-string (char-name char) *destination*)))
             ((not colonp)
              `(let ((*print-escape* t))
-                (prin1 char *destination*)))
+                (incless:write-object ,client char *destination*)))
             (t
              `(if (and (graphic-char-p char) (not (eql char #\Space)))
                   (write-char char *destination*)
-                  (princ (char-name char) *destination*))))))
+                  (write-string (char-name char) *destination*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -365,13 +365,16 @@
 ;;;
 ;;; 22.3.2 Radix control
 
-(defun print-radix-arg (radix colonp at-signp mincol padchar commachar comma-interval)
+(defun print-radix-arg (client radix colonp at-signp mincol padchar commachar comma-interval)
   (let ((argument (consume-next-argument t)))
     (if (not (integerp argument))
-        (let ((*print-base* 10))
-          (cl:format *destination* "~a" argument))
+        (let ((*print-base* 10)
+              (*print-escape* nil)
+              (*print-readably* nil))
+          (incless:write-object client argument *destination*))
         (let* ((string (let ((*print-base* radix))
-                         (princ-to-string (abs argument))))
+                         (with-output-to-string (stream)
+                           (incless:write-object client (abs argument) stream))))
                (comma-length (if colonp
                                  (max 0 (floor (1- (length string)) comma-interval))
                                  0))
@@ -415,19 +418,19 @@
     (loop repeat thousands
           do (write-char #\M stream))
     (multiple-value-bind (hundreds rest) (floor rest 100)
-      (princ (case hundreds
-               (0 "") (1 "C") (2 "CC") (3 "CCC") (4 "CD")
-               (5 "D" ) (6 "DC") (7 "DCC") (8 "DCCC") (9 "CM"))
-             stream)
+      (write-string (case hundreds
+                      (0 "") (1 "C") (2 "CC") (3 "CCC") (4 "CD")
+                      (5 "D" ) (6 "DC") (7 "DCC") (8 "DCCC") (9 "CM"))
+                    stream)
       (multiple-value-bind (tenths rest) (floor rest 10)
-        (princ (case tenths
-                 (0 "") (1 "X") (2 "XX") (3 "XXX") (4 "XL")
-                 (5 "L" ) (6 "LX") (7 "LXX") (8 "LXXX") (9 "XC"))
-               stream)
-        (princ (case rest
-                 (0 "") (1 "I") (2 "II") (3 "III") (4 "IV")
-                 (5 "V" ) (6 "VI") (7 "VII") (8 "VIII") (9 "IX"))
-               stream)))))
+        (write-string (case tenths
+                        (0 "") (1 "X") (2 "XX") (3 "XXX") (4 "XL")
+                        (5 "L" ) (6 "LX") (7 "LXX") (8 "LXXX") (9 "XC"))
+                      stream)
+        (write-string (case rest
+                        (0 "") (1 "I") (2 "II") (3 "III") (4 "IV")
+                        (5 "V" ) (6 "VI") (7 "VII") (8 "VIII") (9 "IX"))
+                      stream)))))
 
 ;;; Print an integer as old roman numerals to the stream.
 ;;; The integer must be strictly greater than zero,
@@ -437,19 +440,19 @@
     (loop repeat thousands
           do (write-char #\M stream))
     (multiple-value-bind (hundreds rest) (floor rest 100)
-      (princ (case hundreds
-               (0 "") (1 "C") (2 "CC") (3 "CCC") (4 "CCCC")
-               (5 "D" ) (6 "DC") (7 "DCC") (8 "DCCC") (9 "DCCCC"))
-             stream)
+      (write-string (case hundreds
+                      (0 "") (1 "C") (2 "CC") (3 "CCC") (4 "CCCC")
+                      (5 "D" ) (6 "DC") (7 "DCC") (8 "DCCC") (9 "DCCCC"))
+                    stream)
       (multiple-value-bind (tenths rest) (floor rest 10)
-        (princ (case tenths
-                 (0 "") (1 "X") (2 "XX") (3 "XXX") (4 "XXXX")
-                 (5 "L" ) (6 "LX") (7 "LXX") (8 "LXXX") (9 "LXXXX"))
-               stream)
-        (princ (case rest
-                 (0 "") (1 "I") (2 "II") (3 "III") (4 "IIII")
-                 (5 "V" ) (6 "VI") (7 "VII") (8 "VIII") (9 "VIIII"))
-               stream)))))
+        (write-string (case tenths
+                        (0 "") (1 "X") (2 "XX") (3 "XXX") (4 "XXXX")
+                        (5 "L" ) (6 "LX") (7 "LXX") (8 "LXXX") (9 "LXXXX"))
+                      stream)
+        (write-string (case rest
+                        (0 "") (1 "I") (2 "II") (3 "III") (4 "IIII")
+                        (5 "V" ) (6 "VI") (7 "VII") (8 "VIII") (9 "VIIII"))
+                      stream)))))
 
 (defparameter *cardinal-ones*
   #(nil "one" "two" "three" "four" "five" "six" "seven" "eight" "nine"))
@@ -472,15 +475,15 @@
 ;;; Print a cardinal number between 1 and 99.
 (defun print-cardinal-tenths (n stream)
   (cond ((< n 10)
-         (princ (aref *cardinal-ones* n) stream))
+         (write-string (aref *cardinal-ones* n) stream))
         ((< n 20)
-         (princ (aref *cardinal-teens* (- n 10)) stream))
+         (write-string (aref *cardinal-teens* (- n 10)) stream))
         (t
          (multiple-value-bind (tens ones) (floor n 10)
-           (princ (aref *cardinal-tens* tens) stream)
+           (write-string (aref *cardinal-tens* tens) stream)
            (unless (zerop ones)
-             (princ "-" stream)
-             (princ (aref *cardinal-ones* ones) stream))))))
+             (write-char #\- stream)
+             (write-string (aref *cardinal-ones* ones) stream))))))
 
 ;;; Print a cardinal number between 1 and 999.
 (defun print-cardinal-hundreds (n stream)
@@ -488,10 +491,10 @@
          (print-cardinal-tenths n stream))
         (t
          (multiple-value-bind (hundreds rest) (floor n 100)
-           (princ (aref *cardinal-ones* hundreds) stream)
-           (princ " hundred" stream)
+           (write-string (aref *cardinal-ones* hundreds) stream)
+           (write-string " hundred" stream)
            (unless (zerop rest)
-             (princ " " stream)
+             (write-char #\Space stream)
              (print-cardinal-tenths rest stream))))))
 
 ;;; Print a cardinal number n such that 0 < n < 10^65.
@@ -500,20 +503,20 @@
     (unless (zerop thousands)
       (print-cardinal-non-zero thousands stream (1+ magnitude)))
     (unless (or (zerop thousands) (zerop rest))
-      (princ " " stream))
+      (write-char #\Space stream))
     (unless (zerop rest)
       (print-cardinal-hundreds rest stream)
       (unless (zerop magnitude)
-        (princ " " stream)
-        (princ (aref *groups-of-three* magnitude) stream)))))
+        (write-char #\Space stream)
+        (write-string (aref *groups-of-three* magnitude) stream)))))
 
 ;;; Print a cardinal number n such that - 10^65 < n < 10^65.
 (defun print-cardinal-number (n stream)
   (cond ((minusp n)
-         (princ "negative " stream)
+         (write-string "negative " stream)
          (print-cardinal-non-zero (- n) stream 0))
         ((zerop n)
-         (princ "zero" stream))
+         (write-string "zero" stream))
         (t
          (print-cardinal-non-zero n stream 0))))
 
@@ -531,16 +534,17 @@
 ;;; Print an ordinal number between 1 and 99.
 (defun print-ordinal-tenths (n stream)
   (cond ((< n 10)
-         (princ (aref *ordinal-ones* n) stream))
+         (write-string (aref *ordinal-ones* n) stream))
         ((< n 20)
-         (princ (aref *ordinal-teens* (- n 10)) stream))
+         (write-string (aref *ordinal-teens* (- n 10)) stream))
         (t
          (multiple-value-bind (tens ones) (floor n 10)
-           (if (zerop ones)
-               (princ (aref *ordinal-tens* tens) stream)
-               (progn (princ (aref *cardinal-tens* tens) stream)
-                      (princ "-" stream)
-                      (princ (aref *ordinal-ones* ones) stream)))))))
+           (cond ((zerop ones)
+                  (write-string (aref *ordinal-tens* tens) stream))
+                 (t
+                  (write-string (aref *cardinal-tens* tens) stream)
+                  (write-char #\- stream)
+                  (write-string (aref *ordinal-ones* ones) stream)))))))
 
 ;;; Print an ordinal number n such that 0 < n < 1000.
 (defun print-ordinal-hundreds (n stream)
@@ -548,12 +552,13 @@
          (print-ordinal-tenths n stream))
         (t
          (multiple-value-bind (hundreds rest) (floor n 100)
-           (princ (aref *cardinal-ones* hundreds) stream)
-           (princ " hundred" stream)
-           (if (zerop rest)
-               (princ "th" stream)
-               (progn (princ " " stream)
-                      (print-ordinal-tenths rest stream)))))))
+           (write-string (aref *cardinal-ones* hundreds) stream)
+           (write-string " hundred" stream)
+           (cond ((zerop rest)
+                  (write-string "th" stream))
+                 (t
+                  (write-char #\Space stream)
+                  (print-ordinal-tenths rest stream)))))))
 
 ;;; Print an ordinal number n such that 0 < n < 10^65.
 (defun print-ordinal-non-zero (n stream)
@@ -561,28 +566,28 @@
     (cond ((zerop rest)
            ;; Hudreds is nonzero.
            (print-cardinal-non-zero n stream 0)
-           (princ "th" stream))
+           (write-string "th" stream))
           ((zerop hundreds)
            (print-ordinal-hundreds rest stream))
           (t
            ;; They are both nonzero.
            (print-cardinal-non-zero (* 100 hundreds) stream 0)
-           (princ " " stream)
+           (write-char #\Space stream)
            (print-ordinal-tenths rest stream)))))
 
 ;;; Print an ordninal number n such that - 10^65 < n < 10^65.
 (defun print-ordinal-number (n stream)
   (cond ((minusp n)
-         (princ "negative " stream)
+         (write-string "negative " stream)
          (print-ordinal-non-zero (- n) stream))
         ((zerop n)
-         (princ "zeroth" stream))
+         (write-string "zeroth" stream))
         (t
          (print-ordinal-non-zero n stream))))
 
 (define-format-directive-interpreter r-directive
   (cond ((not (null radix))
-         (print-radix-arg radix colonp at-signp mincol padchar commachar comma-interval))
+         (print-radix-arg client radix colonp at-signp mincol padchar commachar comma-interval))
         ((and colonp at-signp)
          (print-as-old-roman (consume-next-argument '(integer 1))
                              *destination*))
@@ -600,7 +605,7 @@
 
 (define-format-directive-compiler r-directive
     (cond ((not (null radix))
-           `(print-radix-arg radix ,colonp ,at-signp mincol padchar commachar comma-interval))
+           `(print-radix-arg ,client radix ,colonp ,at-signp mincol padchar commachar comma-interval))
           ((and colonp at-signp)
            `(print-as-old-roman (consume-next-argument '(integer 1))
                                 *destination*))
@@ -627,10 +632,10 @@
      (comma-interval :type '(integer 1) :default-value 3)))
 
 (define-format-directive-interpreter d-directive
-  (print-radix-arg 10 colonp at-signp mincol padchar commachar comma-interval))
+  (print-radix-arg client 10 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler d-directive
-    `(print-radix-arg 10 ,colonp ,at-signp mincol padchar commachar comma-interval))
+  `(print-radix-arg ,client 10 ,colonp ,at-signp mincol padchar commachar comma-interval))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -643,10 +648,10 @@
      (comma-interval :type '(integer 1) :default-value 3)))
 
 (define-format-directive-interpreter b-directive
-  (print-radix-arg 2 colonp at-signp mincol padchar commachar comma-interval))
+  (print-radix-arg client 2 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler b-directive
-    `(print-radix-arg 2 ,colonp ,at-signp mincol padchar commachar comma-interval))
+  `(print-radix-arg ,client 2 ,colonp ,at-signp mincol padchar commachar comma-interval))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -659,10 +664,10 @@
      (comma-interval :type '(integer 1) :default-value 3)))
 
 (define-format-directive-interpreter o-directive
-  (print-radix-arg 8 colonp at-signp mincol padchar commachar comma-interval))
+  (print-radix-arg client 8 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler o-directive
-    `(print-radix-arg 8 ,colonp ,at-signp mincol padchar commachar comma-interval))
+  `(print-radix-arg ,client 8 ,colonp ,at-signp mincol padchar commachar comma-interval))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -675,10 +680,10 @@
      (comma-interval :type '(integer 1) :default-value 3)))
 
 (define-format-directive-interpreter x-directive
-  (print-radix-arg 16 colonp at-signp mincol padchar commachar comma-interval))
+  (print-radix-arg client 16 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler x-directive
-    `(print-radix-arg 16 ,colonp ,at-signp mincol padchar commachar comma-interval))
+  `(print-radix-arg ,client 16 ,colonp ,at-signp mincol padchar commachar comma-interval))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1537,7 +1542,7 @@
                      (char-upcase (char output pos))))))
           (t
            (nstring-downcase output)))
-    (princ output *destination*)))
+    (write-string output *destination*)))
 
 (define-format-directive-compiler case-conversion-directive
   `(let ((output (with-output-to-string (stream)
@@ -1554,7 +1559,7 @@
                         (char-upcase (char output pos))))))
             (t
              `(nstring-downcase output)))
-     (princ output *destination*)))
+     (write-string output *destination*)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1584,10 +1589,10 @@
              :max-arguments (length *arguments*)))
     (decf *next-argument-pointer*))
   (if at-signp
-      (princ (if (eql (consume-next-argument t) 1)
-                 "y"
-                 "ies")
-             *destination*)
+      (write-string (if (eql (consume-next-argument t) 1)
+                        "y"
+                        "ies")
+                    *destination*)
       (when (eql (consume-next-argument t) 1)
         (write-char #\s *destination*))))
 
@@ -1599,10 +1604,10 @@
                      :max-arguments (length *arguments*)))
             (decf *next-argument-pointer*)))
   (if at-signp
-      `(princ (if (eql (consume-next-argument t) 1)
-                  "y"
-                  "ies")
-              *destination*)
+      `(write-string (if (eql (consume-next-argument t) 1)
+                         "y"
+                         "ies")
+                     *destination*)
       `(when (eql (consume-next-argument t) 1)
          (write-char #\s *destination*))))
 
