@@ -1,5 +1,7 @@
 (defpackage #:invistra-extrinsic
   (:use #:common-lisp)
-  (:shadow #:format)
+  (:shadow #:format
+           #:formatter)
   (:export #:*client*
-           #:format))
+           #:format
+           #:formatter))

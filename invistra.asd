@@ -21,7 +21,7 @@
                              (:file "structure-items")
                              (:file "control-string-compiler")
                              (:file "format")
-                             (:file "compiler-macro")
+                             (:file "formatter")
                              (:file "conditions")
                              (:file "condition-reporters-en")))))
 
