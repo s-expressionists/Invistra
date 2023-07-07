@@ -8,8 +8,8 @@
   :version (:read-file-form "version.sexp")
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
-  :depends-on (:acclimation)
-  #+(or):in-order-to #+(or)((asdf:test-op (asdf:test-op #:invistra/test)))
+  :depends-on ("acclimation"
+               "inravina")
   :components ((:module code
                 :serial t
                 :components ((:file "packages")
