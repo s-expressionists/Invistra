@@ -250,20 +250,20 @@
                (write-string (char-name char) *destination*))))))
 
 (define-format-directive-compiler c-directive
-  `(let ((char (consume-next-argument 'character)))
-     ,(cond ((and (not colonp) (not at-signp))
-             `(write-char char *destination*))
-            ((not at-signp)
-             `(if (and (graphic-char-p char) (not (eql char #\Space)))
-                 (write-char char *destination*)
-                 (write-string (char-name char) *destination*)))
-            ((not colonp)
-             `(let ((*print-escape* t))
-                (incless:write-object ,client char *destination*)))
-            (t
-             `(if (and (graphic-char-p char) (not (eql char #\Space)))
-                  (write-char char *destination*)
-                  (write-string (char-name char) *destination*))))))
+  `((let ((char (consume-next-argument 'character)))
+      ,(cond ((and (not colonp) (not at-signp))
+              `(write-char char *destination*))
+             ((not at-signp)
+              `(if (and (graphic-char-p char) (not (eql char #\Space)))
+                   (write-char char *destination*)
+                   (write-string (char-name char) *destination*)))
+             ((not colonp)
+              `(let ((*print-escape* t))
+                 (incless:write-object ,client char *destination*)))
+             (t
+              `(if (and (graphic-char-p char) (not (eql char #\Space)))
+                   (write-char char *destination*)
+                   (write-string (char-name char) *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -279,13 +279,13 @@
 (define-format-directive-compiler percent-directive
   (let ((how-many (compile-time-value directive 'how-many)))
     (cond ((null how-many)
-           `(loop repeat how-many
-                  do (terpri *destination*)))
+           `((loop repeat how-many
+                   do (terpri *destination*))))
           ((< how-many 3)
-           `(progn ,@(loop repeat how-many
-                           collect `(terpri *destination*))))
-          (t `(loop repeat ,how-many
-                    do (terpri *destination*))))))
+           (loop repeat how-many
+                 collect `(terpri *destination*)))
+          (t `((loop repeat ,how-many
+                     do (terpri *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -303,19 +303,19 @@
 (define-format-directive-compiler ampersand-directive
   (let ((how-many (compile-time-value directive 'how-many)))
     (cond ((null how-many)
-           `(unless (zerop how-many)
-              (fresh-line *destination*)
-              (loop repeat (1- how-many)
-                    do (terpri *destination*))))
+           `((unless (zerop how-many)
+               (fresh-line *destination*)
+               (loop repeat (1- how-many)
+                     do (terpri *destination*)))))
           ((zerop how-many)
            nil)
           ((< how-many 3)
-           `(progn (fresh-line *destination*)
-                   ,@(loop repeat (1- how-many)
-                           collect `(terpri *destination*))))
-          (t `(progn (fresh-line *destination*)
-                     (loop repeat ,(1- how-many)
-                           do (terpri *destination*)))))))
+           `((fresh-line *destination*)
+             ,@(loop repeat (1- how-many)
+                     collect `(terpri *destination*))))
+          (t `((fresh-line *destination*)
+               (loop repeat ,(1- how-many)
+                     do (terpri *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -331,13 +331,13 @@
 (define-format-directive-compiler vertical-bar-directive
   (let ((how-many (compile-time-value directive 'how-many)))
     (cond ((null how-many)
-           `(loop repeat how-many
-                  do (write-char #\Page *destination*)))
+           `((loop repeat how-many
+                   do (write-char #\Page *destination*))))
           ((< how-many 3)
-           `(progn ,@(loop repeat how-many
-                           collect `(write-char #\Page *destination*))))
-          (t `(loop repeat ,how-many
-                    do (write-char #\Page *destination*))))))
+           `(loop repeat how-many
+                  collect `(write-char #\Page *destination*)))
+          (t `((loop repeat ,how-many
+                     do (write-char #\Page *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -353,13 +353,13 @@
 (define-format-directive-compiler tilde-directive
   (let ((how-many (compile-time-value directive 'how-many)))
     (cond ((null how-many)
-           `(loop repeat how-many
-                  do (write-char #\~ *destination*)))
+           `((loop repeat how-many
+                   do (write-char #\~ *destination*))))
           ((< how-many 3)
-           `(progn ,@(loop repeat how-many
-                           collect `(write-char #\~ *destination*))))
-          (t `(loop repeat ,how-many
-                    do (write-char #\~ *destination*))))))
+           (loop repeat how-many
+                 collect `(write-char #\~ *destination*)))
+          (t `((loop repeat ,how-many
+                     do (write-char #\~ *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -408,7 +408,7 @@
      (mincol :type (integer 0) :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
-     (comma-interval :type '(integer 1) :default-value 3)))
+     (comma-interval :type (integer 1) :default-value 3)))
 
 ;;; Print an integer as roman numerals to the stream.
 ;;; The integer must be strictly greater than zero,
@@ -604,22 +604,22 @@
                                 *destination*))))
 
 (define-format-directive-compiler r-directive
-    (cond ((not (null radix))
-           `(print-radix-arg ,client radix ,colonp ,at-signp mincol padchar commachar comma-interval))
-          ((and colonp at-signp)
-           `(print-as-old-roman (consume-next-argument '(integer 1))
-                                *destination*))
-          (at-signp
-           `(print-as-roman (consume-next-argument '(integer 1))
-                            *destination*))
-          (colonp
-           `(print-ordinal-number (consume-next-argument
+  (cond ((not (null radix))
+         `((print-radix-arg ,client radix ,colonp ,at-signp mincol padchar commachar comma-interval)))
+        ((and colonp at-signp)
+         `((print-as-old-roman (consume-next-argument '(integer 1))
+                               *destination*)))
+        (at-signp
+         `((print-as-roman (consume-next-argument '(integer 1))
+                           *destination*)))
+        (colonp
+         `((print-ordinal-number (consume-next-argument
+                                  `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
+                                 *destination*)))
+        (t
+         `((print-cardinal-number (consume-next-argument
                                    `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
-                                  *destination*))
-          (t
-           `(print-cardinal-number (consume-next-argument
-                                    `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
-                                   *destination*))))
+                                  *destination*)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -629,13 +629,13 @@
     ((mincol :type (integer 0) :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
-     (comma-interval :type '(integer 1) :default-value 3)))
+     (comma-interval :type (integer 1) :default-value 3)))
 
 (define-format-directive-interpreter d-directive
   (print-radix-arg client 10 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler d-directive
-  `(print-radix-arg ,client 10 ,colonp ,at-signp mincol padchar commachar comma-interval))
+  `((print-radix-arg ,client 10 ,colonp ,at-signp mincol padchar commachar comma-interval)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -645,13 +645,13 @@
     ((mincol :type (integer 0) :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
-     (comma-interval :type '(integer 1) :default-value 3)))
+     (comma-interval :type (integer 1) :default-value 3)))
 
 (define-format-directive-interpreter b-directive
   (print-radix-arg client 2 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler b-directive
-  `(print-radix-arg ,client 2 ,colonp ,at-signp mincol padchar commachar comma-interval))
+  `((print-radix-arg ,client 2 ,colonp ,at-signp mincol padchar commachar comma-interval)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -661,13 +661,13 @@
     ((mincol :type (integer 0) :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
-     (comma-interval :type '(integer 1) :default-value 3)))
+     (comma-interval :type (integer 1) :default-value 3)))
 
 (define-format-directive-interpreter o-directive
   (print-radix-arg client 8 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler o-directive
-  `(print-radix-arg ,client 8 ,colonp ,at-signp mincol padchar commachar comma-interval))
+  `((print-radix-arg ,client 8 ,colonp ,at-signp mincol padchar commachar comma-interval)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -677,13 +677,13 @@
     ((mincol :type (integer 0) :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
-     (comma-interval :type '(integer 1) :default-value 3)))
+     (comma-interval :type (integer 1) :default-value 3)))
 
 (define-format-directive-interpreter x-directive
   (print-radix-arg client 16 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler x-directive
-  `(print-radix-arg ,client 16 ,colonp ,at-signp mincol padchar commachar comma-interval))
+  `((print-radix-arg ,client 16 ,colonp ,at-signp mincol padchar commachar comma-interval)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -711,7 +711,7 @@
   (print-float-arg colonp at-signp w d k overflowchar padchar))
 
 (define-format-directive-compiler f-directive
-  `(print-float-arg ,colonp ,at-signp w d k overflowchar padchar))
+  `((print-float-arg ,colonp ,at-signp w d k overflowchar padchar)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -758,25 +758,25 @@
                   at-signp mincol colinc minpad padchar)))
 
 (define-format-directive-compiler a-directive
-  `(let* ((*print-escape* nil)
-          (*print-readably* nil)
-          (arg (consume-next-argument t))
-          (raw-output
-            ,(if colonp
-                 `(if (null arg)
-                      "()"
-                      (with-output-to-string (stream)
-                        (incless:write-object ,client arg stream)))
-                 `(with-output-to-string (stream)
-                    (incless:write-object ,client arg stream))))
-          (pad-length (max minpad (* colinc (ceiling (- mincol (length raw-output)) colinc)))))
-     ,@(if at-signp
-           `((loop repeat pad-length
-                   do (write-char padchar *destination*))
-             (write-string raw-output *destination*))
-           `((write-string raw-output *destination*)
-             (loop repeat pad-length
-                   do (write-char padchar *destination*))))))
+  `((let* ((*print-escape* nil)
+           (*print-readably* nil)
+           (arg (consume-next-argument t))
+           (raw-output
+             ,(if colonp
+                  `(if (null arg)
+                       "()"
+                       (with-output-to-string (stream)
+                         (incless:write-object ,client arg stream)))
+                  `(with-output-to-string (stream)
+                     (incless:write-object ,client arg stream))))
+           (pad-length (max minpad (* colinc (ceiling (- mincol (length raw-output)) colinc)))))
+      ,@(if at-signp
+            `((loop repeat pad-length
+                    do (write-char padchar *destination*))
+              (write-string raw-output *destination*))
+            `((write-string raw-output *destination*)
+              (loop repeat pad-length
+                    do (write-char padchar *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -798,24 +798,24 @@
                   at-signp mincol colinc minpad padchar)))
 
 (define-format-directive-compiler s-directive
-  `(let* ((*print-escape* t)
-          (arg (consume-next-argument t))
-          (raw-output
-            ,(if colonp
-                 `(if (null arg)
-                      "()"
-                      (with-output-to-string (stream)
-                        (incless:write-object ,client arg stream)))
-                 `(with-output-to-string (stream)
-                    (incless:write-object ,client arg stream))))
-          (pad-length (max minpad (* colinc (ceiling (- mincol (length raw-output)) colinc)))))
-     ,@(if at-signp
-           `((loop repeat pad-length
-                   do (write-char padchar *destination*))
-             (write-string raw-output *destination*))
-           `((write-string raw-output *destination*)
-             (loop repeat pad-length
-                   do (write-char padchar *destination*))))))
+  `((let* ((*print-escape* t)
+           (arg (consume-next-argument t))
+           (raw-output
+             ,(if colonp
+                  `(if (null arg)
+                       "()"
+                       (with-output-to-string (stream)
+                         (incless:write-object ,client arg stream)))
+                  `(with-output-to-string (stream)
+                     (incless:write-object ,client arg stream))))
+           (pad-length (max minpad (* colinc (ceiling (- mincol (length raw-output)) colinc)))))
+      ,@(if at-signp
+            `((loop repeat pad-length
+                    do (write-char padchar *destination*))
+              (write-string raw-output *destination*))
+            `((write-string raw-output *destination*)
+              (loop repeat pad-length
+                    do (write-char padchar *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -841,19 +841,19 @@
 
 (define-format-directive-compiler w-directive
   (cond ((and colonp at-signp )
-         `(let ((*print-pretty* t)
-                (*print-level* nil)
-                (*print-length* nil))
-            (incless:write-object ,client (consume-next-argument t) *destination*)))
+         `((let ((*print-pretty* t)
+                 (*print-level* nil)
+                 (*print-length* nil))
+             (incless:write-object ,client (consume-next-argument t) *destination*))))
         (colonp
-         `(let ((*print-pretty* t))
-            (incless:write-object ,client (consume-next-argument t) *destination*)))
+         `((let ((*print-pretty* t))
+             (incless:write-object ,client (consume-next-argument t) *destination*))))
         (at-signp
-         `(let ((*print-level* nil)
-                (*print-length* nil))
-            (incless:write-object ,client (consume-next-argument t) *destination*)))
+         `((let ((*print-level* nil)
+                 (*print-length* nil))
+             (incless:write-object ,client (consume-next-argument t) *destination*))))
         (t
-         `(incless:write-object ,client (consume-next-argument t) *destination*))))
+         `((incless:write-object ,client (consume-next-argument t) *destination*)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -873,11 +873,11 @@
                                  (t :linear))))
 
 (define-format-directive-compiler underscore-directive
-  `(inravina:pprint-newline ,client *destination*
+  `((inravina:pprint-newline ,client *destination*
                              ,(cond ((and colonp at-signp) :mandatory)
                                     (colonp :fill)
                                     (at-signp :miser)
-                                    (t :linear))))
+                                    (t :linear)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -902,9 +902,9 @@
                           how-many))
 
 (define-format-directive-compiler i-directive
-  `(inravina:pprint-indent ,client *destination*
-                           ,(if colonp :current :block)
-                           how-many))
+  `((inravina:pprint-indent ,client *destination*
+                            ,(if colonp :current :block)
+                            how-many)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1020,21 +1020,20 @@
                    (at-signp at-signp)
                    (given-parameters given-parameters)
                    (function-name function-name))
-    directive
+      directive
     (let ((param-args
-           (loop for parameter in given-parameters
-                 collect (cond ((eq parameter '|#|)
-                                `(- (length *arguments*)
-                                    *next-argument-pointer*))
-                               ((eq parameter 'V)
-                                `(consume-next-argument t))
-                               (t parameter)))))
-      `(,function-name
-        *destination*
-        (consume-next-argument t)
-        ,colonp
-        ,at-signp
-        ,@param-args))))
+            (loop for parameter in given-parameters
+                  collect (cond ((eq parameter '|#|)
+                                 `(- (length *arguments*)
+                                     *next-argument-pointer*))
+                                ((eq parameter 'V)
+                                 `(consume-next-argument t))
+                                (t parameter)))))
+      `((,function-name *destination*
+                        (consume-next-argument t)
+                        ,colonp
+                        ,at-signp
+                        ,@param-args)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1063,10 +1062,10 @@
        `(pprint-tab ,(if at-signp :section-relative :section)
                     colnum colinc *destination*))
       ;; Thanks to Brian Mastenbrook for suggesting this solution.
-      `(let ((*print-level* nil))
-         (pprint-logical-block (*destination* nil)
-                               (pprint-tab ,(if at-signp :line-relative :line)
-                                           colnum colinc *destination*)))))
+      `((let ((*print-level* nil))
+          (pprint-logical-block (*destination* nil)
+            (pprint-tab ,(if at-signp :line-relative :line)
+                        colnum colinc *destination*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1134,30 +1133,30 @@
   (cond (colonp
          ;; Back up in the list of arguments.
          ;; The default value for the parameter is 1.
-         `(let ((new-arg-pointer (- *next-argument-pointer* (or param 1))))
-            (unless (>= new-arg-pointer 0)
-              (error 'go-to-out-of-bounds
-                     :what-argument new-arg-pointer
-                     :max-arguments (length *arguments*)))
-            (setf *next-argument-pointer* new-arg-pointer)))
+         `((let ((new-arg-pointer (- *next-argument-pointer* (or param 1))))
+             (unless (>= new-arg-pointer 0)
+               (error 'go-to-out-of-bounds
+                      :what-argument new-arg-pointer
+                      :max-arguments (length *arguments*)))
+             (setf *next-argument-pointer* new-arg-pointer))))
         (at-signp
          ;; Go to an absolute argument number.
          ;; The default value for the parameter is 0.
-         `(let ((new-arg-pointer (or param 0)))
-            (unless (<= 0 new-arg-pointer (length *arguments*))
-              (error 'go-to-out-of-bounds
-                     :what-argument new-arg-pointer
-                     :max-arguments (length *arguments*)))
-            (setf *next-argument-pointer* new-arg-pointer)))
+         `((let ((new-arg-pointer (or param 0)))
+             (unless (<= 0 new-arg-pointer (length *arguments*))
+               (error 'go-to-out-of-bounds
+                      :what-argument new-arg-pointer
+                      :max-arguments (length *arguments*)))
+             (setf *next-argument-pointer* new-arg-pointer))))
         (t
          ;; Skip the next arguments.
          ;; The default value for the parameter is 1.
-         `(let ((new-arg-pointer (+ *next-argument-pointer* (or param 1))))
-            (unless (<= new-arg-pointer (length *arguments*))
-              (error 'go-to-out-of-bounds
-                     :what-argument new-arg-pointer
-                     :max-arguments (length *arguments*)))
-            (setf *next-argument-pointer* new-arg-pointer)))))
+         `((let ((new-arg-pointer (+ *next-argument-pointer* (or param 1))))
+             (unless (<= new-arg-pointer (length *arguments*))
+               (error 'go-to-out-of-bounds
+                      :what-argument new-arg-pointer
+                      :max-arguments (length *arguments*)))
+             (setf *next-argument-pointer* new-arg-pointer))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1294,40 +1293,41 @@
 
 (define-format-directive-compiler conditional-directive
   (cond (at-signp
-         `(progn (when (>= *next-argument-pointer* (length *arguments*))
-                   (error 'no-more-arguments))
-                 (if (aref *arguments* *next-argument-pointer*)
-                     ;; Then do not consume the argument and
-                     ;; process the clause.
-                     (progn ,@(compile-items client (aref (clauses directive) 0))
-                     ;; Else, consume the argument and
-                     ;; do not process the clause
-                     (incf *next-argument-pointer*)))))
+         `((when (>= *next-argument-pointer* (length *arguments*))
+             (error 'no-more-arguments))
+           (if (aref *arguments* *next-argument-pointer*)
+               ;; Then do not consume the argument and
+               ;; process the clause.
+               (progn ,@(compile-items client (aref (clauses directive) 0))
+                      ;; Else, consume the argument and
+                      ;; do not process the clause
+                      (incf *next-argument-pointer*)))))
         (colonp
-         `(if (consume-next-argument t)
-              ;; Compile the first clause
-              ;; (yes that's what the CLHS says)
-              (progn ,@(compile-items client (aref (clauses directive) 0)))
-              ;; Compile the second clause
-              (progn ,@(compile-items client (aref (clauses directive) 1)))))
+         `((cond ((consume-next-argument t)
+                  ;; Compile the first clause
+                  ;; (yes that's what the CLHS says)
+                  ,@(compile-items client (aref (clauses directive) 0)))
+                 (t
+                  ;; Compile the second clause
+                  ,@(compile-items client (aref (clauses directive) 1))))))
         (t
          ;; If a parameter was given, use it,
          ;; else use the next argument.
-         `(let ((val (or param (consume-next-argument 'integer))))
-            (if (or (minusp val)
-                    (>= val ,(length (clauses directive))))
-                ;; Then the argument is out of range
-                ,(when (last-clause-is-default-p directive)
-                       ;; Then execute the default-clause
-                       `(progn ,@(compile-items client
-                                  (aref (clauses directive)
-                                        (1- (length (clauses directive)))))))
-                ;; Else, execute the corresponding clause
-                (case val
-                  ,@(loop for i from 0 below (length (clauses directive))
-                          for clause across (clauses directive)
-                          collect `(,i ,@(compile-items client
-                                          (aref (clauses directive) i))))))))))
+         `((let ((val (or param (consume-next-argument 'integer))))
+             (if (or (minusp val)
+                     (>= val ,(length (clauses directive))))
+                 ;; Then the argument is out of range
+                 ,(when (last-clause-is-default-p directive)
+                    ;; Then execute the default-clause
+                    `(progn ,@(compile-items client
+                                             (aref (clauses directive)
+                                                   (1- (length (clauses directive)))))))
+                 ;; Else, execute the corresponding clause
+                 (case val
+                   ,@(loop for i from 0 below (length (clauses directive))
+                           for clause across (clauses directive)
+                           collect `(,i ,@(compile-items client
+                                                         (aref (clauses directive) i)))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1421,60 +1421,60 @@
     (cond ((and colonp at-signp)
            ;; The remaining arguments should be lists.  Each argument
            ;; is used in a different iteration.
-           `(flet ((one-iteration ()
-                     (let ((arg (aref *arguments* *next-argument-pointer*)))
-                       (unless (listp arg)
-                         (error 'argument-type-error
-                                :expected-type 'list
-                                :datum arg))
-                       (let ((*arguments* (coerce arg 'vector))
-                             (*next-argument-pointer* 0))
-                         ,@(compile-items client items))
-                       (incf *next-argument-pointer*))))
-              ,(if (null iteration-limit)
-                   `(loop until (= *next-argument-pointer* (length *arguments*))
-                          do (one-iteration))
-                   `(loop until (= *next-argument-pointer* (length *arguments*))
-                          repeat ,iteration-limit
-                          do (one-iteration)))))
+           `((flet ((one-iteration ()
+                      (let ((arg (aref *arguments* *next-argument-pointer*)))
+                        (unless (listp arg)
+                          (error 'argument-type-error
+                                 :expected-type 'list
+                                 :datum arg))
+                        (let ((*arguments* (coerce arg 'vector))
+                              (*next-argument-pointer* 0))
+                          ,@(compile-items client items))
+                        (incf *next-argument-pointer*))))
+               ,(if (null iteration-limit)
+                    `(loop until (= *next-argument-pointer* (length *arguments*))
+                           do (one-iteration))
+                    `(loop until (= *next-argument-pointer* (length *arguments*))
+                           repeat ,iteration-limit
+                           do (one-iteration))))))
           (colonp
            ;; We use one argument, and that should be a list of sublists.
            ;; Each sublist is used as arguments for one iteration.
-           `(let ((arg (consume-next-argument 'list)))
-              (flet ((one-iteration (args)
-                       (unless (listp args)
-                         (error 'argument-type-error
-                                :expected-type 'list
-                                :datum args))
-                       (let ((*arguments* (coerce args 'vector))
-                             (*next-argument-pointer* 0))
-                         ,@(compile-items client items))))
-                ,(if (null iteration-limit)
-                     `(loop for args in arg ; a bit unusual naming perhaps
-                            do (one-iteration args))
-                     `(loop for args in arg ; a bit unusual naming perhaps
-                            repeat ,iteration-limit
-                            do (one-iteration args))))))
+           `((let ((arg (consume-next-argument 'list)))
+               (flet ((one-iteration (args)
+                        (unless (listp args)
+                          (error 'argument-type-error
+                                 :expected-type 'list
+                                 :datum args))
+                        (let ((*arguments* (coerce args 'vector))
+                              (*next-argument-pointer* 0))
+                          ,@(compile-items client items))))
+                 ,(if (null iteration-limit)
+                      `(loop for args in arg ; a bit unusual naming perhaps
+                             do (one-iteration args))
+                      `(loop for args in arg ; a bit unusual naming perhaps
+                             repeat ,iteration-limit
+                             do (one-iteration args)))))))
           (at-signp
            (if (null iteration-limit)
-               `(loop until (= *next-argument-pointer* (length *arguments*))
-                      do (progn ,@(compile-items client items)))
-               `(loop until (= *next-argument-pointer* (length *arguments*))
-                      repeat ,iteration-limit
-                      do (progn ,@(compile-items client items)))))
+               `((loop until (= *next-argument-pointer* (length *arguments*))
+                       do (progn ,@(compile-items client items))))
+               `((loop until (= *next-argument-pointer* (length *arguments*))
+                       repeat ,iteration-limit
+                       do (progn ,@(compile-items client items))))))
           (t
            ;; no modifiers
            ;; We use one argument, and that should be a list.
            ;; The elements of that list are used by the iteration.
-           `(let ((arg (consume-next-argument 'list)))
-              (let ((*arguments* (coerce arg 'vector))
-                    (*next-argument-pointer* 0))
-                ,(if (null iteration-limit)
-                     `(loop until (= *next-argument-pointer* (length *arguments*))
-                            do (progn ,@(compile-items client items)))
-                     `(loop until (= *next-argument-pointer* (length *arguments*))
-                            repeat iteration-limit
-                            do (progn ,@(compile-items client items))))))))))
+           `((let ((arg (consume-next-argument 'list)))
+               (let ((*arguments* (coerce arg 'vector))
+                     (*next-argument-pointer* 0))
+                 ,(if (null iteration-limit)
+                      `(loop until (= *next-argument-pointer* (length *arguments*))
+                             do (progn ,@(compile-items client items)))
+                      `(loop until (= *next-argument-pointer* (length *arguments*))
+                             repeat iteration-limit
+                             do (progn ,@(compile-items client items)))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1510,13 +1510,14 @@
 (define-format-directive-compiler recursive-processing-directive
   (if at-signp
       ;; reuse the arguments from the parent control-string
-      `(format-with-runtime-arguments *destination*
-                                      (consume-next-argument 'string))
+      `((format-with-runtime-arguments ,client *destination*
+                                       (consume-next-argument 'string)))
       ;;
-      `(apply #'format
-              *destination*
-              (consume-next-argument 'string)
-              (consume-next-argument 'list))))
+      `((apply #'format
+               ,client
+               *destination*
+               (consume-next-argument 'string)
+               (consume-next-argument 'list)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1549,21 +1550,21 @@
     (write-string output *destination*)))
 
 (define-format-directive-compiler case-conversion-directive
-  `(let ((output (with-output-to-string (stream)
-                   (let ((*destination* stream))
-                     ,@(compile-items client (items directive))))))
-     ,(cond ((and colonp at-signp)
-             `(nstring-upcase output))
-            (colonp
-             `(nstring-capitalize output))
-            (at-signp
-             `(let ((pos (position-if #'alphanumericp output)))
-                (when (not (null pos))
-                  (setf (char output pos)
-                        (char-upcase (char output pos))))))
-            (t
-             `(nstring-downcase output)))
-     (write-string output *destination*)))
+  `((let ((output (with-output-to-string (stream)
+                    (let ((*destination* stream))
+                      ,@(compile-items client (items directive))))))
+      ,(cond ((and colonp at-signp)
+              `(nstring-upcase output))
+             (colonp
+              `(nstring-capitalize output))
+             (at-signp
+              `(let ((pos (position-if #'alphanumericp output)))
+                 (when (not (null pos))
+                   (setf (char output pos)
+                         (char-upcase (char output pos))))))
+             (t
+              `(nstring-downcase output)))
+      (write-string output *destination*))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1602,18 +1603,18 @@
 
 (define-format-directive-compiler plural-directive
   (when colonp
-    `(progn (when (zerop *next-argument-pointer*)
-              (error 'go-to-out-of-bounds
-                     :what-argument -1
-                     :max-arguments (length *arguments*)))
-            (decf *next-argument-pointer*)))
+    `((when (zerop *next-argument-pointer*)
+        (error 'go-to-out-of-bounds
+               :what-argument -1
+               :max-arguments (length *arguments*)))
+      (decf *next-argument-pointer*)))
   (if at-signp
-      `(write-string (if (eql (consume-next-argument t) 1)
-                         "y"
-                         "ies")
-                     *destination*)
-      `(when (eql (consume-next-argument t) 1)
-         (write-char #\s *destination*))))
+      `((write-string (if (eql (consume-next-argument t) 1)
+                          "y"
+                          "ies")
+                      *destination*))
+      `((when (eql (consume-next-argument t) 1)
+          (write-char #\s *destination*)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1665,16 +1666,16 @@
 (define-format-directive-compiler circumflex-directive
   (let ((parameters (given-parameters directive)))
     (cond ((not (first parameters))
-           `(throw *catch-tag* nil))
+           `((throw *catch-tag* nil)))
           ((not (second parameters))
-           `(when (zerop p1)
-              (throw *catch-tag* nil)))
+           `((when (zerop p1)
+               (throw *catch-tag* nil))))
           ((not (third parameters))
-           `(when (= p1 p2)
-              (throw *catch-tag* nil)))
+           `((when (= p1 p2)
+               (throw *catch-tag* nil))))
           (t
-           `(when (<= p1 p2 p3)
-              (throw *catch-tag* nil))))))
+           `((when (<= p1 p2 p3)
+               (throw *catch-tag* nil)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1698,11 +1699,11 @@
 (define-format-directive-compiler newline-directive
   (cond (colonp
          ;; Remove the newline but print the following whitespace.
-         `(let ((start (1+ (position #\Newline control-string :start start))))
-            (write-string ,(subseq control-string start end) *destination*)))
+         `((let ((start (1+ (position #\Newline control-string :start start))))
+             (write-string ,(subseq control-string start end) *destination*))))
         (at-signprg
          ;; Print the newline, but remove the following whitespace.
-         `(write-char #\Newline *destination*))
+         `((write-char #\Newline *destination*)))
         (t
          ;; Ignore both the newline and the following whitespace.
          nil)))

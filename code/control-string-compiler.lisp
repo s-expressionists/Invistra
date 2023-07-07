@@ -51,29 +51,22 @@
 
 (defun compile-directive (client directive)
   (let ((parameter-specs (parameter-specs (class-name (class-of directive)))))
-    `(let ,(loop for parameter-spec in parameter-specs
-                 collect `(,(car parameter-spec)
-                            ,(getf (cdr parameter-spec) :default-value)))
-       (declare (ignorable ,@(mapcar #'car parameter-specs)))
-       (let ,(loop for parameter-spec in parameter-specs
-                   and given-parameter in (given-parameters directive)
-                   collect `(,(car parameter-spec)
-                              ,(compile-parameter-value directive parameter-spec)))
-         ;; this is not quite right, I think.
-         (declare (ignorable ,@(loop for parameter-spec in parameter-specs
-                                     and given-parameter in (given-parameters directive)
-                                     collect (car parameter-spec))))
-         ,(compile-format-directive client directive)))))
+    (if parameter-specs
+        `((let ,(loop for parameter-spec in parameter-specs
+                      collect `(,(car parameter-spec)
+                                ,(compile-parameter-value directive parameter-spec)))
+            (declare (ignorable ,@(mapcar #'car parameter-specs)))
+            ,@(compile-format-directive client directive)))
+        (compile-format-directive client directive))))
 
 (defun compile-item (client item)
   (if (stringp item)
-      `(write-string ,item *destination*)
+      `((write-string ,item *destination*))
       (compile-directive client item)))
 
 (defun compile-items (client items)
-  (map 'list (lambda (item)
-               (compile-item client item))
-       items))
+  (loop for item across items
+        append (compile-item client item)))
 
 (defun compile-control-string (client control-string)
   (let ((items (structure-items (split-control-string control-string) nil)))
