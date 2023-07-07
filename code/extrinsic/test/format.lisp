@@ -119,7 +119,7 @@
   #+(or)(expand-format (assert-error 'error (fmt nil "~#c" #\a)))
   #+(or)(expand-format (assert-error 'error (fmt nil "~vc" #\a))))
 
-#|(define-test newline
+#+(or)(define-test newline
   ;; without any parameters, output a newline
   (expand-format (assert-equal
                   (with-output-to-string (stream)
@@ -146,7 +146,7 @@
   (assert-error 'error (fmt nil "~:%"))
   (assert-error 'error (fmt nil "~@%")))
 
-(define-test fresh-line
+#+(or)(define-test fresh-line
   ;; without any parameters, does nothing to a string
   (expand-format (assert-equal
                   ""
@@ -171,7 +171,7 @@
   (assert-error 'error (fmt nil "~:&"))
   (assert-error 'error (fmt nil "~@&")))
 
-(define-test page
+#+(or)(define-test page
   ;; without any parameters, outputs a page separator
   (expand-format (assert-equal
                   (with-output-to-string (stream)
@@ -200,7 +200,7 @@
   (assert-error 'error (fmt nil "~:|"))
   (assert-error 'error (fmt nil "~@|")))
 
-(define-test tilde
+#+(or)(define-test tilde
   ;; without any parameters, outputs a tilde
   (expand-format (assert-equal
                   (with-output-to-string (stream)
@@ -229,7 +229,7 @@
   (assert-error 'error (fmt nil "~:~"))
   (assert-error 'error (fmt nil "~@~")))
 
-(define-test radix
+#+(or)(define-test radix
   ;; English cardinal numbers
   (expand-format (assert-equal "zero" (fmt nil "~r" 0)))
   (expand-format (assert-equal "one" (fmt nil "~r" 1)))
@@ -430,7 +430,7 @@
     (assert-equal "xx66a551a234"
                  (fmt nil "~10,12,'x,'a:r" 66551234))))
 
-(define-test decimal
+#+(or)(define-test decimal
   ;; test that the mincol parameter is taken into account
   (expand-format
    (assert-equal "123"
@@ -469,85 +469,103 @@
     (assert-equal "xx66a551a234"
                  (fmt nil "~12,'x,'a:d" 66551234))))
 
-(define-test octal
-  ;; test that the mincol parameter is taken into account
-  (expand-format
-   (assert-equal "123"
-                 (fmt nil "~1o" #o123)))
-  (expand-format
-   (assert-equal "123"
-                 (fmt nil "~2o" #o123)))
-  (expand-format
-   (assert-equal "123"
-                 (fmt nil "~3o" #o123)))
-  (expand-format
-   (assert-equal " 123"
-                 (fmt nil "~4o" #o123)))
-  (expand-format
-   (assert-equal "  123"
-                 (fmt nil "~5o" #o123)))
-  ;; test that the padchar parameter is taken into account
-  (expand-format
-   (assert-equal "xx123"
-                 (fmt nil "~5,'xo" #o123)))
-  ;; test the : modifier
-  (expand-format
-   (assert-equal "xx123"
-                 (fmt nil "~5,'x:o" #o123)))
-   (expand-format
-    (assert-equal "xx1,234"
-                 (fmt nil "~7,'x:o" #o1234)))
-   (expand-format
-    (assert-equal "xx551,234"
-                 (fmt nil "~9,'x:o" #o551234)))
-   (expand-format
-    (assert-equal "xx66,551,234"
-                 (fmt nil "~12,'x:o" #o66551234)))
-   ;; test the commachar parameter is taken into account
-   (expand-format
-    (assert-equal "xx66a551a234"
-                 (fmt nil "~12,'x,'a:o" #o66551234))))
+;; test that the mincol parameter is taken into account
+(define-equal-test octal.01
+  "123"
+  (fmt nil "~1o" #o123))
 
-(define-test binary
-  ;; test that the mincol parameter is taken into account
-  (expand-format
-   (assert-equal "101"
-                 (fmt nil "~1b" #b101)))
-  (expand-format
-   (assert-equal "101"
-                 (fmt nil "~2b" #b101)))
-  (expand-format
-   (assert-equal "101"
-                 (fmt nil "~3b" #b101)))
-  (expand-format
-   (assert-equal " 101"
-                 (fmt nil "~4b" #b101)))
-  (expand-format
-   (assert-equal "  101"
-                 (fmt nil "~5b" #b101)))
-  ;; test that the padchar parameter is taken into account
-  (expand-format
-   (assert-equal "xx101"
-                 (fmt nil "~5,'xb" #b101)))
-  ;; test the : modifier
-  (expand-format
-   (assert-equal "xx101"
-                 (fmt nil "~5,'x:b" #b101)))
-   (expand-format
-    (assert-equal "xx1,011"
-                 (fmt nil "~7,'x:b" #b1011)))
-   (expand-format
-    (assert-equal "xx111,011"
-                 (fmt nil "~9,'x:b" #b111011)))
-   (expand-format
-    (assert-equal "xx10,111,011"
-                 (fmt nil "~12,'x:b" #b10111011)))
-   ;; test the commachar parameter is taken into account
-   (expand-format
-    (assert-equal "xx10a111a011"
-                 (fmt nil "~12,'x,'a:b" #b10111011))))
+(define-equal-test octal.02
+  "123"
+  (fmt nil "~2o" #o123))
 
-(define-test aesthetic
+(define-equal-test octal.03
+  "123"
+  (fmt nil "~3o" #o123))
+
+(define-equal-test octal.04
+  " 123"
+  (fmt nil "~4o" #o123))
+
+(define-equal-test octal.05
+  "  123"
+  (fmt nil "~5o" #o123))
+
+;; test that the padchar parameter is taken into account
+(define-equal-test octal.06
+  "xx123"
+  (fmt nil "~5,'xo" #o123))
+
+;; test the : modifier
+(define-equal-test octal.07
+  "xx123"
+  (fmt nil "~5,'x:o" #o123))
+
+(define-equal-test octal.08
+  "xx1,234"
+  (fmt nil "~7,'x:o" #o1234))
+
+(define-equal-test octal.09
+  "xx551,234"
+  (fmt nil "~9,'x:o" #o551234))
+
+(define-equal-test octal.10
+  "xx66,551,234"
+  (fmt nil "~12,'x:o" #o66551234))
+
+;; test the commachar parameter is taken into account
+(define-equal-test octal.11
+  "xx66a551a234"
+  (fmt nil "~12,'x,'a:o" #o66551234))
+
+;; test that the mincol parameter is taken into account
+(define-equal-test binary.01
+  "101"
+  (fmt nil "~1b" #b101))
+
+(define-equal-test binary.02
+  "101"
+  (fmt nil "~2b" #b101))
+
+(define-equal-test binary.03
+  "101"
+  (fmt nil "~3b" #b101))
+
+(define-equal-test binary.04
+  " 101"
+  (fmt nil "~4b" #b101))
+
+(define-equal-test binary.05
+  "  101"
+  (fmt nil "~5b" #b101))
+
+;; test that the padchar parameter is taken into account
+(define-equal-test binary.06
+  "xx101"
+  (fmt nil "~5,'xb" #b101))
+
+;; test the : modifier
+(define-equal-test binary.07
+  "xx101"
+  (fmt nil "~5,'x:b" #b101))
+
+(define-equal-test binary.08
+  "xx1,011"
+  (fmt nil "~7,'x:b" #b1011))
+
+(define-equal-test binary.09
+  "xx111,011"
+  (fmt nil "~9,'x:b" #b111011))
+
+(define-equal-test binary.10
+  "xx10,111,011"
+  (fmt nil "~12,'x:b" #b10111011))
+
+;; test the commachar parameter is taken into account
+(define-equal-test binary.11
+  "xx10a111a011"
+  (fmt nil "~12,'x,'a:b" #b10111011))
+
+#+(or)(define-test aesthetic
   ;; Test that objects are printed as with princ
   (loop for obj in '(234 -10 1.5 'abc "hello" #\x #\Space nil)
         do (expand-format
@@ -578,7 +596,7 @@
    (assert-equal "helloxxx"
                  (fmt nil "~0,1,3,'xa" "hello"))))
 
-(define-test standard
+#+(or)(define-test standard
   ;; Test that objects are printed as with princ
   (loop for obj in '(234 -10 1.5 'abc "hello" #\x #\Space nil)
         do (expand-format
@@ -608,8 +626,6 @@
   (expand-format
    (assert-equal "12345xxx"
                  (fmt nil "~0,1,3,'xs" 12345))))
-
-|#
 
 (define-equal-test write.01
   "234"
