@@ -414,6 +414,7 @@
 ;;; The integer must be strictly greater than zero,
 ;;; and strictly less than 4000.
 (defun print-as-roman (integer stream)
+  (declare (type (integer 1) integer))
   (multiple-value-bind (thousands rest) (floor integer 1000)
     (loop repeat thousands
           do (write-char #\M stream))
@@ -1047,25 +1048,45 @@
     ((colnum :type (integer 1) :default-value 1)
      (colinc :type (integer 1) :default-value 1)))
 
+(defun format-relative-tab (client colnum colinc)
+  (if (inravina:pretty-stream-p *destination*)
+      (inravina:pprint-tab client *destination* :line-relative colnum colinc)
+      (let* ((cur (trivial-stream-column:line-column *destination*)))
+        (trivial-stream-column:advance-to-column (if (and cur (plusp colinc))
+                                                     (* (ceiling (+ cur colnum) colinc) colinc)
+                                                     colnum)
+                                                 *destination*))))
+
+(defun format-absolute-tab (client colnum colinc)
+  (if (inravina:pretty-stream-p *destination*)
+      (inravina:pprint-tab client *destination* :line colnum colinc)
+      (let ((cur (trivial-stream-column:line-column *destination*)))
+        (cond ((null cur)
+               (write-string "  " *destination*))
+              ((< cur colnum)
+               (trivial-stream-column:advance-to-column colnum *destination*))
+              ((plusp colinc)
+               (trivial-stream-column:advance-to-column (+ cur (- colinc (rem (- cur colnum) colinc)))
+                                                        *destination*))))))
+
 (define-format-directive-interpreter tabulate-directive
-  (if (colonp
-       (pprint-tab (if at-signp :section-relative :section)
-                   colnum colinc *destination*))
-      ;; Thanks to Brian Mastenbrook for suggesting this solution.
-      (let ((*print-level* nil))
-        (pprint-logical-block (*destination* nil)
-                              (pprint-tab (if at-signp :line-relative :line)
-                                          colnum colinc *destination*)))))
+  (cond (colonp
+         (inravina:pprint-tab client *destination*
+                              (if atsignp :section-relative :section) colnum colinc))
+        (atsignp
+         (format-relative-tab client colnum colinc))
+        (t
+         (format-absolute-tab client colnum colinc))))
 
 (define-format-directive-compiler tabulate-directive
-  (if (colonp
-       `(pprint-tab ,(if at-signp :section-relative :section)
-                    colnum colinc *destination*))
-      ;; Thanks to Brian Mastenbrook for suggesting this solution.
-      `((let ((*print-level* nil))
-          (pprint-logical-block (*destination* nil)
-            (pprint-tab ,(if at-signp :line-relative :line)
-                        colnum colinc *destination*))))))
+  (cond (colonp
+         `(inravina:pprint-tab ,client
+                               ,(if atsignp :section-relative :section)
+                               colnum colinc *destination*))
+        (atsignp
+         `(format-relative-tab ,client colnum colinc))
+        (t
+         `(format-absolute-tab ,client colnum colinc))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
