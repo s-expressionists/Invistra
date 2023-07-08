@@ -437,6 +437,7 @@
 ;;; The integer must be strictly greater than zero,
 ;;; and strictly less than 4000.
 (defun print-as-old-roman (integer stream)
+  (declare (type (integer 1) integer))
   (multiple-value-bind (thousands rest) (floor integer 1000)
     (loop repeat thousands
           do (write-char #\M stream))
@@ -1072,7 +1073,8 @@
 (define-format-directive-interpreter tabulate-directive
   (cond (colonp
          (inravina:pprint-tab client *destination*
-                              (if atsignp :section-relative :section) colnum colinc))
+                              (if atsignp :section-relative :section)
+                              colnum colinc))
         (atsignp
          (format-relative-tab client colnum colinc))
         (t
@@ -1080,9 +1082,9 @@
 
 (define-format-directive-compiler tabulate-directive
   (cond (colonp
-         `(inravina:pprint-tab ,client
+         `(inravina:pprint-tab ,client *destination*
                                ,(if atsignp :section-relative :section)
-                               colnum colinc *destination*))
+                               colnum colinc))
         (atsignp
          `(format-relative-tab ,client colnum colinc))
         (t
