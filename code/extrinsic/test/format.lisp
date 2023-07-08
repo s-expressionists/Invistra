@@ -22,10 +22,9 @@
 
 (defmacro define-equal-test (name expected form)
   `(define-test ,name
-     :compile-at :execute
      (my-with-standard-io-syntax
        (macrolet ((fmt (destination control-string &rest args)
-                    `(invistra-extrinsic:format ,destination ,control-string ,@args)))
+                    `(funcall (invistra-extrinsic:formatter ,control-string) ,destination ,@args)))
          (is equal
              ,expected
              ,form))
@@ -229,160 +228,458 @@
   (assert-error 'error (fmt nil "~:~"))
   (assert-error 'error (fmt nil "~@~")))
 
-#+(or)(define-test radix
-  ;; English cardinal numbers
-  (expand-format (assert-equal "zero" (fmt nil "~r" 0)))
-  (expand-format (assert-equal "one" (fmt nil "~r" 1)))
-  (expand-format (assert-equal "two" (fmt nil "~r" 2)))
-  (expand-format (assert-equal "three" (fmt nil "~r" 3)))
-  (expand-format (assert-equal "four" (fmt nil "~r" 4)))
-  (expand-format (assert-equal "five" (fmt nil "~r" 5)))
-  (expand-format (assert-equal "six" (fmt nil "~r" 6)))
-  (expand-format (assert-equal "seven" (fmt nil "~r" 7)))
-  (expand-format (assert-equal "eight" (fmt nil "~r" 8)))
-  (expand-format (assert-equal "nine" (fmt nil "~r" 9)))
-  (expand-format (assert-equal "ten" (fmt nil "~r" 10)))
-  (expand-format (assert-equal "eleven" (fmt nil "~r" 11)))
-  (expand-format (assert-equal "twelve" (fmt nil "~r" 12)))
-  (expand-format (assert-equal "thirteen" (fmt nil "~r" 13)))
-  (expand-format (assert-equal "fourteen" (fmt nil "~r" 14)))
-  (expand-format (assert-equal "fifteen" (fmt nil "~r" 15)))
-  (expand-format (assert-equal "sixteen" (fmt nil "~r" 16)))
-  (expand-format (assert-equal "seventeen" (fmt nil "~r" 17)))
-  (expand-format (assert-equal "eighteen" (fmt nil "~r" 18)))
-  (expand-format (assert-equal "nineteen" (fmt nil "~r" 19)))
-  (expand-format (assert-equal "twenty" (fmt nil "~r" 20)))
-  (expand-format (assert-equal "twenty-one" (fmt nil "~r" 21)))
-  (expand-format (assert-equal "thirty" (fmt nil "~r" 30)))
-  (expand-format (assert-equal "fourty" (fmt nil "~r" 40)))
-  (expand-format (assert-equal "fifty" (fmt nil "~r" 50)))
-  (expand-format (assert-equal "sixty" (fmt nil "~r" 60)))
-  (expand-format (assert-equal "seventy" (fmt nil "~r" 70)))
-  (expand-format (assert-equal "eighty" (fmt nil "~r" 80)))
-  (expand-format (assert-equal "ninety" (fmt nil "~r" 90)))
-  (expand-format (assert-equal "one hundred" (fmt nil "~r" 100)))
-  (expand-format (assert-equal "two hundred four" (fmt nil "~r" 204)))
-  (expand-format (assert-equal "three hundred sixteen" (fmt nil "~r" 316)))
-  (expand-format (assert-equal "four hundred thirty-six" (fmt nil "~r" 436)))
-  (expand-format (assert-equal "two thousand" (fmt nil "~r" 2000)))
-  (expand-format (assert-equal "three thousand five" (fmt nil "~r" 3005)))
-  (expand-format (assert-equal "four thousand twelve" (fmt nil "~r" 4012)))
-  (expand-format (assert-equal "five thousand two hundred" (fmt nil "~r" 5200)))
-  (expand-format (assert-equal "eighty thousand" (fmt nil "~r" 80000)))
-  (expand-format (assert-equal "five hundred thousand" (fmt nil "~r" 500000)))
-  (expand-format (assert-equal "two million" (fmt nil "~r" 2000000)))
-  (expand-format (assert-equal "three million six" (fmt nil "~r" 3000006)))
-  (expand-format (assert-equal "four million two thousand" (fmt nil "~r" 4002000)))
-  ;; English ordinal numbers
-  (expand-format (assert-equal "zeroth" (fmt nil "~:r" 0)))
-  (expand-format (assert-equal "first" (fmt nil "~:r" 1)))
-  (expand-format (assert-equal "second" (fmt nil "~:r" 2)))
-  (expand-format (assert-equal "third" (fmt nil "~:r" 3)))
-  (expand-format (assert-equal "fourth" (fmt nil "~:r" 4)))
-  (expand-format (assert-equal "fifth" (fmt nil "~:r" 5)))
-  (expand-format (assert-equal "sixth" (fmt nil "~:r" 6)))
-  (expand-format (assert-equal "seventh" (fmt nil "~:r" 7)))
-  (expand-format (assert-equal "eighth" (fmt nil "~:r" 8)))
-  (expand-format (assert-equal "ninth" (fmt nil "~:r" 9)))
-  (expand-format (assert-equal "tenth" (fmt nil "~:r" 10)))
-  (expand-format (assert-equal "eleventh" (fmt nil "~:r" 11)))
-  (expand-format (assert-equal "twelvth" (fmt nil "~:r" 12)))
-  (expand-format (assert-equal "thirteenth" (fmt nil "~:r" 13)))
-  (expand-format (assert-equal "fourteenth" (fmt nil "~:r" 14)))
-  (expand-format (assert-equal "fifteenth" (fmt nil "~:r" 15)))
-  (expand-format (assert-equal "sixteenth" (fmt nil "~:r" 16)))
-  (expand-format (assert-equal "seventeenth" (fmt nil "~:r" 17)))
-  (expand-format (assert-equal "eighteenth" (fmt nil "~:r" 18)))
-  (expand-format (assert-equal "nineteenth" (fmt nil "~:r" 19)))
-  (expand-format (assert-equal "twentieth" (fmt nil "~:r" 20)))
-  (expand-format (assert-equal "twenty-first" (fmt nil "~:r" 21)))
-  (expand-format (assert-equal "thirtieth" (fmt nil "~:r" 30)))
-  (expand-format (assert-equal "fourtieth" (fmt nil "~:r" 40)))
-  (expand-format (assert-equal "fiftieth" (fmt nil "~:r" 50)))
-  (expand-format (assert-equal "sixtieth" (fmt nil "~:r" 60)))
-  (expand-format (assert-equal "seventieth" (fmt nil "~:r" 70)))
-  (expand-format (assert-equal "eightieth" (fmt nil "~:r" 80)))
-  (expand-format (assert-equal "ninetieth" (fmt nil "~:r" 90)))
-  (expand-format (assert-equal "one hundredth" (fmt nil "~:r" 100)))
-  (expand-format (assert-equal "two hundred fourth" (fmt nil "~:r" 204)))
-  (expand-format (assert-equal "three hundred sixteenth" (fmt nil "~:r" 316)))
-  (expand-format (assert-equal "four hundred thirty-sixth" (fmt nil "~:r" 436)))
-  (expand-format (assert-equal "two thousandth" (fmt nil "~:r" 2000)))
-  (expand-format (assert-equal "three thousand fifth" (fmt nil "~:r" 3005)))
-  (expand-format (assert-equal "four thousand twelvth" (fmt nil "~:r" 4012)))
-  (expand-format (assert-equal "five thousand two hundredth" (fmt nil "~:r" 5200)))
-  (expand-format (assert-equal "eighty thousandth" (fmt nil "~:r" 80000)))
-  (expand-format (assert-equal "five hundred thousandth" (fmt nil "~:r" 500000)))
-  (expand-format (assert-equal "two millionth" (fmt nil "~:r" 2000000)))
-  (expand-format (assert-equal "three million sixth" (fmt nil "~:r" 3000006)))
-  (expand-format (assert-equal "four million two thousandth" (fmt nil "~:r" 4002000)))
-  ;; Roman numerals
-  (expand-format (assert-equal "I" (fmt nil "~@r" 1)))
-  (expand-format (assert-equal "II" (fmt nil "~@r" 2)))
-  (expand-format (assert-equal "III" (fmt nil "~@r" 3)))
-  (expand-format (assert-equal "IV" (fmt nil "~@r" 4)))
-  (expand-format (assert-equal "V" (fmt nil "~@r" 5)))
-  (expand-format (assert-equal "VI" (fmt nil "~@r" 6)))
-  (expand-format (assert-equal "VII" (fmt nil "~@r" 7)))
-  (expand-format (assert-equal "VIII" (fmt nil "~@r" 8)))
-  (expand-format (assert-equal "IX" (fmt nil "~@r" 9)))
-  (expand-format (assert-equal "X" (fmt nil "~@r" 10)))
-  (expand-format (assert-equal "XI" (fmt nil "~@r" 11)))
-  (expand-format (assert-equal "XII" (fmt nil "~@r" 12)))
-  (expand-format (assert-equal "XIII" (fmt nil "~@r" 13)))
-  (expand-format (assert-equal "XIV" (fmt nil "~@r" 14)))
-  (expand-format (assert-equal "XV" (fmt nil "~@r" 15)))
-  (expand-format (assert-equal "XVI" (fmt nil "~@r" 16)))
-  (expand-format (assert-equal "XVII" (fmt nil "~@r" 17)))
-  (expand-format (assert-equal "XVIII" (fmt nil "~@r" 18)))
-  (expand-format (assert-equal "XIX" (fmt nil "~@r" 19)))
-  (expand-format (assert-equal "XX" (fmt nil "~@r" 20)))
-  (expand-format (assert-equal "XXX" (fmt nil "~@r" 30)))
-  (expand-format (assert-equal "XL" (fmt nil "~@r" 40)))
-  (expand-format (assert-equal "L" (fmt nil "~@r" 50)))
-  (expand-format (assert-equal "LXIV" (fmt nil "~@r" 64)))
-  (expand-format (assert-equal "XCIX" (fmt nil "~@r" 99)))
-  (expand-format (assert-equal "C" (fmt nil "~@r" 100)))
-  (expand-format (assert-equal "CXLVII" (fmt nil "~@r" 147)))
-  (expand-format (assert-equal "CDLXXXIX" (fmt nil "~@r" 489)))
-  (expand-format (assert-equal "DCCCXXXI" (fmt nil "~@r" 831)))
-  (expand-format (assert-equal "M" (fmt nil "~@r" 1000)))
-  (expand-format (assert-equal "MMXL" (fmt nil "~@r" 2040)))
-  (expand-format (assert-equal "MMMXC" (fmt nil "~@r" 3090)))
-  ;; Old Roman numerals
-  (expand-format (assert-equal "I" (fmt nil "~:@r" 1)))
-  (expand-format (assert-equal "II" (fmt nil "~:@r" 2)))
-  (expand-format (assert-equal "III" (fmt nil "~:@r" 3)))
-  (expand-format (assert-equal "IIII" (fmt nil "~:@r" 4)))
-  (expand-format (assert-equal "V" (fmt nil "~:@r" 5)))
-  (expand-format (assert-equal "VI" (fmt nil "~:@r" 6)))
-  (expand-format (assert-equal "VII" (fmt nil "~:@r" 7)))
-  (expand-format (assert-equal "VIII" (fmt nil "~:@r" 8)))
-  (expand-format (assert-equal "VIIII" (fmt nil "~:@r" 9)))
-  (expand-format (assert-equal "X" (fmt nil "~:@r" 10)))
-  (expand-format (assert-equal "XI" (fmt nil "~:@r" 11)))
-  (expand-format (assert-equal "XII" (fmt nil "~:@r" 12)))
-  (expand-format (assert-equal "XIII" (fmt nil "~:@r" 13)))
-  (expand-format (assert-equal "XIIII" (fmt nil "~:@r" 14)))
-  (expand-format (assert-equal "XV" (fmt nil "~:@r" 15)))
-  (expand-format (assert-equal "XVI" (fmt nil "~:@r" 16)))
-  (expand-format (assert-equal "XVII" (fmt nil "~:@r" 17)))
-  (expand-format (assert-equal "XVIII" (fmt nil "~:@r" 18)))
-  (expand-format (assert-equal "XVIIII" (fmt nil "~:@r" 19)))
-  (expand-format (assert-equal "XX" (fmt nil "~:@r" 20)))
-  (expand-format (assert-equal "XXX" (fmt nil "~:@r" 30)))
-  (expand-format (assert-equal "XXXX" (fmt nil "~:@r" 40)))
-  (expand-format (assert-equal "L" (fmt nil "~:@r" 50)))
-  (expand-format (assert-equal "LXIIII" (fmt nil "~:@r" 64)))
-  (expand-format (assert-equal "LXXXXVIIII" (fmt nil "~:@r" 99)))
-  (expand-format (assert-equal "C" (fmt nil "~:@r" 100)))
-  (expand-format (assert-equal "CXXXXVII" (fmt nil "~:@r" 147)))
-  (expand-format (assert-equal "CCCCLXXXVIIII" (fmt nil "~:@r" 489)))
-  (expand-format (assert-equal "DCCCXXXI" (fmt nil "~:@r" 831)))
-  (expand-format (assert-equal "M" (fmt nil "~:@r" 1000)))
-  (expand-format (assert-equal "MMXXXX" (fmt nil "~:@r" 2040)))
-  (expand-format (assert-equal "MMMLXXXX" (fmt nil "~:@r" 3090)))
-  ;; test the use of different values of the radix
+;; English cardinal numbers
+(define-equal-test radix.cardinal.01
+  "zero"
+  (fmt nil "~r" 0))
+
+(define-equal-test radix.cardinal.02
+  "one" (fmt nil "~r" 1))
+
+(define-equal-test radix.cardinal.03
+  "two" (fmt nil "~r" 2))
+
+(define-equal-test radix.cardinal.04
+  "three" (fmt nil "~r" 3))
+
+(define-equal-test radix.cardinal.05
+  "four" (fmt nil "~r" 4))
+
+(define-equal-test radix.cardinal.06
+  "five" (fmt nil "~r" 5))
+
+(define-equal-test radix.cardinal.07
+  "six" (fmt nil "~r" 6))
+
+(define-equal-test radix.cardinal.08
+  "seven" (fmt nil "~r" 7))
+
+(define-equal-test radix.cardinal.09
+  "eight" (fmt nil "~r" 8))
+
+(define-equal-test radix.cardinal.10
+  "nine" (fmt nil "~r" 9))
+
+(define-equal-test radix.cardinal.11
+  "ten" (fmt nil "~r" 10))
+
+(define-equal-test radix.cardinal.12
+  "eleven" (fmt nil "~r" 11))
+
+(define-equal-test radix.cardinal.13
+  "twelve" (fmt nil "~r" 12))
+
+(define-equal-test radix.cardinal.14
+  "thirteen" (fmt nil "~r" 13))
+
+(define-equal-test radix.cardinal.15
+  "fourteen" (fmt nil "~r" 14))
+
+(define-equal-test radix.cardinal.16
+  "fifteen" (fmt nil "~r" 15))
+
+(define-equal-test radix.cardinal.17
+  "sixteen" (fmt nil "~r" 16))
+
+(define-equal-test radix.cardinal.18
+  "seventeen" (fmt nil "~r" 17))
+
+(define-equal-test radix.cardinal.19
+  "eighteen" (fmt nil "~r" 18))
+
+(define-equal-test radix.cardinal.20
+  "nineteen" (fmt nil "~r" 19))
+
+(define-equal-test radix.cardinal.21
+  "twenty" (fmt nil "~r" 20))
+
+(define-equal-test radix.cardinal.22
+  "twenty-one" (fmt nil "~r" 21))
+
+(define-equal-test radix.cardinal.23
+  "thirty" (fmt nil "~r" 30))
+
+(define-equal-test radix.cardinal.24
+  "fourty" (fmt nil "~r" 40))
+
+(define-equal-test radix.cardinal.25
+  "fifty" (fmt nil "~r" 50))
+
+(define-equal-test radix.cardinal.26
+  "sixty" (fmt nil "~r" 60))
+
+(define-equal-test radix.cardinal.27
+  "seventy" (fmt nil "~r" 70))
+
+(define-equal-test radix.cardinal.28
+  "eighty" (fmt nil "~r" 80))
+
+(define-equal-test radix.cardinal.29
+  "ninety" (fmt nil "~r" 90))
+
+(define-equal-test radix.cardinal.30
+  "one hundred" (fmt nil "~r" 100))
+
+(define-equal-test radix.cardinal.31
+  "two hundred four" (fmt nil "~r" 204))
+
+(define-equal-test radix.cardinal.32
+  "three hundred sixteen" (fmt nil "~r" 316))
+
+(define-equal-test radix.cardinal.33
+  "four hundred thirty-six" (fmt nil "~r" 436))
+
+(define-equal-test radix.cardinal.34
+  "two thousand" (fmt nil "~r" 2000))
+
+(define-equal-test radix.cardinal.35
+  "three thousand five" (fmt nil "~r" 3005))
+
+(define-equal-test radix.cardinal.36
+  "four thousand twelve" (fmt nil "~r" 4012))
+
+(define-equal-test radix.cardinal.37
+  "five thousand two hundred" (fmt nil "~r" 5200))
+
+(define-equal-test radix.cardinal.38
+  "eighty thousand" (fmt nil "~r" 80000))
+
+(define-equal-test radix.cardinal.39
+  "five hundred thousand" (fmt nil "~r" 500000))
+
+(define-equal-test radix.cardinal.40
+  "two million" (fmt nil "~r" 2000000))
+
+(define-equal-test radix.cardinal.41
+  "three million six" (fmt nil "~r" 3000006))
+
+(define-equal-test radix.cardinal.42
+  "four million two thousand" (fmt nil "~r" 4002000))
+
+;; English ordinal numbers
+(define-equal-test radix.ordinal.01
+  "zeroth" (fmt nil "~:r" 0))
+
+(define-equal-test radix.ordinal.02
+  "first" (fmt nil "~:r" 1))
+
+(define-equal-test radix.ordinal.03
+  "second" (fmt nil "~:r" 2))
+
+(define-equal-test radix.ordinal.04
+  "third" (fmt nil "~:r" 3))
+
+(define-equal-test radix.ordinal.05
+  "fourth" (fmt nil "~:r" 4))
+
+(define-equal-test radix.ordinal.06
+  "fifth" (fmt nil "~:r" 5))
+
+(define-equal-test radix.ordinal.07
+  "sixth" (fmt nil "~:r" 6))
+
+(define-equal-test radix.ordinal.08
+  "seventh" (fmt nil "~:r" 7))
+
+(define-equal-test radix.ordinal.09
+  "eighth" (fmt nil "~:r" 8))
+
+(define-equal-test radix.ordinal.10
+  "ninth" (fmt nil "~:r" 9))
+
+(define-equal-test radix.ordinal.11
+  "tenth" (fmt nil "~:r" 10))
+
+(define-equal-test radix.ordinal.12
+  "eleventh" (fmt nil "~:r" 11))
+
+(define-equal-test radix.ordinal.13
+  "twelvth" (fmt nil "~:r" 12))
+
+(define-equal-test radix.ordinal.14
+  "thirteenth" (fmt nil "~:r" 13))
+
+(define-equal-test radix.ordinal.15
+  "fourteenth" (fmt nil "~:r" 14))
+
+(define-equal-test radix.ordinal.16
+  "fifteenth" (fmt nil "~:r" 15))
+
+(define-equal-test radix.ordinal.17
+  "sixteenth" (fmt nil "~:r" 16))
+
+(define-equal-test radix.ordinal.18
+  "seventeenth" (fmt nil "~:r" 17))
+
+(define-equal-test radix.ordinal.19
+  "eighteenth" (fmt nil "~:r" 18))
+
+(define-equal-test radix.ordinal.20
+  "nineteenth" (fmt nil "~:r" 19))
+
+(define-equal-test radix.ordinal.21
+  "twentieth" (fmt nil "~:r" 20))
+
+(define-equal-test radix.ordinal.22
+  "twenty-first" (fmt nil "~:r" 21))
+
+(define-equal-test radix.ordinal.23
+  "thirtieth" (fmt nil "~:r" 30))
+
+(define-equal-test radix.ordinal.24
+  "fourtieth" (fmt nil "~:r" 40))
+
+(define-equal-test radix.ordinal.25
+  "fiftieth" (fmt nil "~:r" 50))
+
+(define-equal-test radix.ordinal.26
+  "sixtieth" (fmt nil "~:r" 60))
+
+(define-equal-test radix.ordinal.27
+  "seventieth" (fmt nil "~:r" 70))
+
+(define-equal-test radix.ordinal.28
+  "eightieth" (fmt nil "~:r" 80))
+
+(define-equal-test radix.ordinal.29
+  "ninetieth" (fmt nil "~:r" 90))
+
+(define-equal-test radix.ordinal.30
+  "one hundredth" (fmt nil "~:r" 100))
+
+(define-equal-test radix.ordinal.31
+  "two hundred fourth" (fmt nil "~:r" 204))
+
+(define-equal-test radix.ordinal.32
+  "three hundred sixteenth" (fmt nil "~:r" 316))
+
+(define-equal-test radix.ordinal.33
+  "four hundred thirty-sixth" (fmt nil "~:r" 436))
+
+(define-equal-test radix.ordinal.34
+  "two thousandth" (fmt nil "~:r" 2000))
+
+(define-equal-test radix.ordinal.35
+  "three thousand fifth" (fmt nil "~:r" 3005))
+
+(define-equal-test radix.ordinal.36
+  "four thousand twelvth" (fmt nil "~:r" 4012))
+
+(define-equal-test radix.ordinal.37
+  "five thousand two hundredth" (fmt nil "~:r" 5200))
+
+(define-equal-test radix.ordinal.38
+  "eighty thousandth" (fmt nil "~:r" 80000))
+
+(define-equal-test radix.ordinal.39
+  "five hundred thousandth" (fmt nil "~:r" 500000))
+
+(define-equal-test radix.ordinal.40
+  "two millionth" (fmt nil "~:r" 2000000))
+
+(define-equal-test radix.ordinal.41
+  "three million sixth" (fmt nil "~:r" 3000006))
+
+(define-equal-test radix.ordinal.42
+  "four million two thousandth" (fmt nil "~:r" 4002000))
+
+;; Roman numerals
+(define-equal-test radix.roman.01
+  "I" (fmt nil "~@r" 1))
+
+(define-equal-test radix.roman.02
+  "II" (fmt nil "~@r" 2))
+
+(define-equal-test radix.roman.03
+  "III" (fmt nil "~@r" 3))
+
+(define-equal-test radix.roman.04
+  "IV" (fmt nil "~@r" 4))
+
+(define-equal-test radix.roman.05
+  "V" (fmt nil "~@r" 5))
+
+(define-equal-test radix.roman.06
+  "VI" (fmt nil "~@r" 6))
+
+(define-equal-test radix.roman.07
+  "VII" (fmt nil "~@r" 7))
+
+(define-equal-test radix.roman.08
+  "VIII" (fmt nil "~@r" 8))
+
+(define-equal-test radix.roman.09
+  "IX" (fmt nil "~@r" 9))
+
+(define-equal-test radix.roman.10
+  "X" (fmt nil "~@r" 10))
+
+(define-equal-test radix.roman.11
+  "XI" (fmt nil "~@r" 11))
+
+(define-equal-test radix.roman.12
+  "XII" (fmt nil "~@r" 12))
+
+(define-equal-test radix.roman.13
+  "XIII" (fmt nil "~@r" 13))
+
+(define-equal-test radix.roman.14
+  "XIV" (fmt nil "~@r" 14))
+
+(define-equal-test radix.roman.15
+  "XV" (fmt nil "~@r" 15))
+
+(define-equal-test radix.roman.16
+  "XVI" (fmt nil "~@r" 16))
+
+(define-equal-test radix.roman.17
+  "XVII" (fmt nil "~@r" 17))
+
+(define-equal-test radix.roman.18
+  "XVIII" (fmt nil "~@r" 18))
+
+(define-equal-test radix.roman.19
+  "XIX" (fmt nil "~@r" 19))
+
+(define-equal-test radix.roman.20
+  "XX" (fmt nil "~@r" 20))
+
+(define-equal-test radix.roman.21
+  "XXX" (fmt nil "~@r" 30))
+
+(define-equal-test radix.roman.22
+  "XL" (fmt nil "~@r" 40))
+
+(define-equal-test radix.roman.23
+  "L" (fmt nil "~@r" 50))
+
+(define-equal-test radix.roman.24
+  "LXIV" (fmt nil "~@r" 64))
+
+(define-equal-test radix.roman.25
+  "XCIX" (fmt nil "~@r" 99))
+
+(define-equal-test radix.roman.26
+  "C" (fmt nil "~@r" 100))
+
+(define-equal-test radix.roman.27
+  "CXLVII" (fmt nil "~@r" 147))
+
+(define-equal-test radix.roman.28
+  "CDLXXXIX" (fmt nil "~@r" 489))
+
+(define-equal-test radix.roman.29
+  "DCCCXXXI" (fmt nil "~@r" 831))
+
+(define-equal-test radix.roman.30
+  "M" (fmt nil "~@r" 1000))
+
+(define-equal-test radix.roman.31
+  "MMXL" (fmt nil "~@r" 2040))
+
+(define-equal-test radix.roman.32
+  "MMMXC" (fmt nil "~@r" 3090))
+
+;; Old Roman numerals
+
+(define-equal-test radix.old-roman.01
+  "I" (fmt nil "~:@r" 1))
+
+(define-equal-test radix.old-roman.02
+  "II" (fmt nil "~:@r" 2))
+
+(define-equal-test radix.old-roman.03
+  "III" (fmt nil "~:@r" 3))
+
+(define-equal-test radix.old-roman.04
+  "IIII" (fmt nil "~:@r" 4))
+
+(define-equal-test radix.old-roman.05
+  "V" (fmt nil "~:@r" 5))
+
+(define-equal-test radix.old-roman.06
+  "VI" (fmt nil "~:@r" 6))
+
+(define-equal-test radix.old-roman.07
+  "VII" (fmt nil "~:@r" 7))
+
+(define-equal-test radix.old-roman.08
+  "VIII" (fmt nil "~:@r" 8))
+
+(define-equal-test radix.old-roman.09
+  "VIIII" (fmt nil "~:@r" 9))
+
+(define-equal-test radix.old-roman.10
+  "X" (fmt nil "~:@r" 10))
+
+(define-equal-test radix.old-roman.11
+  "XI" (fmt nil "~:@r" 11))
+
+(define-equal-test radix.old-roman.12
+  "XII" (fmt nil "~:@r" 12))
+
+(define-equal-test radix.old-roman.13
+  "XIII" (fmt nil "~:@r" 13))
+
+(define-equal-test radix.old-roman.14
+  "XIIII" (fmt nil "~:@r" 14))
+
+(define-equal-test radix.old-roman.15
+  "XV" (fmt nil "~:@r" 15))
+
+(define-equal-test radix.old-roman.16
+  "XVI" (fmt nil "~:@r" 16))
+
+(define-equal-test radix.old-roman.17
+  "XVII" (fmt nil "~:@r" 17))
+
+(define-equal-test radix.old-roman.18
+  "XVIII" (fmt nil "~:@r" 18))
+
+(define-equal-test radix.old-roman.19
+  "XVIIII" (fmt nil "~:@r" 19))
+
+(define-equal-test radix.old-roman.20
+  "XX" (fmt nil "~:@r" 20))
+
+(define-equal-test radix.old-roman.21
+  "XXX" (fmt nil "~:@r" 30))
+
+(define-equal-test radix.old-roman.22
+  "XXXX" (fmt nil "~:@r" 40))
+
+(define-equal-test radix.old-roman.23
+  "L" (fmt nil "~:@r" 50))
+
+(define-equal-test radix.old-roman.24
+  "LXIIII" (fmt nil "~:@r" 64))
+
+(define-equal-test radix.old-roman.25
+  "LXXXXVIIII" (fmt nil "~:@r" 99))
+
+(define-equal-test radix.old-roman.26
+  "C" (fmt nil "~:@r" 100))
+
+(define-equal-test radix.old-roman.27
+  "CXXXXVII" (fmt nil "~:@r" 147))
+
+(define-equal-test radix.old-roman.28
+  "CCCCLXXXVIIII" (fmt nil "~:@r" 489))
+
+(define-equal-test radix.old-roman.29
+  "DCCCXXXI" (fmt nil "~:@r" 831))
+
+(define-equal-test radix.old-roman.30
+  "M" (fmt nil "~:@r" 1000))
+
+(define-equal-test radix.old-roman.31
+  "MMXXXX" (fmt nil "~:@r" 2040))
+
+(define-equal-test radix.old-roman.32
+  "MMMLXXXX" (fmt nil "~:@r" 3090))
+
+#|
+;; test the use of different values of the radix
   (loop for radix from 2 to 36
         do (loop repeat 1000
                  do (let ((value (random (expt 10 100))))
@@ -429,45 +726,54 @@
    (expand-format
     (assert-equal "xx66a551a234"
                  (fmt nil "~10,12,'x,'a:r" 66551234))))
+|#
+;; test that the mincol parameter is taken into account
+(define-equal-test decimal.01
+  "123"
+  (fmt nil "~1d" 123))
 
-#+(or)(define-test decimal
-  ;; test that the mincol parameter is taken into account
-  (expand-format
-   (assert-equal "123"
-                 (fmt nil "~1d" 123)))
-  (expand-format
-   (assert-equal "123"
-                 (fmt nil "~2d" 123)))
-  (expand-format
-   (assert-equal "123"
-                 (fmt nil "~3d" 123)))
-  (expand-format
-   (assert-equal " 123"
-                 (fmt nil "~4d" 123)))
-  (expand-format
-   (assert-equal "  123"
-                 (fmt nil "~5d" 123)))
-  ;; test that the padchar parameter is taken into account
-  (expand-format
-   (assert-equal "xx123"
-                 (fmt nil "~5,'xd" 123)))
-  ;; test the : modifier
-  (expand-format
-   (assert-equal "xx123"
-                 (fmt nil "~5,'x:d" 123)))
-   (expand-format
-    (assert-equal "xx1,234"
-                 (fmt nil "~7,'x:d" 1234)))
-   (expand-format
-    (assert-equal "xx551,234"
-                 (fmt nil "~9,'x:d" 551234)))
-   (expand-format
-    (assert-equal "xx66,551,234"
-                 (fmt nil "~12,'x:d" 66551234)))
-   ;; test the commachar parameter is taken into account
-   (expand-format
-    (assert-equal "xx66a551a234"
-                 (fmt nil "~12,'x,'a:d" 66551234))))
+(define-equal-test decimal.02
+  "123"
+  (fmt nil "~2d" 123))
+
+(define-equal-test decimal.03
+  "123"
+  (fmt nil "~3d" 123))
+
+(define-equal-test decimal.04
+  " 123"
+  (fmt nil "~4d" 123))
+
+(define-equal-test decimal.05
+  "  123"
+  (fmt nil "~5d" 123))
+
+;; test that the padchar parameter is taken into account
+(define-equal-test decimal.06
+  "xx123"
+  (fmt nil "~5,'xd" 123))
+
+;; test the : modifier
+(define-equal-test decimal.07
+  "xx123"
+  (fmt nil "~5,'x:d" 123))
+
+(define-equal-test decimal.08
+  "xx1,234"
+  (fmt nil "~7,'x:d" 1234))
+
+(define-equal-test decimal.09
+  "xx551,234"
+  (fmt nil "~9,'x:d" 551234))
+
+(define-equal-test decimal.10
+  "xx66,551,234"
+  (fmt nil "~12,'x:d" 66551234))
+
+;; test the commachar parameter is taken into account
+(define-equal-test decimal.11
+  "xx66a551a234"
+  (fmt nil "~12,'x,'a:d" 66551234))
 
 ;; test that the mincol parameter is taken into account
 (define-equal-test octal.01
@@ -644,7 +950,7 @@
   (fmt nil "~w" 'abc))
 
 (define-equal-test write.05
-  "hello"
+  "\"hello\""
   (fmt nil "~w" "hello"))
 
 (define-equal-test write.06
