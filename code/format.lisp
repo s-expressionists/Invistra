@@ -329,15 +329,12 @@
         do (write-char #\Page *destination*)))
 
 (define-format-directive-compiler vertical-bar-directive
-  (let ((how-many (compile-time-value directive 'how-many)))
-    (cond ((null how-many)
-           `((loop repeat how-many
-                   do (write-char #\Page *destination*))))
-          ((< how-many 3)
-           `(loop repeat how-many
-                  collect `(write-char #\Page *destination*)))
-          (t `((loop repeat ,how-many
-                     do (write-char #\Page *destination*)))))))
+    (let ((how-many (compile-time-value directive 'how-many)))
+      (if (< how-many 3)
+          (loop repeat how-many
+                collect '(write-char #\Page *destination*))
+          `((loop repeat ,how-many
+                  do (write-char #\Page *destination*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
