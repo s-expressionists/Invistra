@@ -118,115 +118,148 @@
   #+(or)(expand-format (assert-error 'error (fmt nil "~#c" #\a)))
   #+(or)(expand-format (assert-error 'error (fmt nil "~vc" #\a))))
 
-#+(or)(define-test newline
-  ;; without any parameters, output a newline
-  (expand-format (assert-equal
-                  (with-output-to-string (stream)
-                    (write-char #\Newline stream))
-                  (fmt nil "~%")))
-  ;; also with a pameter of 1
-  (expand-format (assert-equal
-                  (with-output-to-string (stream)
-                    (write-char #\Newline stream))
-                  (fmt nil "~1%")))
-  (expand-format (assert-equal
-                  ""
-                  (fmt nil "~0%")))
-  (expand-format (assert-equal
-                  (with-output-to-string (stream)
-                    (write-char #\Newline stream)
-                    (write-char #\Newline stream))
-                  (fmt nil "~2%")))
-  ;; The newline directive takes a single optional
-  ;; numeric parameter
-  (assert-error 'error (fmt nil "~'a%"))
-  (assert-error 'error (fmt nil "~1,2%"))
-  ;; The newline directive takes no modifiers
-  (assert-error 'error (fmt nil "~:%"))
-  (assert-error 'error (fmt nil "~@%")))
+;; without any parameters, output a newline
+(define-equal-test newline.01
+  "
+"
+  (fmt nil "~%"))
 
-#+(or)(define-test fresh-line
-  ;; without any parameters, does nothing to a string
-  (expand-format (assert-equal
-                  ""
-                  (fmt nil "~&")))
-  ;; same thing for parameter values of 0 and 1
-  (expand-format (assert-equal
-                  ""
-                  (fmt nil "~0&")))
-  (expand-format (assert-equal
-                  ""
-                  (fmt nil "~1&")))
-  ;; for a parameter value of 2, outputs a newline
-  (expand-format (assert-equal
-                  (with-output-to-string (stream)
-                    (write-char #\Newline stream))
-                  (fmt nil "~2&")))
-  ;; The fresh-line directive takes a single optional
-  ;; numeric parameter
-  (assert-error 'error (fmt nil "~'a&"))
-  (assert-error 'error (fmt nil "~1,2&"))
-  ;; The fresh-line directive takes no modifiers
-  (assert-error 'error (fmt nil "~:&"))
-  (assert-error 'error (fmt nil "~@&")))
+;; also with a pameter of 1
+(define-equal-test newline.02
+  "
+"
+  (fmt nil "~1%"))
 
-#+(or)(define-test page
-  ;; without any parameters, outputs a page separator
-  (expand-format (assert-equal
-                  (with-output-to-string (stream)
-                    (write-char #\Page stream))
-                  (fmt nil "~|")))
-  ;; same thing for a parameter value of 1
-  (expand-format (assert-equal
-                  (with-output-to-string (stream)
-                    (write-char #\Page stream))
-                  (fmt nil "~1|")))
-  ;; with a parameter value of 0, does nothing
-  (expand-format (assert-equal
-                  ""
-                  (fmt nil "~0|")))
-  ;; for a parameter value of 2, outputs two page separators
-  (expand-format (assert-equal
-                  (with-output-to-string (stream)
-                    (write-char #\Page stream)
-                    (write-char #\Page stream))
-                  (fmt nil "~2|")))
-  ;; The page directive takes a single optional
-  ;; numeric parameter
-  (assert-error 'error (fmt nil "~'a|"))
-  (assert-error 'error (fmt nil "~1,2|"))
-  ;; The page directive takes no modifiers
-  (assert-error 'error (fmt nil "~:|"))
-  (assert-error 'error (fmt nil "~@|")))
+(define-equal-test newline.03
+  ""
+  (fmt nil "~0%"))
 
-#+(or)(define-test tilde
-  ;; without any parameters, outputs a tilde
-  (expand-format (assert-equal
-                  (with-output-to-string (stream)
-                    (write-char #\~ stream))
-                  (fmt nil "~~")))
-  ;; same thing for a parameter value of 1
-  (expand-format (assert-equal
-                  (with-output-to-string (stream)
-                    (write-char #\~ stream))
-                  (fmt nil "~1~")))
-  ;; with a parameter value of 0, does nothing
-  (expand-format (assert-equal
-                  ""
-                  (fmt nil "~0~")))
-  ;; for a parameter value of 2, outputs two tildes
-  (expand-format (assert-equal
-                  (with-output-to-string (stream)
-                    (write-char #\~ stream)
-                    (write-char #\~ stream))
-                  (fmt nil "~2~")))
-  ;; The tilde directive takes a single optional
-  ;; numeric parameter
-  (assert-error 'error (fmt nil "~'a~"))
-  (assert-error 'error (fmt nil "~1,2~"))
-  ;; The tilde directive takes no modifiers
-  (assert-error 'error (fmt nil "~:~"))
-  (assert-error 'error (fmt nil "~@~")))
+(define-equal-test newline.04
+  "
+
+"
+  (fmt nil "~2%"))
+
+;; The newline directive takes a single optional
+;; numeric parameter
+(define-fail-test newline.05
+  (fmt nil "~'a%"))
+
+(define-fail-test newline.06
+  (fmt nil "~1,2%"))
+
+;; The newline directive takes no modifiers
+(define-fail-test newline.07
+  (fmt nil "~:%"))
+
+(define-fail-test newline.08
+  (fmt nil "~@%"))
+
+;; without any parameters, does nothing to a string
+(define-equal-test fresh-line.01
+  ""
+  (fmt nil "~&"))
+
+;; same thing for parameter values of 0 and 1
+(define-equal-test fresh-line.02
+  ""
+  (fmt nil "~0&"))
+
+(define-equal-test fresh-line.03
+  ""
+  (fmt nil "~1&"))
+
+;; for a parameter value of 2, outputs a newline
+(define-equal-test fresh-line.04
+  "
+"
+  (fmt nil "~2&"))
+
+;; The fresh-line directive takes a single optional
+;; numeric parameter
+(define-fail-test fresh-line.05
+  (fmt nil "~'a&"))
+
+(define-fail-test fresh-line.06
+  (fmt nil "~1,2&"))
+
+;; The fresh-line directive takes no modifiers
+(define-fail-test fresh-line.07
+  (fmt nil "~:&"))
+
+(define-fail-test fresh-line.08
+  (fmt nil "~@&"))
+
+;; without any parameters, outputs a page separator
+(define-equal-test page.01
+  ""
+  (fmt nil "~|"))
+
+;; same thing for a parameter value of 1
+(define-equal-test page.02
+  ""
+  (fmt nil "~1|"))
+
+;; with a parameter value of 0, does nothing
+(define-equal-test page.03
+  ""
+  (fmt nil "~0|"))
+
+;; for a parameter value of 2, outputs two page separators
+(define-equal-test page.04
+  ""
+  (fmt nil "~2|"))
+
+;; The page directive takes a single optional
+;; numeric parameter
+(define-fail-test page.05
+  (fmt nil "~'a|"))
+
+(define-fail-test page.06
+  (fmt nil "~1,2|"))
+
+;; The page directive takes no modifiers
+(define-fail-test page.07
+  (fmt nil "~:|"))
+
+(define-fail-test page.08
+  (fmt nil "~@|"))
+
+;; without any parameters, outputs a tilde
+(define-equal-test tilde.01
+  "~"
+  (fmt nil "~~"))
+
+;; same thing for a parameter value of 1
+(define-equal-test tilde.02
+  "~"
+  (fmt nil "~1~"))
+
+;; with a parameter value of 0, does nothing
+(define-equal-test tilde.03
+  ""
+  (fmt nil "~0~"))
+
+;; for a parameter value of 2, outputs two tildes
+(define-equal-test tilde.04
+  "~~"
+  (fmt nil "~2~"))
+
+;; The tilde directive takes a single optional
+;; numeric parameter
+
+(define-fail-test tilde.05
+    (fmt nil "~'a~"))
+
+(define-fail-test tilde.06
+    (fmt nil "~1,2~"))
+
+;; The tilde directive takes no modifiers
+(define-fail-test tilde.07
+    (fmt nil "~:~"))
+
+(define-fail-test tilde.08
+    (fmt nil "~@~"))
 
 ;; English cardinal numbers
 (define-equal-test radix.cardinal.01
@@ -234,499 +267,656 @@
   (fmt nil "~r" 0))
 
 (define-equal-test radix.cardinal.02
-  "one" (fmt nil "~r" 1))
+  "one"
+  (fmt nil "~r" 1))
 
 (define-equal-test radix.cardinal.03
-  "two" (fmt nil "~r" 2))
+  "two"
+  (fmt nil "~r" 2))
 
 (define-equal-test radix.cardinal.04
-  "three" (fmt nil "~r" 3))
+  "three"
+  (fmt nil "~r" 3))
 
 (define-equal-test radix.cardinal.05
-  "four" (fmt nil "~r" 4))
+  "four"
+  (fmt nil "~r" 4))
 
 (define-equal-test radix.cardinal.06
-  "five" (fmt nil "~r" 5))
+  "five"
+  (fmt nil "~r" 5))
 
 (define-equal-test radix.cardinal.07
-  "six" (fmt nil "~r" 6))
+  "six"
+  (fmt nil "~r" 6))
 
 (define-equal-test radix.cardinal.08
-  "seven" (fmt nil "~r" 7))
+  "seven"
+  (fmt nil "~r" 7))
 
 (define-equal-test radix.cardinal.09
-  "eight" (fmt nil "~r" 8))
+  "eight"
+  (fmt nil "~r" 8))
 
 (define-equal-test radix.cardinal.10
-  "nine" (fmt nil "~r" 9))
+  "nine"
+  (fmt nil "~r" 9))
 
 (define-equal-test radix.cardinal.11
-  "ten" (fmt nil "~r" 10))
+  "ten"
+  (fmt nil "~r" 10))
 
 (define-equal-test radix.cardinal.12
-  "eleven" (fmt nil "~r" 11))
+  "eleven"
+  (fmt nil "~r" 11))
 
 (define-equal-test radix.cardinal.13
-  "twelve" (fmt nil "~r" 12))
+  "twelve"
+  (fmt nil "~r" 12))
 
 (define-equal-test radix.cardinal.14
-  "thirteen" (fmt nil "~r" 13))
+  "thirteen"
+  (fmt nil "~r" 13))
 
 (define-equal-test radix.cardinal.15
-  "fourteen" (fmt nil "~r" 14))
+  "fourteen"
+  (fmt nil "~r" 14))
 
 (define-equal-test radix.cardinal.16
-  "fifteen" (fmt nil "~r" 15))
+  "fifteen"
+  (fmt nil "~r" 15))
 
 (define-equal-test radix.cardinal.17
-  "sixteen" (fmt nil "~r" 16))
+  "sixteen"
+  (fmt nil "~r" 16))
 
 (define-equal-test radix.cardinal.18
-  "seventeen" (fmt nil "~r" 17))
+  "seventeen"
+  (fmt nil "~r" 17))
 
 (define-equal-test radix.cardinal.19
-  "eighteen" (fmt nil "~r" 18))
+  "eighteen"
+  (fmt nil "~r" 18))
 
 (define-equal-test radix.cardinal.20
-  "nineteen" (fmt nil "~r" 19))
+  "nineteen"
+  (fmt nil "~r" 19))
 
 (define-equal-test radix.cardinal.21
-  "twenty" (fmt nil "~r" 20))
+  "twenty"
+  (fmt nil "~r" 20))
 
 (define-equal-test radix.cardinal.22
-  "twenty-one" (fmt nil "~r" 21))
+  "twenty-one"
+  (fmt nil "~r" 21))
 
 (define-equal-test radix.cardinal.23
-  "thirty" (fmt nil "~r" 30))
+  "thirty"
+  (fmt nil "~r" 30))
 
 (define-equal-test radix.cardinal.24
-  "fourty" (fmt nil "~r" 40))
+  "fourty"
+  (fmt nil "~r" 40))
 
 (define-equal-test radix.cardinal.25
-  "fifty" (fmt nil "~r" 50))
+  "fifty"
+  (fmt nil "~r" 50))
 
 (define-equal-test radix.cardinal.26
-  "sixty" (fmt nil "~r" 60))
+  "sixty"
+  (fmt nil "~r" 60))
 
 (define-equal-test radix.cardinal.27
-  "seventy" (fmt nil "~r" 70))
+  "seventy"
+  (fmt nil "~r" 70))
 
 (define-equal-test radix.cardinal.28
-  "eighty" (fmt nil "~r" 80))
+  "eighty"
+  (fmt nil "~r" 80))
 
 (define-equal-test radix.cardinal.29
-  "ninety" (fmt nil "~r" 90))
+  "ninety"
+  (fmt nil "~r" 90))
 
 (define-equal-test radix.cardinal.30
-  "one hundred" (fmt nil "~r" 100))
+  "one hundred"
+  (fmt nil "~r" 100))
 
 (define-equal-test radix.cardinal.31
-  "two hundred four" (fmt nil "~r" 204))
+  "two hundred four"
+  (fmt nil "~r" 204))
 
 (define-equal-test radix.cardinal.32
-  "three hundred sixteen" (fmt nil "~r" 316))
+  "three hundred sixteen"
+  (fmt nil "~r" 316))
 
 (define-equal-test radix.cardinal.33
-  "four hundred thirty-six" (fmt nil "~r" 436))
+  "four hundred thirty-six"
+  (fmt nil "~r" 436))
 
 (define-equal-test radix.cardinal.34
-  "two thousand" (fmt nil "~r" 2000))
+  "two thousand"
+  (fmt nil "~r" 2000))
 
 (define-equal-test radix.cardinal.35
-  "three thousand five" (fmt nil "~r" 3005))
+  "three thousand five"
+  (fmt nil "~r" 3005))
 
 (define-equal-test radix.cardinal.36
-  "four thousand twelve" (fmt nil "~r" 4012))
+  "four thousand twelve"
+  (fmt nil "~r" 4012))
 
 (define-equal-test radix.cardinal.37
-  "five thousand two hundred" (fmt nil "~r" 5200))
+  "five thousand two hundred"
+  (fmt nil "~r" 5200))
 
 (define-equal-test radix.cardinal.38
-  "eighty thousand" (fmt nil "~r" 80000))
+  "eighty thousand"
+  (fmt nil "~r" 80000))
 
 (define-equal-test radix.cardinal.39
-  "five hundred thousand" (fmt nil "~r" 500000))
+  "five hundred thousand"
+  (fmt nil "~r" 500000))
 
 (define-equal-test radix.cardinal.40
-  "two million" (fmt nil "~r" 2000000))
+  "two million"
+  (fmt nil "~r" 2000000))
 
 (define-equal-test radix.cardinal.41
-  "three million six" (fmt nil "~r" 3000006))
+  "three million six"
+  (fmt nil "~r" 3000006))
 
 (define-equal-test radix.cardinal.42
-  "four million two thousand" (fmt nil "~r" 4002000))
+  "four million two thousand"
+  (fmt nil "~r" 4002000))
 
 ;; English ordinal numbers
 (define-equal-test radix.ordinal.01
-  "zeroth" (fmt nil "~:r" 0))
+  "zeroth"
+  (fmt nil "~:r" 0))
 
 (define-equal-test radix.ordinal.02
-  "first" (fmt nil "~:r" 1))
+  "first"
+  (fmt nil "~:r" 1))
 
 (define-equal-test radix.ordinal.03
-  "second" (fmt nil "~:r" 2))
+  "second"
+  (fmt nil "~:r" 2))
 
 (define-equal-test radix.ordinal.04
-  "third" (fmt nil "~:r" 3))
+  "third"
+  (fmt nil "~:r" 3))
 
 (define-equal-test radix.ordinal.05
-  "fourth" (fmt nil "~:r" 4))
+  "fourth"
+  (fmt nil "~:r" 4))
 
 (define-equal-test radix.ordinal.06
-  "fifth" (fmt nil "~:r" 5))
+  "fifth"
+  (fmt nil "~:r" 5))
 
 (define-equal-test radix.ordinal.07
-  "sixth" (fmt nil "~:r" 6))
+  "sixth"
+  (fmt nil "~:r" 6))
 
 (define-equal-test radix.ordinal.08
-  "seventh" (fmt nil "~:r" 7))
+  "seventh"
+  (fmt nil "~:r" 7))
 
 (define-equal-test radix.ordinal.09
-  "eighth" (fmt nil "~:r" 8))
+  "eighth"
+  (fmt nil "~:r" 8))
 
 (define-equal-test radix.ordinal.10
-  "ninth" (fmt nil "~:r" 9))
+  "ninth"
+  (fmt nil "~:r" 9))
 
 (define-equal-test radix.ordinal.11
-  "tenth" (fmt nil "~:r" 10))
+  "tenth"
+  (fmt nil "~:r" 10))
 
 (define-equal-test radix.ordinal.12
-  "eleventh" (fmt nil "~:r" 11))
+  "eleventh"
+  (fmt nil "~:r" 11))
 
 (define-equal-test radix.ordinal.13
-  "twelvth" (fmt nil "~:r" 12))
+  "twelvth"
+  (fmt nil "~:r" 12))
 
 (define-equal-test radix.ordinal.14
-  "thirteenth" (fmt nil "~:r" 13))
+  "thirteenth"
+  (fmt nil "~:r" 13))
 
 (define-equal-test radix.ordinal.15
-  "fourteenth" (fmt nil "~:r" 14))
+  "fourteenth"
+  (fmt nil "~:r" 14))
 
 (define-equal-test radix.ordinal.16
-  "fifteenth" (fmt nil "~:r" 15))
+  "fifteenth"
+  (fmt nil "~:r" 15))
 
 (define-equal-test radix.ordinal.17
-  "sixteenth" (fmt nil "~:r" 16))
+  "sixteenth"
+  (fmt nil "~:r" 16))
 
 (define-equal-test radix.ordinal.18
-  "seventeenth" (fmt nil "~:r" 17))
+  "seventeenth"
+  (fmt nil "~:r" 17))
 
 (define-equal-test radix.ordinal.19
-  "eighteenth" (fmt nil "~:r" 18))
+  "eighteenth"
+  (fmt nil "~:r" 18))
 
 (define-equal-test radix.ordinal.20
-  "nineteenth" (fmt nil "~:r" 19))
+  "nineteenth"
+  (fmt nil "~:r" 19))
 
 (define-equal-test radix.ordinal.21
-  "twentieth" (fmt nil "~:r" 20))
+  "twentieth"
+  (fmt nil "~:r" 20))
 
 (define-equal-test radix.ordinal.22
-  "twenty-first" (fmt nil "~:r" 21))
+  "twenty-first"
+  (fmt nil "~:r" 21))
 
 (define-equal-test radix.ordinal.23
-  "thirtieth" (fmt nil "~:r" 30))
+  "thirtieth"
+  (fmt nil "~:r" 30))
 
 (define-equal-test radix.ordinal.24
-  "fourtieth" (fmt nil "~:r" 40))
+  "fourtieth"
+  (fmt nil "~:r" 40))
 
 (define-equal-test radix.ordinal.25
-  "fiftieth" (fmt nil "~:r" 50))
+  "fiftieth"
+  (fmt nil "~:r" 50))
 
 (define-equal-test radix.ordinal.26
-  "sixtieth" (fmt nil "~:r" 60))
+  "sixtieth"
+  (fmt nil "~:r" 60))
 
 (define-equal-test radix.ordinal.27
-  "seventieth" (fmt nil "~:r" 70))
+  "seventieth"
+  (fmt nil "~:r" 70))
 
 (define-equal-test radix.ordinal.28
-  "eightieth" (fmt nil "~:r" 80))
+  "eightieth"
+  (fmt nil "~:r" 80))
 
 (define-equal-test radix.ordinal.29
-  "ninetieth" (fmt nil "~:r" 90))
+  "ninetieth"
+  (fmt nil "~:r" 90))
 
 (define-equal-test radix.ordinal.30
-  "one hundredth" (fmt nil "~:r" 100))
+  "one hundredth"
+  (fmt nil "~:r" 100))
 
 (define-equal-test radix.ordinal.31
-  "two hundred fourth" (fmt nil "~:r" 204))
+  "two hundred fourth"
+  (fmt nil "~:r" 204))
 
 (define-equal-test radix.ordinal.32
-  "three hundred sixteenth" (fmt nil "~:r" 316))
+  "three hundred sixteenth"
+  (fmt nil "~:r" 316))
 
 (define-equal-test radix.ordinal.33
-  "four hundred thirty-sixth" (fmt nil "~:r" 436))
+  "four hundred thirty-sixth"
+  (fmt nil "~:r" 436))
 
 (define-equal-test radix.ordinal.34
-  "two thousandth" (fmt nil "~:r" 2000))
+  "two thousandth"
+  (fmt nil "~:r" 2000))
 
 (define-equal-test radix.ordinal.35
-  "three thousand fifth" (fmt nil "~:r" 3005))
+  "three thousand fifth"
+  (fmt nil "~:r" 3005))
 
 (define-equal-test radix.ordinal.36
-  "four thousand twelvth" (fmt nil "~:r" 4012))
+  "four thousand twelvth"
+  (fmt nil "~:r" 4012))
 
 (define-equal-test radix.ordinal.37
-  "five thousand two hundredth" (fmt nil "~:r" 5200))
+  "five thousand two hundredth"
+  (fmt nil "~:r" 5200))
 
 (define-equal-test radix.ordinal.38
-  "eighty thousandth" (fmt nil "~:r" 80000))
+  "eighty thousandth"
+  (fmt nil "~:r" 80000))
 
 (define-equal-test radix.ordinal.39
-  "five hundred thousandth" (fmt nil "~:r" 500000))
+  "five hundred thousandth"
+  (fmt nil "~:r" 500000))
 
 (define-equal-test radix.ordinal.40
-  "two millionth" (fmt nil "~:r" 2000000))
+  "two millionth"
+  (fmt nil "~:r" 2000000))
 
 (define-equal-test radix.ordinal.41
-  "three million sixth" (fmt nil "~:r" 3000006))
+  "three million sixth"
+  (fmt nil "~:r" 3000006))
 
 (define-equal-test radix.ordinal.42
-  "four million two thousandth" (fmt nil "~:r" 4002000))
+  "four million two thousandth"
+  (fmt nil "~:r" 4002000))
 
 ;; Roman numerals
 (define-equal-test radix.roman.01
-  "I" (fmt nil "~@r" 1))
+  "I"
+  (fmt nil "~@r" 1))
 
 (define-equal-test radix.roman.02
-  "II" (fmt nil "~@r" 2))
+  "II"
+  (fmt nil "~@r" 2))
 
 (define-equal-test radix.roman.03
-  "III" (fmt nil "~@r" 3))
+  "III"
+  (fmt nil "~@r" 3))
 
 (define-equal-test radix.roman.04
-  "IV" (fmt nil "~@r" 4))
+  "IV"
+  (fmt nil "~@r" 4))
 
 (define-equal-test radix.roman.05
-  "V" (fmt nil "~@r" 5))
+  "V"
+  (fmt nil "~@r" 5))
 
 (define-equal-test radix.roman.06
-  "VI" (fmt nil "~@r" 6))
+  "VI"
+  (fmt nil "~@r" 6))
 
 (define-equal-test radix.roman.07
-  "VII" (fmt nil "~@r" 7))
+  "VII"
+  (fmt nil "~@r" 7))
 
 (define-equal-test radix.roman.08
-  "VIII" (fmt nil "~@r" 8))
+  "VIII"
+  (fmt nil "~@r" 8))
 
 (define-equal-test radix.roman.09
-  "IX" (fmt nil "~@r" 9))
+  "IX"
+  (fmt nil "~@r" 9))
 
 (define-equal-test radix.roman.10
-  "X" (fmt nil "~@r" 10))
+  "X"
+  (fmt nil "~@r" 10))
 
 (define-equal-test radix.roman.11
-  "XI" (fmt nil "~@r" 11))
+  "XI"
+  (fmt nil "~@r" 11))
 
 (define-equal-test radix.roman.12
-  "XII" (fmt nil "~@r" 12))
+  "XII"
+  (fmt nil "~@r" 12))
 
 (define-equal-test radix.roman.13
-  "XIII" (fmt nil "~@r" 13))
+  "XIII"
+  (fmt nil "~@r" 13))
 
 (define-equal-test radix.roman.14
-  "XIV" (fmt nil "~@r" 14))
+  "XIV"
+  (fmt nil "~@r" 14))
 
 (define-equal-test radix.roman.15
-  "XV" (fmt nil "~@r" 15))
+  "XV"
+  (fmt nil "~@r" 15))
 
 (define-equal-test radix.roman.16
-  "XVI" (fmt nil "~@r" 16))
+  "XVI"
+  (fmt nil "~@r" 16))
 
 (define-equal-test radix.roman.17
-  "XVII" (fmt nil "~@r" 17))
+  "XVII"
+  (fmt nil "~@r" 17))
 
 (define-equal-test radix.roman.18
-  "XVIII" (fmt nil "~@r" 18))
+  "XVIII"
+  (fmt nil "~@r" 18))
 
 (define-equal-test radix.roman.19
-  "XIX" (fmt nil "~@r" 19))
+  "XIX"
+  (fmt nil "~@r" 19))
 
 (define-equal-test radix.roman.20
-  "XX" (fmt nil "~@r" 20))
+  "XX"
+  (fmt nil "~@r" 20))
 
 (define-equal-test radix.roman.21
-  "XXX" (fmt nil "~@r" 30))
+  "XXX"
+  (fmt nil "~@r" 30))
 
 (define-equal-test radix.roman.22
-  "XL" (fmt nil "~@r" 40))
+  "XL"
+  (fmt nil "~@r" 40))
 
 (define-equal-test radix.roman.23
-  "L" (fmt nil "~@r" 50))
+  "L"
+  (fmt nil "~@r" 50))
 
 (define-equal-test radix.roman.24
-  "LXIV" (fmt nil "~@r" 64))
+  "LXIV"
+  (fmt nil "~@r" 64))
 
 (define-equal-test radix.roman.25
-  "XCIX" (fmt nil "~@r" 99))
+  "XCIX"
+  (fmt nil "~@r" 99))
 
 (define-equal-test radix.roman.26
-  "C" (fmt nil "~@r" 100))
+  "C"
+  (fmt nil "~@r" 100))
 
 (define-equal-test radix.roman.27
-  "CXLVII" (fmt nil "~@r" 147))
+  "CXLVII"
+  (fmt nil "~@r" 147))
 
 (define-equal-test radix.roman.28
-  "CDLXXXIX" (fmt nil "~@r" 489))
+  "CDLXXXIX"
+  (fmt nil "~@r" 489))
 
 (define-equal-test radix.roman.29
-  "DCCCXXXI" (fmt nil "~@r" 831))
+  "DCCCXXXI"
+  (fmt nil "~@r" 831))
 
 (define-equal-test radix.roman.30
-  "M" (fmt nil "~@r" 1000))
+  "M"
+  (fmt nil "~@r" 1000))
 
 (define-equal-test radix.roman.31
-  "MMXL" (fmt nil "~@r" 2040))
+  "MMXL"
+  (fmt nil "~@r" 2040))
 
 (define-equal-test radix.roman.32
-  "MMMXC" (fmt nil "~@r" 3090))
+  "MMMXC"
+  (fmt nil "~@r" 3090))
 
 ;; Old Roman numerals
 
 (define-equal-test radix.old-roman.01
-  "I" (fmt nil "~:@r" 1))
+  "I"
+  (fmt nil "~:@r" 1))
 
 (define-equal-test radix.old-roman.02
-  "II" (fmt nil "~:@r" 2))
+  "II"
+  (fmt nil "~:@r" 2))
 
 (define-equal-test radix.old-roman.03
-  "III" (fmt nil "~:@r" 3))
+  "III"
+  (fmt nil "~:@r" 3))
 
 (define-equal-test radix.old-roman.04
-  "IIII" (fmt nil "~:@r" 4))
+  "IIII"
+  (fmt nil "~:@r" 4))
 
 (define-equal-test radix.old-roman.05
-  "V" (fmt nil "~:@r" 5))
+  "V"
+  (fmt nil "~:@r" 5))
 
 (define-equal-test radix.old-roman.06
-  "VI" (fmt nil "~:@r" 6))
+  "VI"
+  (fmt nil "~:@r" 6))
 
 (define-equal-test radix.old-roman.07
-  "VII" (fmt nil "~:@r" 7))
+  "VII"
+  (fmt nil "~:@r" 7))
 
 (define-equal-test radix.old-roman.08
-  "VIII" (fmt nil "~:@r" 8))
+  "VIII"
+  (fmt nil "~:@r" 8))
 
 (define-equal-test radix.old-roman.09
-  "VIIII" (fmt nil "~:@r" 9))
+  "VIIII"
+  (fmt nil "~:@r" 9))
 
 (define-equal-test radix.old-roman.10
-  "X" (fmt nil "~:@r" 10))
+  "X"
+  (fmt nil "~:@r" 10))
 
 (define-equal-test radix.old-roman.11
-  "XI" (fmt nil "~:@r" 11))
+  "XI"
+  (fmt nil "~:@r" 11))
 
 (define-equal-test radix.old-roman.12
-  "XII" (fmt nil "~:@r" 12))
+  "XII"
+  (fmt nil "~:@r" 12))
 
 (define-equal-test radix.old-roman.13
-  "XIII" (fmt nil "~:@r" 13))
+  "XIII"
+  (fmt nil "~:@r" 13))
 
 (define-equal-test radix.old-roman.14
-  "XIIII" (fmt nil "~:@r" 14))
+  "XIIII"
+  (fmt nil "~:@r" 14))
 
 (define-equal-test radix.old-roman.15
-  "XV" (fmt nil "~:@r" 15))
+  "XV"
+  (fmt nil "~:@r" 15))
 
 (define-equal-test radix.old-roman.16
-  "XVI" (fmt nil "~:@r" 16))
+  "XVI"
+  (fmt nil "~:@r" 16))
 
 (define-equal-test radix.old-roman.17
-  "XVII" (fmt nil "~:@r" 17))
+  "XVII"
+  (fmt nil "~:@r" 17))
 
 (define-equal-test radix.old-roman.18
-  "XVIII" (fmt nil "~:@r" 18))
+  "XVIII"
+  (fmt nil "~:@r" 18))
 
 (define-equal-test radix.old-roman.19
-  "XVIIII" (fmt nil "~:@r" 19))
+  "XVIIII"
+  (fmt nil "~:@r" 19))
 
 (define-equal-test radix.old-roman.20
-  "XX" (fmt nil "~:@r" 20))
+  "XX"
+  (fmt nil "~:@r" 20))
 
 (define-equal-test radix.old-roman.21
-  "XXX" (fmt nil "~:@r" 30))
+  "XXX"
+  (fmt nil "~:@r" 30))
 
 (define-equal-test radix.old-roman.22
-  "XXXX" (fmt nil "~:@r" 40))
+  "XXXX"
+  (fmt nil "~:@r" 40))
 
 (define-equal-test radix.old-roman.23
-  "L" (fmt nil "~:@r" 50))
+  "L"
+  (fmt nil "~:@r" 50))
 
 (define-equal-test radix.old-roman.24
-  "LXIIII" (fmt nil "~:@r" 64))
+  "LXIIII"
+  (fmt nil "~:@r" 64))
 
 (define-equal-test radix.old-roman.25
-  "LXXXXVIIII" (fmt nil "~:@r" 99))
+  "LXXXXVIIII"
+  (fmt nil "~:@r" 99))
 
 (define-equal-test radix.old-roman.26
-  "C" (fmt nil "~:@r" 100))
+  "C"
+  (fmt nil "~:@r" 100))
 
 (define-equal-test radix.old-roman.27
-  "CXXXXVII" (fmt nil "~:@r" 147))
+  "CXXXXVII"
+  (fmt nil "~:@r" 147))
 
 (define-equal-test radix.old-roman.28
-  "CCCCLXXXVIIII" (fmt nil "~:@r" 489))
+  "CCCCLXXXVIIII"
+  (fmt nil "~:@r" 489))
 
 (define-equal-test radix.old-roman.29
-  "DCCCXXXI" (fmt nil "~:@r" 831))
+  "DCCCXXXI"
+  (fmt nil "~:@r" 831))
 
 (define-equal-test radix.old-roman.30
-  "M" (fmt nil "~:@r" 1000))
+  "M"
+  (fmt nil "~:@r" 1000))
 
 (define-equal-test radix.old-roman.31
-  "MMXXXX" (fmt nil "~:@r" 2040))
+  "MMXXXX"
+  (fmt nil "~:@r" 2040))
 
 (define-equal-test radix.old-roman.32
-  "MMMLXXXX" (fmt nil "~:@r" 3090))
+  "MMMLXXXX"
+  (fmt nil "~:@r" 3090))
 
-#|
 ;; test the use of different values of the radix
-  (loop for radix from 2 to 36
-        do (loop repeat 1000
-                 do (let ((value (random (expt 10 100))))
-                      (expand-format
-                       (assert-equal
-                        (with-output-to-string (stream)
-                          (let ((*print-base* radix))
-                            (princ value stream)))
-                        (fmt nil "~vr" radix value))))))
-  ;; test that the mincol parameter is taken into account
-  (expand-format
-   (assert-equal "123"
-                 (fmt nil "~10,1r" 123)))
-  (expand-format
-   (assert-equal "123"
-                 (fmt nil "~10,2r" 123)))
-  (expand-format
-   (assert-equal "123"
-                 (fmt nil "~10,3r" 123)))
-  (expand-format
-   (assert-equal " 123"
-                 (fmt nil "~10,4r" 123)))
-  (expand-format
-   (assert-equal "  123"
-                 (fmt nil "~10,5r" 123)))
-  ;; test that the padchar parameter is taken into account
-  (expand-format
-   (assert-equal "xx123"
-                 (fmt nil "~10,5,'xr" 123)))
-  ;; test the : modifier
-  (expand-format
-   (assert-equal "xx123"
-                 (fmt nil "~10,5,'x:r" 123)))
-   (expand-format
-    (assert-equal "xx1,234"
-                 (fmt nil "~10,7,'x:r" 1234)))
-   (expand-format
-    (assert-equal "xx551,234"
-                 (fmt nil "~10,9,'x:r" 551234)))
-   (expand-format
-    (assert-equal "xx66,551,234"
-                 (fmt nil "~10,12,'x:r" 66551234)))
-   ;; test the commachar parameter is taken into account
-   (expand-format
-    (assert-equal "xx66a551a234"
-                 (fmt nil "~10,12,'x,'a:r" 66551234))))
-|#
+(define-equal-test radix.arbitrary.01
+    nil
+    (loop for radix from 2 to 36
+          do (loop repeat 1000
+                   for value = (random (expt 10 100))
+                   for expected = (write-to-string value)
+                   for actual = (fmt nil "~vr" radix value)
+                   unless (equal expected actual)
+                     collect `(:radix ,radix :expected ,expected :actual ,actual))))
+
+;; test that the mincol parameter is taken into account
+(define-equal-test radix.parameter.01
+  "123"
+  (fmt nil "~10,1r" 123))
+
+(define-equal-test radix.parameter.02
+  "123"
+  (fmt nil "~10,2r" 123))
+
+(define-equal-test radix.parameter.03
+  "123"
+  (fmt nil "~10,3r" 123))
+
+(define-equal-test radix.parameter.04
+  " 123"
+  (fmt nil "~10,4r" 123))
+
+(define-equal-test radix.parameter.05
+  "  123"
+  (fmt nil "~10,5r" 123))
+
+;; test that the padchar parameter is taken into account
+(define-equal-test radix.parameter.06
+  "xx123"
+  (fmt nil "~10,5,'xr" 123))
+
+;; test the : modifier
+(define-equal-test radix.parameter.07
+  "xx123"
+  (fmt nil "~10,5,'x:r" 123))
+
+(define-equal-test radix.parameter.08
+  "xx1,234"
+  (fmt nil "~10,7,'x:r" 1234))
+
+(define-equal-test radix.parameter.09
+  "xx551,234"
+  (fmt nil "~10,9,'x:r" 551234))
+
+(define-equal-test radix.parameter.10
+  "xx66,551,234"
+  (fmt nil "~10,12,'x:r" 66551234))
+
+;; test the commachar parameter is taken into account
+(define-equal-test radix.parameter.11
+  "xx66a551a234"
+  (fmt nil "~10,12,'x,'a:r" 66551234))
+
 ;; test that the mincol parameter is taken into account
 (define-equal-test decimal.01
   "123"
