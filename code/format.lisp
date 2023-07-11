@@ -1315,13 +1315,14 @@
   (cond (at-signp
          `((when (>= *next-argument-pointer* (length *arguments*))
              (error 'no-more-arguments))
-           (if (aref *arguments* *next-argument-pointer*)
-               ;; Then do not consume the argument and
-               ;; process the clause.
-               (progn ,@(compile-items client (aref (clauses directive) 0))
-                      ;; Else, consume the argument and
-                      ;; do not process the clause
-                      (incf *next-argument-pointer*)))))
+           (cond ((aref *arguments* *next-argument-pointer*)
+                  ;; Then do not consume the argument and
+                  ;; process the clause.
+                  ,@(compile-items client (aref (clauses directive) 0)))
+                 (t
+                  ;; Else, consume the argument and
+                  ;; do not process the clause
+                  (incf *next-argument-pointer*)))))
         (colonp
          `((cond ((consume-next-argument t)
                   ;; Compile the first clause
