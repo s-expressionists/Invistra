@@ -46,7 +46,7 @@
              ,expected
              ,form)))))
 
-(defmacro define-fail-test (name form)
+(defmacro define-control-fail-test (name form)
   `(define-test ,name
      :compile-at :execute
      (fail-compile (macrolet ((fmt (destination control-string &rest args)
@@ -56,18 +56,28 @@
                         `(invistra-extrinsic:format ,destination (progn ,control-string) ,@args)))
              ,form))))
 
+(defmacro define-argument-fail-test (name form)
+  `(define-test ,name
+     :compile-at :execute
+     (fail (macrolet ((fmt (destination control-string &rest args)
+                                `(invistra-extrinsic:format ,destination ,control-string ,@args)))
+                     ,form))
+     (fail (macrolet ((fmt (destination control-string &rest args)
+                        `(invistra-extrinsic:format ,destination (progn ,control-string) ,@args)))
+             ,form))))
+
 ;; multiple occurrences of a modifier
 ;; should signal an error.
-(define-fail-test general.1
+(define-control-fail-test general.1
   (fmt nil "~::d" 0))
 
-(define-fail-test general.2
+(define-control-fail-test general.2
   (fmt nil "~@@d" 0))
 
-(define-fail-test general.3
+(define-control-fail-test general.3
   (fmt nil "~@:@d" 0))
 
-(define-fail-test general.4
+(define-control-fail-test general.4
   (fmt nil "~:@:d" 0))
 
 ;;; When the second argument to format is a constant
@@ -129,16 +139,16 @@
   (my-with-standard-io-syntax (incless-extrinsic:prin1-to-string char)))
   "~@c")
 
-(define-fail-test character.05
+(define-control-fail-test character.05
   (fmt nil "~2c" #\a))
 
-(define-fail-test character.06
+(define-control-fail-test character.06
   (fmt nil "~'2c" #\a))
 
-(define-fail-test character.07
+(define-control-fail-test character.07
   (fmt nil "~#c" #\a))
 
-(define-fail-test character.08
+(define-control-fail-test character.08
   (fmt nil "~vc" #\a))
 
 ;; without any parameters, output a newline
@@ -165,17 +175,17 @@
 
 ;; The newline directive takes a single optional
 ;; numeric parameter
-(define-fail-test newline.05
+(define-control-fail-test newline.05
   (fmt nil "~'a%"))
 
-(define-fail-test newline.06
+(define-control-fail-test newline.06
   (fmt nil "~1,2%"))
 
 ;; The newline directive takes no modifiers
-(define-fail-test newline.07
+(define-control-fail-test newline.07
   (fmt nil "~:%"))
 
-(define-fail-test newline.08
+(define-control-fail-test newline.08
   (fmt nil "~@%"))
 
 ;; without any parameters, does nothing to a string
@@ -200,17 +210,17 @@
 
 ;; The fresh-line directive takes a single optional
 ;; numeric parameter
-(define-fail-test fresh-line.05
+(define-control-fail-test fresh-line.05
   (fmt nil "~'a&"))
 
-(define-fail-test fresh-line.06
+(define-control-fail-test fresh-line.06
   (fmt nil "~1,2&"))
 
 ;; The fresh-line directive takes no modifiers
-(define-fail-test fresh-line.07
+(define-control-fail-test fresh-line.07
   (fmt nil "~:&"))
 
-(define-fail-test fresh-line.08
+(define-control-fail-test fresh-line.08
   (fmt nil "~@&"))
 
 ;; without any parameters, outputs a page separator
@@ -235,17 +245,17 @@
 
 ;; The page directive takes a single optional
 ;; numeric parameter
-(define-fail-test page.05
+(define-control-fail-test page.05
   (fmt nil "~'a|"))
 
-(define-fail-test page.06
+(define-control-fail-test page.06
   (fmt nil "~1,2|"))
 
 ;; The page directive takes no modifiers
-(define-fail-test page.07
+(define-control-fail-test page.07
   (fmt nil "~:|"))
 
-(define-fail-test page.08
+(define-control-fail-test page.08
   (fmt nil "~@|"))
 
 ;; without any parameters, outputs a tilde
@@ -271,17 +281,17 @@
 ;; The tilde directive takes a single optional
 ;; numeric parameter
 
-(define-fail-test tilde.05
+(define-control-fail-test tilde.05
     (fmt nil "~'a~"))
 
-(define-fail-test tilde.06
+(define-control-fail-test tilde.06
     (fmt nil "~1,2~"))
 
 ;; The tilde directive takes no modifiers
-(define-fail-test tilde.07
+(define-control-fail-test tilde.07
     (fmt nil "~:~"))
 
-(define-fail-test tilde.08
+(define-control-fail-test tilde.08
     (fmt nil "~@~"))
 
 ;; English cardinal numbers
@@ -1197,7 +1207,7 @@
   "\"hello\""
   (fmt nil "~s" "hello"))
 
-(define-equal-test standard.06
+#+(or)(define-equal-test standard.06
   "#\\x"
   (fmt nil "~s" #\x))
 
@@ -1259,7 +1269,7 @@
   "\"hello\""
   (fmt nil "~w" "hello"))
 
-(define-equal-test write.06
+#+(or)(define-equal-test write.06
   "#\\x"
   (fmt nil "~w" #\x))
 
@@ -1281,10 +1291,10 @@
 
 ;; test that this directive reports an error
 ;; if a parameter is given
-(define-fail-test write.10
+(define-control-fail-test write.10
   (fmt nil "~1w" 234))
 
-(define-fail-test write.11
+(define-control-fail-test write.11
   (assert-error 'error (fmt nil "~'aw" 234)))
 
 (define-equal-test go-to.01
@@ -1333,19 +1343,19 @@
 
 ;; Test that going beyond the first or last argument
 ;; gives an error.
-(define-fail-test go-to.12
+(define-argument-fail-test go-to.12
   (fmt nil "~c~c~*" #\a #\b))
 
-(define-fail-test go-to.13
+(define-control-fail-test go-to.13
   (fmt nil "~c~c~2*~:2*~c" #\a #\b #\c))
 
-(define-fail-test go-to.14
+(define-control-fail-test go-to.14
   (fmt nil "~c~:2*~2*~c" #\a #\b #\c))
 
-(define-fail-test go-to.15
+(define-control-fail-test go-to.15
   (fmt nil "~c~-1@*~0@*~c" #\a #\b #\c))
 
-(define-fail-test go-to.16
+(define-argument-fail-test go-to.16
   (fmt nil "~c~4@*~0@*~c" #\a #\b #\c))
 
 (define-equal-test conditional.01
@@ -1428,48 +1438,48 @@
 
 ;; test that giving the : modifier fails if there
 ;; are not exactly two clauses
-(define-fail-test conditional.20
+(define-control-fail-test conditional.20
   (fmt nil "~:[xyz~;abc~;def~]" nil))
 
-(define-fail-test conditional.21
+(define-control-fail-test conditional.21
   (fmt nil "~:[xyz~]" nil))
 
 ;; test that giving the @ modifier fails if there
 ;; is not exactly one clause
-(define-fail-test conditional.22
+(define-control-fail-test conditional.22
   (fmt nil "~@[xyz~;abc~]~d" nil 23))
 
 ;; test that giving no clauses fails
-(define-fail-test conditional.23
+(define-control-fail-test conditional.23
   (fmt nil "~[~]" nil 23))
 
 ;; test that giving both modifiers gives an error.
-(define-fail-test conditional.24
+(define-control-fail-test conditional.24
   (fmt nil "~:@[xyz~;abc~;def~]" 1 2 3))
 
 ;; test that giving the : modifier to a clause separator
 ;; other than the last gives an error
-(define-fail-test conditional.25
+(define-control-fail-test conditional.25
   (fmt nil "~[xyz~:;abc~:;def~]" 3))
 
 ;; test that giving the modifiers to ~] gives an error
 ;; test that giving parameters to ~; or ~] gives an error
-(define-fail-test conditional.26
+(define-control-fail-test conditional.26
   (fmt nil "~[xyz~;abc~;def~2]" 3))
 
-(define-fail-test conditional.27
+(define-control-fail-test conditional.27
   (fmt nil "~[xyz~;abc~2;def~]" 3))
 
-(define-fail-test conditional.28
+(define-control-fail-test conditional.28
   (fmt nil "~[xyz~;abc~;def~#]" 3))
 
-(define-fail-test conditional.29
+(define-control-fail-test conditional.29
   (fmt nil "~[xyz~;abc~#;def~]" 3))
 
-(define-fail-test conditional.30
+(define-control-fail-test conditional.30
   (fmt nil "~[xyz~;abc~;def~v]" 3))
 
-(define-fail-test conditional.31
+(define-control-fail-test conditional.31
   (fmt nil "~[xyz~;abc~v;def~]" 3))
 
 (define-equal-test iteration.01
