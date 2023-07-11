@@ -214,7 +214,7 @@
 ;;;
 ;;; 22.3.1.1 ~c Character
 
-(define-directive #\c c-directive (named-parameters-directive) ())
+(define-directive #\c c-directive nil (named-parameters-directive) ())
 
 (define-format-directive-interpreter c-directive
   (let ((char (consume-next-argument 'character)))
@@ -269,7 +269,7 @@
 ;;;
 ;;; 22.3.1.2 ~% Newline.
 
-(define-directive #\% percent-directive (named-parameters-directive no-modifiers-mixin)
+(define-directive #\% percent-directive nil (named-parameters-directive no-modifiers-mixin)
     ((how-many :type (integer 0) :default-value 1)))
 
 (define-format-directive-interpreter percent-directive
@@ -291,7 +291,7 @@
 ;;;
 ;;; 22.3.1.3 ~& Fresh line and newlines.
 
-(define-directive #\& ampersand-directive (named-parameters-directive no-modifiers-mixin)
+(define-directive #\& ampersand-directive nil (named-parameters-directive no-modifiers-mixin)
     ((how-many :type (integer 0) :default-value 1)))
 
 (define-format-directive-interpreter ampersand-directive
@@ -321,7 +321,7 @@
 ;;;
 ;;; 22.3.1.4 ~| Page separators.
 
-(define-directive #\| vertical-bar-directive (named-parameters-directive no-modifiers-mixin)
+(define-directive #\| vertical-bar-directive nil (named-parameters-directive no-modifiers-mixin)
     ((how-many :type (integer 0) :default-value 1)))
 
 (define-format-directive-interpreter vertical-bar-directive
@@ -340,7 +340,7 @@
 ;;;
 ;;; 22.3.1.5 ~~ Tildes.
 
-(define-directive #\~ tilde-directive (named-parameters-directive no-modifiers-mixin)
+(define-directive #\~ tilde-directive nil (named-parameters-directive no-modifiers-mixin)
     ((how-many :type (integer 0) :default-value 1)))
 
 (define-format-directive-interpreter tilde-directive
@@ -400,7 +400,7 @@
 ;;;
 ;;; 22.3.2.1 ~r Radix.
 
-(define-directive #\r r-directive (named-parameters-directive)
+(define-directive #\r r-directive nil (named-parameters-directive)
     ((radix :type (integer 2 36) :default-value nil)
      (mincol :type (integer 0) :default-value 0)
      (padchar :type character :default-value #\Space)
@@ -624,7 +624,7 @@
 ;;;
 ;;; 22.3.2.2 ~d Decimal.
 
-(define-directive #\d d-directive (named-parameters-directive)
+(define-directive #\d d-directive nil (named-parameters-directive)
     ((mincol :type (integer 0) :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
@@ -640,7 +640,7 @@
 ;;;
 ;;; 22.3.2.3 ~b Binary.
 
-(define-directive #\b b-directive (named-parameters-directive)
+(define-directive #\b b-directive nil (named-parameters-directive)
     ((mincol :type (integer 0) :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
@@ -656,7 +656,7 @@
 ;;;
 ;;; 22.3.2.4 ~o Octal.
 
-(define-directive #\o o-directive (named-parameters-directive)
+(define-directive #\o o-directive nil (named-parameters-directive)
     ((mincol :type (integer 0) :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
@@ -672,7 +672,7 @@
 ;;;
 ;;; 22.3.2.5 ~x Hexadecimal.
 
-(define-directive #\x x-directive (named-parameters-directive)
+(define-directive #\x x-directive nil (named-parameters-directive)
     ((mincol :type (integer 0) :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
@@ -691,7 +691,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.3.1 ~f Fixed-format floating point.
-(define-directive #\f f-directive (named-parameters-directive)
+(define-directive #\f f-directive nil (named-parameters-directive)
   ((w  :type integer)
    (d :type integer)
    (k :type (integer 0) :default-value 0)
@@ -740,7 +740,7 @@
 ;;;
 ;;; 22.3.4.1 ~a Aesthetic.
 
-(define-directive #\a a-directive (named-parameters-directive)
+(define-directive #\a a-directive nil (named-parameters-directive)
     ((mincol :type (integer 0) :default-value 0)
      (colinc :type (integer 0) :default-value 1)
      (minpad :type (integer 0) :default-value 0)
@@ -781,7 +781,7 @@
 ;;;
 ;;; 22.3.4.2 ~s Standard.
 
-(define-directive #\s s-directive (named-parameters-directive)
+(define-directive #\s s-directive nil (named-parameters-directive)
     ((mincol :type (integer 0) :default-value 0)
      (colinc :type (integer 0) :default-value 1)
      (minpad :type (integer 0) :default-value 0)
@@ -820,7 +820,7 @@
 ;;;
 ;;; 22.3.4.3 ~w Write.
 
-(define-directive #\w w-directive (named-parameters-directive) ())
+(define-directive #\w w-directive nil (named-parameters-directive) ())
 
 (define-format-directive-interpreter w-directive
   (cond ((and colonp at-signp)
@@ -862,7 +862,7 @@
 ;;;
 ;;; 22.3.5.1 ~_ Conditional newline
 
-(define-directive #\_ underscore-directive (named-parameters-directive) ())
+(define-directive #\_ underscore-directive nil (named-parameters-directive) ())
 
 (define-format-directive-interpreter underscore-directive
   (inravina:pprint-newline client *destination*
@@ -878,21 +878,43 @@
                                     (at-signp :miser)
                                     (t :linear)))))
 
+(define-directive #\>
+    end-logical-block-directive
+    nil
+    (named-parameters-directive end-structured-directive-mixin)
+    ())
+
+(define-format-directive-interpreter end-logical-block-directive
+    ;; do nothing
+    nil)
+
+(define-format-directive-compiler end-logical-block-directive
+    ;; do nothing
+  nil)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.5.2 ~< Logical block
 
-;;; The character is not used to determine the class for
-;;; this directive.
-(define-directive #\< logical-block-directive (named-parameters-directive structured-directive-mixin) ())
+(define-directive #\<
+    logical-block-directive
+    end-logical-block-directive
+    (named-parameters-directive structured-directive-mixin)
+    ())
 
+(define-format-directive-interpreter logical-block-directive
+    ;; do nothing
+    nil)
 
+(define-format-directive-compiler logical-block-directive
+    ;; do nothing
+  nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.5.3 ~i Indent
 
-(define-directive #\i i-directive (named-parameters-directive)
+(define-directive #\i i-directive nil (named-parameters-directive)
     ((how-many :type (integer 0) :default-value 0)))
 
 (define-format-directive-interpreter i-directive
@@ -918,7 +940,7 @@
 ;;; So, define-format-directive-interpreter cannot be used, since its
 ;;; main purpose is to give lexical access to each parameter by name.
 
-(define-directive #\/ call-function-directive (directive)
+(define-directive #\/ call-function-directive nil (directive)
     ()
   (%function-name :accessor function-name))
 
@@ -1042,7 +1064,7 @@
 ;;;
 ;;; 22.3.6.1 ~TAB Tabulate
 
-(define-directive #\t tabulate-directive (named-parameters-directive)
+(define-directive #\t tabulate-directive nil (named-parameters-directive)
     ((colnum :type (integer 1) :default-value 1)
      (colinc :type (integer 1) :default-value 1)))
 
@@ -1089,23 +1111,46 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
+;;; 22.3.6.3 ~> End of justification or of logical block
+
+(define-directive #\>
+    end-justification-directive
+    nil
+    (named-parameters-directive end-structured-directive-mixin)
+    ())
+
+(defmethod check-directive-syntax progn ((directive end-justification-directive))
+  (cond ((colonp directive)
+         (change-class directive 'end-logical-block-directive))
+        ((at-signp directive)
+         (error "wibble"))))
+
+(define-format-directive-interpreter end-justification-directive
+    ;; do nothing
+    nil)
+
+(define-format-directive-compiler end-justification-directive
+    ;; do nothing
+    nil)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 ;;; 22.3.6.2 ~< Justification
 
-;;; The character is not used to determine the class for
-;;; this directive.
-(define-directive #\< justification-directive (named-parameters-directive structured-directive-mixin)
+(define-directive #\<
+    justification-directive
+    end-justification-directive
+    (named-parameters-directive structured-directive-mixin)
     ((mincol :type (integer 0) :default-value 0)
      (colinc :type (integer 0) :default-value 1)
      (minpad :type (integer 0) :default-value 0)
      (padchar :type character :default-value #\Space)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; 22.3.6.3 ~> End of justification or of logical block
+(define-format-directive-interpreter justification-directive
+    ;; do nothing
+    nil)
 
-(define-directive #\> greater-than-directive (named-parameters-directive) ())
-
-(define-format-directive-interpreter greater-than-directive
+(define-format-directive-compiler justification-directive
     ;; do nothing
     nil)
 
@@ -1117,7 +1162,7 @@
 ;;;
 ;;; 22.3.7.1 ~* Go to
 
-(define-directive #\* go-to-directive (named-parameters-directive at-most-one-modifier-mixin)
+(define-directive #\* go-to-directive nil (named-parameters-directive at-most-one-modifier-mixin)
     ((param :type (integer 0))))
 
 (define-format-directive-interpreter go-to-directive
@@ -1184,16 +1229,28 @@
 
 ;;; This one is out of order to allow a clean compilation
 
-(define-directive #\; semicolon-directive (named-parameters-directive only-colon-mixin) ())
+(define-directive #\; semicolon-directive nil (named-parameters-directive only-colon-mixin) ())
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; 22.3.7.3 ~] End of conditional expression
+
+(define-directive #\] end-conditional-directive nil (named-parameters-directive no-modifiers-mixin end-structured-directive-mixin) ())
+
+(define-format-directive-interpreter end-conditional-directive
+    ;; do nothing
+    nil)
+
+(define-format-directive-compiler end-conditional-directive
+    ;; do nothing
+    nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.7.2 ~[ Conditional expression
 
-;;; The character is not used to determine the class for
-;;; this directive.
-(define-directive #\[ conditional-directive
-    (named-parameters-directive structured-directive-mixin at-most-one-modifier-mixin)
+(define-directive #\[ conditional-directive end-conditional-directive
+  (named-parameters-directive structured-directive-mixin at-most-one-modifier-mixin)
     ((param :type integer))
   (%clauses :accessor clauses)
   (%last-clause-is-default-p :initform nil :accessor last-clause-is-default-p))
@@ -1352,15 +1409,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;; 22.3.7.3 ~] End of conditional expression
+;;; 22.3.7.5 ~} End of iteration
 
-(define-directive #\] right-bracket-directive (named-parameters-directive no-modifiers-mixin) ())
+(define-directive #\} end-iteration-directive nil (named-parameters-directive only-colon-mixin end-structured-directive-mixin) ())
 
-(define-format-directive-interpreter right-bracket-directive
+(define-format-directive-interpreter end-iteration-directive
     ;; do nothing
     nil)
 
-(define-format-directive-compiler right-bracket-directive
+(define-format-directive-compiler end-iteration-directive
     ;; do nothing
     nil)
 
@@ -1368,9 +1425,8 @@
 ;;;
 ;;; 22.3.7.4 ~{ Iteration
 
-;;; The character is not used to determine the class for
-;;; this directive.
-(define-directive #\{ iteration-directive (named-parameters-directive structured-directive-mixin)
+(define-directive #\{ iteration-directive end-iteration-directive
+  (named-parameters-directive structured-directive-mixin)
     ((iteration-limit :type (integer 0))))
 
 (define-format-directive-interpreter iteration-directive
@@ -1499,23 +1555,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;; 22.3.7.5 ~} End of iteration
-
-(define-directive #\} right-brace-directive (named-parameters-directive only-colon-mixin) ())
-
-(define-format-directive-interpreter right-brace-directive
-    ;; do nothing
-    nil)
-
-(define-format-directive-compiler right-brace-directive
-    ;; do nothing
-    nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.7.6 ~? Recursive processing
 
-(define-directive #\? recursive-processing-directive (named-parameters-directive only-at-sign-mixin) ())
+(define-directive #\? recursive-processing-directive nil (named-parameters-directive only-at-sign-mixin) ())
 
 (define-format-directive-interpreter recursive-processing-directive
   (if at-signp
@@ -1546,11 +1588,32 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
+;;; 22.3.8.2 ~) End of case conversion
+
+(define-directive #\)
+    end-case-conversion-directive
+    nil
+    (named-parameters-directive
+     no-modifiers-mixin end-structured-directive-mixin)
+    ())
+
+(define-format-directive-interpreter end-case-conversion-directive
+    ;; do nothing
+    nil)
+
+(define-format-directive-compiler end-case-conversion-directive
+    ;; do nothing
+    nil)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 ;;; 22.3.8.1 ~( Case conversion
 
-;;; The character is not used to determine the class for
-;;; this directive.
-(define-directive #\( case-conversion-directive (named-parameters-directive structured-directive-mixin) ())
+(define-directive #\(
+    case-conversion-directive
+    end-case-conversion-directive
+    (named-parameters-directive structured-directive-mixin)
+    ())
 
 (define-format-directive-interpreter case-conversion-directive
   (let ((output (with-output-to-string (stream)
@@ -1589,23 +1652,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;; 22.3.8.2 ~) End of case conversion
-
-(define-directive #\) right-paren-directive (named-parameters-directive no-modifiers-mixin) ())
-
-(define-format-directive-interpreter right-paren-directive
-    ;; do nothing
-    nil)
-
-(define-format-directive-compiler right-paren-directive
-    ;; do nothing
-    nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.8.3 ~p Plural
 
-(define-directive #\p plural-directive (named-parameters-directive) ())
+(define-directive #\p plural-directive nil (named-parameters-directive) ())
 
 (define-format-directive-interpreter plural-directive
   (when colonp
@@ -1647,13 +1696,13 @@
 
 ;;; see above
 
-(define-directive #\; semicolon-directive (named-parameters-directive only-colon-mixin) ())
+(define-directive #\; semicolon-directive nil (named-parameters-directive only-colon-mixin) ())
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.9.2 ~^ Escape upward
 
-(define-directive #\^ circumflex-directive (named-parameters-directive)
+(define-directive #\^ circumflex-directive nil (named-parameters-directive)
     ((p1 :type integer)
      (p2 :type integer)
      (p3 :type integer)))
@@ -1702,7 +1751,7 @@
 ;;;
 ;;; 22.3.9.3 ~Newline Igored newline
 
-(define-directive #\Newline newline-directive (named-parameters-directive at-most-one-modifier-mixin) ())
+(define-directive #\Newline newline-directive nil (named-parameters-directive at-most-one-modifier-mixin) ())
 
 (define-format-directive-interpreter newline-directive
   (cond (colonp

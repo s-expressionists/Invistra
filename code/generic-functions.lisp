@@ -3,10 +3,10 @@
 ;;; Return the name of a subclass to be used for a particular
 ;;; directive.  Each particular directive subclass must be accompanied
 ;;; by an eql-specialized method on this generic function.
-(defgeneric directive-subclass-name (directive-character directive))
+(defgeneric directive-subclass-name (directive-character directive end-directive))
 
 ;;; For the default case, signal an error.
-(defmethod directive-subclass-name (directive-character directive)
+(defmethod directive-subclass-name (directive-character directive end-directive)
   (error 'unknown-directive-character
          :directive directive))
 

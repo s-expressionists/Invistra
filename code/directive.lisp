@@ -14,6 +14,16 @@
 
 (defgeneric at-signp (directive))
 
+(defgeneric structured-end-p (directive)
+  (:method (directive)
+    (declare (ignore directive))
+    nil))
+
+(defgeneric structured-start-p (directive)
+  (:method (directive)
+    (declare (ignore directive))
+    nil))
+
 ;;; How we represent a directive.  It may seem wasteful to allocate
 ;;; a class instance for each directive, but most format directives
 ;;; are handled at compile time anyway.
@@ -52,14 +62,23 @@
 
 ;;; Mixin class for structured directives
 (defclass structured-directive-mixin ()
-  ((%items :initarg :items :reader items)))
+  ((%items :initarg :items :accessor items)))
+
+(defmethod structured-start-p ((directive structured-directive-mixin))
+  t)
+
+;;; Mixin class for directives that end structured directives
+(defclass end-structured-directive-mixin () ())
+
+(defmethod structured-end-p ((directive end-structured-directive-mixin))
+  t)
 
 ;;; Specialize a directive according to a particular directive
 ;;; character.
-(defun specialize-directive (directive)
+(defun specialize-directive (directive end-directive)
   (change-class
    directive
-   (directive-subclass-name (directive-character directive) directive)))
+   (directive-subclass-name (directive-character directive) directive end-directive)))
 
 ;;; A macro that helps us define directives. It takes a directive
 ;;; character, a directive name (to be used for the class) and a body
@@ -68,12 +87,22 @@
 ;;; parameter, and the remaining elemnts are keyword/value pairs.
 ;;; Currently, the only keywords allowed are :type and
 ;;; :default-value.
-(defmacro define-directive (character name superclasses parameters &body slots)
+(defmacro define-directive (character name end-name superclasses parameters &body slots)
   `(progn
      (defmethod directive-subclass-name
-         ((char (eql ,(char-upcase character))) directive)
+         ((char (eql ,(char-upcase character))) directive
+          ,(if end-name `(end-directive ,end-name) 'end-directive))
        (declare (ignore directive))
        ',name)
+
+     ,(when end-name
+        `(defmethod directive-subclass-name
+             ((char (eql ,(char-upcase character))) directive end-directive)
+           (declare (ignore end-directive))
+           (error 'unmatched-directive
+                  :directive directive
+                  :control-string (control-string directive)
+                  :tilde-position (start directive))))
 
      (eval-when (:compile-toplevel :load-toplevel :execute)
        (defmethod parameter-specs ((directive-name (eql ',name)))
