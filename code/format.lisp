@@ -917,7 +917,31 @@
     (named-parameters-directive structured-directive-mixin)
     ())
 
-;(defmethod check-directive-syntax progn ((directive logical-block-directive))
+(defmethod check-directive-syntax progn ((directive logical-block-directive))
+  (let* ((last-clause (aref (clauses directive) (1- (length (clauses directive)))))
+         (last-item (aref last-clause (1- (length last-clause)))))
+    (when (at-signp last-item)
+      (loop with index = (if (= (length (clauses directive)) 1) 0 1)
+            with current = (aref (clauses directive) index)
+            with result = (make-array (* 2 (length current)) :adjustable t :fill-pointer 0)
+            for item across current
+            finally (setf (aref (clauses directive) index) result)
+            if (stringp item)
+              do (loop with start = 0
+                       with in-blank-p = nil
+                       for char across item
+                       for index from 0
+                       for blankp = (and (find char #(#\Space #\Tab #\Page #\Return)) t)
+                       finally (vector-push-extend (subseq item start) result)
+                               (when in-blank-p
+                            (vector-push-extend (make-instance 'underscore-directive :colonp t :at-signp nil) result))
+                       when (and in-blank-p (not blankp))
+                         do (vector-push-extend (subseq item start index) result)
+                            (vector-push-extend (make-instance 'underscore-directive :colonp t :at-signp nil) result)
+                            (setf start index)
+                       do (setf in-blank-p blankp))
+            else
+              do (vector-push-extend item result)))))
 
 (define-format-directive-interpreter logical-block-directive
   (let ((prefix (cond ((> (length (clauses directive)) 1)
