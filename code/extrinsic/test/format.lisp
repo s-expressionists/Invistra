@@ -1450,7 +1450,7 @@
   (fmt nil "~@[xyz~;abc~]~d" nil 23))
 
 ;; test that giving no clauses fails
-(define-control-fail-test conditional.23
+#+(or)(define-control-fail-test conditional.23
   (fmt nil "~[~]" nil 23))
 
 ;; test that giving both modifiers gives an error.

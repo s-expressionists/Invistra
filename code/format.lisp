@@ -51,6 +51,10 @@
 ;;; argument to treat.
 (defvar *next-argument-pointer*)
 
+(defvar *next-argument-hook*)
+
+(defvar *escape-hook*)
+
 ;;; A tag for CATCH/THROW to use by the ~^ directive
 (defvar *catch-tag*)
 
@@ -126,15 +130,26 @@
          ,@body))))
 
 (defun consume-next-argument (type)
-  (when (>= *next-argument-pointer* (length *arguments*))
-    (error 'no-more-arguments))
-  (let ((arg (aref *arguments* *next-argument-pointer*)))
-    (incf *next-argument-pointer*)
-    (unless (typep arg type)
-      (error 'argument-type-error
-             :expected-type type
-             :datum arg))
-    arg))
+  (cond (*next-argument-hook*
+         (multiple-value-bind (arg morep)
+             (funcall *next-argument-hook*)
+           (unless morep
+             (error 'no-more-arguments))
+           (unless (typep arg type)
+             (error 'argument-type-error
+                    :expected-type type
+                    :datum arg))
+           arg))
+        (t
+         (when (>= *next-argument-pointer* (length *arguments*))
+           (error 'no-more-arguments))
+         (let ((arg (aref *arguments* *next-argument-pointer*)))
+           (incf *next-argument-pointer*)
+           (unless (typep arg type)
+             (error 'argument-type-error
+                    :expected-type type
+                    :datum arg))
+           arg))))
 
 (defmacro define-format-directive-compiler (class-name &body body)
   `(defmethod compile-format-directive (client (directive ,class-name))
@@ -902,13 +917,77 @@
     (named-parameters-directive structured-directive-mixin)
     ())
 
+;(defmethod check-directive-syntax progn ((directive logical-block-directive))
+
 (define-format-directive-interpreter logical-block-directive
-    ;; do nothing
-    nil)
+  (let ((prefix (cond ((> (length (clauses directive)) 1)
+                       (aref (aref (clauses directive) 0) 0))
+                      (colonp
+                       "(")
+                      (t
+                       "")))
+        (suffix (cond ((= (length (clauses directive)) 3)
+                       (aref (aref (clauses directive) 2) 0))
+                      (colonp
+                       ")")
+                      (t
+                       "")))
+        (per-line-prefix-p (at-signp (aref (aref (clauses directive) 0)
+                                           (1- (length (aref (clauses directive) 0)))))))
+    (if per-line-prefix-p
+        (inravina:pprint-logical-block (client *destination* (consume-next-argument t)
+                                               :per-line-prefix prefix :suffix suffix)
+          (let ((*next-argument-hook* (lambda ()
+                                        (if (inravina:pprint-more-p)
+                                            (values (inravina:pprint-pop) t)
+                                            (values nil nil))))
+                (*escape-hook* (lambda ()
+                                 (inravina:pprint-exit-if-list-exhausted))))
+            (interpret-items client (aref (clauses directive)
+                                          (if (= (length (clauses directive)) 1)
+                                              0
+                                              1)))))
+        (inravina:pprint-logical-block (client *destination* (consume-next-argument t)
+                                               :prefix prefix :suffix suffix)
+          (let ((*next-argument-hook* (lambda ()
+                                        (if (inravina:pprint-more-p)
+                                            (values (inravina:pprint-pop) t)
+                                            (values nil nil))))
+                (*escape-hook* (lambda ()
+                                 (inravina:pprint-exit-if-list-exhausted))))
+            (interpret-items client (aref (clauses directive)
+                                          (if (= (length (clauses directive)) 1)
+                                              0
+                                              1))))))))
 
 (define-format-directive-compiler logical-block-directive
-    ;; do nothing
-  nil)
+  (let ((prefix (cond ((> (length (clauses directive)) 1)
+                       (aref (aref (clauses directive) 0) 0))
+                      (colonp
+                       "(")
+                      (t
+                       "")))
+        (suffix (cond ((= (length (clauses directive)) 3)
+                       (aref (aref (clauses directive) 2) 0))
+                      (colonp
+                       ")")
+                      (t
+                       "")))
+        (per-line-prefix-p (at-signp (aref (aref (clauses directive) 0)
+                                           (1- (length (aref (clauses directive) 0)))))))
+    `(inravina:pprint-logical-block (,client *destination* (consume-next-argument t)
+                                             ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix
+                                             :suffix ,suffix)
+       (let ((*next-argument-hook* (lambda ()
+                                     (if (inravina:pprint-more-p)
+                                         (values (inravina:pprint-pop) t)
+                                         (values nil nil))))
+             (*escape-hook* (lambda ()
+                              (inravina:pprint-exit-if-list-exhausted))))
+         ,@(compile-items client (aref (clauses directive)
+                                       (if (= (length (clauses directive)) 1)
+                                           0
+                                           1)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1231,6 +1310,9 @@
 
 (define-directive #\; semicolon-directive nil (named-parameters-directive only-colon-mixin) ())
 
+(defmethod structured-separator-p ((directive semicolon-directive))
+  t)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.7.3 ~] End of conditional expression
@@ -1252,7 +1334,6 @@
 (define-directive #\[ conditional-directive end-conditional-directive
   (named-parameters-directive structured-directive-mixin at-most-one-modifier-mixin)
     ((param :type integer))
-  (%clauses :accessor clauses)
   (%last-clause-is-default-p :initform nil :accessor last-clause-is-default-p))
 
 (defmethod check-directive-syntax progn ((directive conditional-directive))
@@ -1262,75 +1343,32 @@
              (or (colonp directive) (at-signp directive)))
     (error 'modifier-and-parameter
            :directive directive))
-  ;; eliminate the end-of-conditional directive from the items
-  (let ((items (subseq (items directive) 0 (1- (length (items directive))))))
-    ;; Check that there is at least one item in items
-    (when (zerop (length items))
-      (error 'at-least-one-item-required
+  ;; Check that, if a colon modifier was given, then
+  ;; there should be a single clause separator (two clauses).
+  (when (and (colonp directive)
+             (/= (length (clauses directive)) 2))
+    (error 'colon-modifier-requires-two-clauses))
+  ;; Check that, if an at-sign modifier was given, then
+  ;; there should be a no clause separators (a single clause).
+  (when (and (at-signp directive)
+             (/= (length (clauses directive)) 1))
+    (error 'at-sign-modifier-requires-one-clause))
+  (let ((pos (position-if (lambda (items)
+                            (let ((last (aref items (1- (length items)))))
+                              (and (structured-separator-p last)
+                                   (colonp last))))
+                          (clauses directive))))
+    ;; Check that, if a modifier is given, then there should
+    ;; be no clause separator with colon modifier.
+    (when (and (or (colonp directive) (at-signp directive))
+               pos)
+      (error 'clause-separator-with-colon-modifier-not-allowed
              :directive directive))
-    ;; Check that, if a colon modifier was given, then
-    ;; there should be a single clause separator (two clauses).
-    (when (and (colonp directive)
-               (/= (count-if (lambda (item) (typep item 'semicolon-directive))
-                             items)
-                   1))
-      (error 'colon-modifier-requires-two-clauses))
-    ;; Check that, if an at-sign modifier was given, then
-    ;; there should be a no clause separators (a single clause).
-    (when (and (at-signp directive)
-               (/= (count-if (lambda (item) (typep item 'semicolon-directive))
-                             items)
-                   0))
-      (error 'at-sign-modifier-requires-one-clause))
-    (flet ((clause-separator-with-colon-modifier (item)
-             (and (typep item 'semicolon-directive)
-                  (colonp item))))
-      (let ((position-of-clause-with-colon-modifier
-             (position-if #'clause-separator-with-colon-modifier
-                          items
-                          :from-end t)))
-        ;; Check that, if a modifier is given, then there should
-        ;; be no clause separator with colon modifier.
-        (when (and (or (colonp directive) (at-signp directive))
-                   (not (null position-of-clause-with-colon-modifier)))
-          (error 'clause-separator-with-colon-modifier-not-allowed
-                 :directive directive))
-        (when (or
-               ;; Check whether there is more than one clause separator
-               ;; with a `:' modifier.
-               (> (count-if #'clause-separator-with-colon-modifier items)
-                  1)
-               ;; Check whether the clause separator with a `:' modifier
-               ;; (if any) is not the last one.
-               (and (find-if #'clause-separator-with-colon-modifier items)
-                    (/= position-of-clause-with-colon-modifier
-                        (position-if (lambda (item) (typep item 'semicolon-directive))
-                                     items
-                                     :from-end t))))
-          (error 'illegal-clause-separators
-                 :directive directive))
-        (unless (null position-of-clause-with-colon-modifier)
-          (setf (last-clause-is-default-p directive) t))
-        ;; Divide the items into clauses.
-        ;; Each clause is just a vector of items.
-        (loop with start = 0
-              with end = (length items)
-              with clauses = '()
-              until (= start end)
-              do (let ((position-of-clause-separator
-                        (position-if (lambda (item) (typep item 'semicolon-directive))
-                                     items
-                                     :start start)))
-                   (if (null position-of-clause-separator)
-                       (progn (push (subseq items start) clauses)
-                              (setf start end))
-                       (progn (push (subseq items
-                                            start
-                                            position-of-clause-separator)
-                                    clauses)
-                              (setf start (1+ position-of-clause-separator)))))
-              finally (setf (clauses directive)
-                            (coerce (nreverse clauses) 'vector)))))))
+    (when (and pos
+               (< pos (- (length (clauses directive)) 2)))
+      (error 'illegal-clause-separators
+             :directive directive))
+    (setf (last-clause-is-default-p directive) (and pos t))))
 
 (define-format-directive-interpreter conditional-directive
   (cond (at-signp
@@ -1432,7 +1470,7 @@
 (define-format-directive-interpreter iteration-directive
   ;; eliminate the end-of-iteration directive from the
   ;; list of items
-  (let ((items (subseq (items directive) 0 (1- (length (items directive))))))
+  (let ((items (aref (clauses directive) 0)))
     (cond ((and colonp at-signp)
            ;; The remaining arguments should be lists.  Each argument
            ;; is used in a different iteration.
@@ -1494,7 +1532,7 @@
 (define-format-directive-compiler iteration-directive
   ;; eliminate the end-of-iteration directive from the
   ;; list of items
-  (let ((items (subseq (items directive) 0 (1- (length (items directive))))))
+  (let ((items (aref (clauses directive) 0)))
     (cond ((and colonp at-signp)
            ;; The remaining arguments should be lists.  Each argument
            ;; is used in a different iteration.
@@ -1618,8 +1656,7 @@
 (define-format-directive-interpreter case-conversion-directive
   (let ((output (with-output-to-string (stream)
                   (let ((*destination* stream))
-                    (interpret-items client (subseq (items directive)
-                                                    0 (1- (length (items directive)))))))))
+                    (interpret-items client (aref (clauses directive) 0))))))
     (cond ((and colonp at-signp)
            (nstring-upcase output))
           (colonp
@@ -1636,7 +1673,7 @@
 (define-format-directive-compiler case-conversion-directive
   `((let ((output (with-output-to-string (stream)
                     (let ((*destination* stream))
-                      ,@(compile-items client (items directive))))))
+                      ,@(compile-items client (aref (clauses directive) 0))))))
       ,(cond ((and colonp at-signp)
               `(nstring-upcase output))
              (colonp
@@ -1698,6 +1735,12 @@
 
 (define-directive #\; semicolon-directive nil (named-parameters-directive only-colon-mixin) ())
 
+(define-format-directive-interpreter semicolon-directive
+  nil)
+
+(define-format-directive-compiler semicolon-directive
+  nil)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.9.2 ~^ Escape upward
@@ -1722,30 +1765,30 @@
 (define-format-directive-interpreter circumflex-directive
   (let ((parameters (given-parameters directive)))
     (cond ((not (first parameters))
-           (throw *catch-tag* nil))
+           (funcall *escape-hook*))
           ((not (second parameters))
            (when (zerop p1)
-             (throw *catch-tag* nil)))
+             (funcall *escape-hook*)))
           ((not (third parameters))
            (when (= p1 p2)
-             (throw *catch-tag* nil)))
+             (funcall *escape-hook*)))
           (t
            (when (<= p1 p2 p3)
-             (throw *catch-tag* nil))))))
+             (funcall *escape-hook*))))))
 
 (define-format-directive-compiler circumflex-directive
   (let ((parameters (given-parameters directive)))
     (cond ((not (first parameters))
-           `((throw *catch-tag* nil)))
+           `((funcall *escape-hook*)))
           ((not (second parameters))
            `((when (zerop p1)
-               (throw *catch-tag* nil))))
+               (funcall *escape-hook*))))
           ((not (third parameters))
            `((when (= p1 p2)
-               (throw *catch-tag* nil))))
+               (funcall *escape-hook*))))
           (t
            `((when (<= p1 p2 p3)
-               (throw *catch-tag* nil)))))))
+               (funcall *escape-hook*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1786,11 +1829,14 @@
 (defun format-with-runtime-arguments (client destination control-string)
   (flet ((format-aux (stream items)
            ;; interpret the control string in a new environment
-           (let ((*destination* stream)
-                 ;; We are at the beginning of the argument vector.
-                 (*next-argument-pointer* 0)
-                 ;; Any unique object will do.
-                 (*catch-tag* (list nil)))
+           (let* ((*destination* stream)
+                  ;; We are at the beginning of the argument vector.
+                  (*next-argument-pointer* 0)
+                  (*next-argument-hook* nil)
+                  ;; Any unique object will do.
+                  (*catch-tag* (list nil))
+                  (*escape-hook* (lambda ()
+                                   (throw *catch-tag* nil))))
              (catch *catch-tag*
                (interpret-items client items)))))
     (let ((items (structure-items (split-control-string control-string) nil)))

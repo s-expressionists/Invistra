@@ -1,24 +1,28 @@
 (cl:in-package #:invistra)
 
+(defstruct group
+  end
+  (clauses (list nil)))
+
 (defun structure-items (items end)
-  (loop with result = '()
-        with end-directives = '()
+  (loop with result = (list (make-group))
         for item in (reverse items)
-        finally (return (coerce result 'vector))
+        finally (return (coerce (car (group-clauses (car result))) 'vector))
         unless (stringp item)
-          do (specialize-directive item (car end-directives))
-             (when (structured-start-p item)
-               (let* ((c (member (car end-directives) result))
-                      (d (cdr c)))
-                 (setf (cdr c) nil
-                       (items item) (coerce result 'vector)
-                       result d)
-                 (pop end-directives)))
-             (when (structured-end-p item)
-               (push item end-directives))
+          do (specialize-directive item (group-end (car result)))
+             (cond ((structured-start-p item)
+                    (setf (clauses item) (map 'vector
+                                              (lambda (items)
+                                                (coerce items 'vector))
+                                              (group-clauses (car result))))
+                    (pop result))
+                   ((structured-end-p item)
+                    (push (make-group :end item) result))
+                   ((structured-separator-p item)
+                    (push nil (group-clauses (car result)))))
              (check-directive-syntax item)
-        do (push item result)))
-  
+        do (push item (car (group-clauses (car result))))))
+
 #|(defun structure-items (items end)
   (loop with result = '()
         with first = (car items)

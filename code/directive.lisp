@@ -19,6 +19,11 @@
     (declare (ignore directive))
     nil))
 
+(defgeneric structured-separator-p (directive)
+  (:method (directive)
+    (declare (ignore directive))
+    nil))
+
 (defgeneric structured-start-p (directive)
   (:method (directive)
     (declare (ignore directive))
@@ -62,7 +67,9 @@
 
 ;;; Mixin class for structured directives
 (defclass structured-directive-mixin ()
-  ((%items :initarg :items :accessor items)))
+  ((%clauses :initarg :clauses
+             :initform #()
+             :accessor clauses)))
 
 (defmethod structured-start-p ((directive structured-directive-mixin))
   t)
