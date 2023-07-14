@@ -79,13 +79,16 @@
            (let ((argument (aref *arguments*
                                  *next-argument-pointer*)))
              (incf *next-argument-pointer*)
-             (unless (typep argument (getf (cdr parameter-spec) :type))
-               (error 'argument-type-error
-                      :expected-type
-                      (getf (cdr parameter-spec) :type)
-                      :datum
-                      argument))
-             argument))
+             (cond ((null argument)
+                    (getf (cdr parameter-spec) :default-value))
+                   (t
+                    (unless (typep argument (getf (cdr parameter-spec) :type))
+                      (error 'argument-type-error
+                             :expected-type
+                             (getf (cdr parameter-spec) :type)
+                             :datum
+                             argument))
+                    argument))))
           ((eq compile-time-value '|#|)
            ;; The parameter was given the explicit value # in the
            ;; format control string, meaning we use the number of
@@ -473,7 +476,7 @@
     "fifteen" "sixteen" "seventeen" "eighteen" "nineteen"))
 
 (defparameter *cardinal-tens*
-  #(nil nil "twenty" "thirty" "fourty"
+  #(nil nil "twenty" "thirty" "forty"
     "fifty" "sixty" "seventy" "eighty" "ninety"))
 
 (defparameter *groups-of-three*
@@ -535,11 +538,11 @@
   #(nil "first" "second" "third" "fourth" "fifth" "sixth" "seventh" "eighth" "ninth"))
 
 (defparameter *ordinal-teens*
-  #("tenth" "eleventh" "twelvth" "thirteenth" "fourteenth"
+  #("tenth" "eleventh" "twelfth" "thirteenth" "fourteenth"
     "fifteenth" "sixteenth" "seventeenth" "eighteenth" "nineteenth"))
 
 (defparameter *ordinal-tens*
-  #(nil nil "twentieth" "thirtieth" "fourtieth"
+  #(nil nil "twentieth" "thirtieth" "fortieth"
     "fiftieth" "sixtieth" "seventieth" "eightieth" "ninetieth"))
 
 ;;; Print an ordinal number between 1 and 99.
@@ -615,22 +618,29 @@
                                 *destination*))))
 
 (define-format-directive-compiler r-directive
-  (cond ((not (null radix))
-         `((print-radix-arg ,(incless:client-form client) radix ,colonp ,at-signp mincol padchar commachar comma-interval)))
-        ((and colonp at-signp)
-         `((print-as-old-roman (consume-next-argument '(integer 1))
-                               *destination*)))
+  (cond ((and colonp at-signp)
+         `((if (null radix)
+               (print-as-old-roman (consume-next-argument '(integer 1))
+                                   *destination*)
+               (print-radix-arg ,(incless:client-form client) radix t t mincol padchar commachar comma-interval))))
         (at-signp
-         `((print-as-roman (consume-next-argument '(integer 1))
-                           *destination*)))
+         `((if (null radix)
+               (print-as-roman (consume-next-argument '(integer 1))
+                               *destination*)
+               (print-radix-arg ,(incless:client-form client) radix nil t mincol padchar commachar comma-interval))))
         (colonp
-         `((print-ordinal-number (consume-next-argument
-                                  `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
-                                 *destination*)))
+         `((if (null radix)
+               (print-ordinal-number (consume-next-argument
+                                      `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
+                                     *destination*)
+               (print-radix-arg ,(incless:client-form client) radix t nil mincol padchar commachar comma-interval))))
         (t
-         `((print-cardinal-number (consume-next-argument
-                                   `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
-                                  *destination*)))))
+         `((if (null radix)
+               (print-cardinal-number (consume-next-argument
+                                       `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
+                                      *destination*)
+               (print-radix-arg ,(incless:client-form client) radix nil nil mincol padchar commachar comma-interval))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1565,12 +1575,11 @@
                               (*next-argument-pointer* 0))
                           ,@(compile-items client items))
                         (incf *next-argument-pointer*))))
-               ,(if (null iteration-limit)
-                    `(loop until (= *next-argument-pointer* (length *arguments*))
-                           do (one-iteration))
-                    `(loop until (= *next-argument-pointer* (length *arguments*))
-                           repeat ,iteration-limit
-                           do (one-iteration))))))
+               (loop for index from 0
+                     until (= *next-argument-pointer* (length *arguments*))
+                     while (or (null iteration-limit)
+                               (< index iteration-limit))
+                     do (one-iteration)))))
           (colonp
            ;; We use one argument, and that should be a list of sublists.
            ;; Each sublist is used as arguments for one iteration.
@@ -1583,32 +1592,28 @@
                         (let ((*arguments* (coerce args 'vector))
                               (*next-argument-pointer* 0))
                           ,@(compile-items client items))))
-                 ,(if (null iteration-limit)
-                      `(loop for args in arg ; a bit unusual naming perhaps
-                             do (one-iteration args))
-                      `(loop for args in arg ; a bit unusual naming perhaps
-                             repeat ,iteration-limit
-                             do (one-iteration args)))))))
+                 (loop for args in arg ; a bit unusual naming perhaps
+                       for index from 0
+                       while (or (null iteration-limit)
+                                 (< index iteration-limit))
+                       do (one-iteration args))))))
           (at-signp
-           (if (null iteration-limit)
-               `((loop until (= *next-argument-pointer* (length *arguments*))
-                       do (progn ,@(compile-items client items))))
-               `((loop until (= *next-argument-pointer* (length *arguments*))
-                       repeat ,iteration-limit
-                       do (progn ,@(compile-items client items))))))
+           `((loop for index from 0
+                   until (= *next-argument-pointer* (length *arguments*))
+                   while (or (null iteration-limit)
+                             (< index iteration-limit))
+                   do ,@(compile-items client items))))
           (t
            ;; no modifiers
            ;; We use one argument, and that should be a list.
            ;; The elements of that list are used by the iteration.
-           `((let ((arg (consume-next-argument 'list)))
-               (let ((*arguments* (coerce arg 'vector))
-                     (*next-argument-pointer* 0))
-                 ,(if (null iteration-limit)
-                      `(loop until (= *next-argument-pointer* (length *arguments*))
-                             do (progn ,@(compile-items client items)))
-                      `(loop until (= *next-argument-pointer* (length *arguments*))
-                             repeat iteration-limit
-                             do (progn ,@(compile-items client items)))))))))))
+           `((loop with *arguments* = (coerce (consume-next-argument 'list) 'vector)
+                   with *next-argument-pointer* = 0
+                   for index from 0
+                   until (= *next-argument-pointer* (length *arguments*))
+                   while (or (null iteration-limit)
+                             (< index iteration-limit))
+                   do ,@(compile-items client items)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1728,19 +1733,19 @@
         (write-char #\s *destination*))))
 
 (define-format-directive-compiler plural-directive
-  (when colonp
-    `((when (zerop *next-argument-pointer*)
-        (error 'go-to-out-of-bounds
-               :what-argument -1
-               :max-arguments (length *arguments*)))
-      (decf *next-argument-pointer*)))
-  (if at-signp
-      `((write-string (if (eql (consume-next-argument t) 1)
-                          "y"
+  `(,@(when colonp
+        `((when (zerop *next-argument-pointer*)
+            (error 'go-to-out-of-bounds
+                   :what-argument -1
+                   :max-arguments (length *arguments*)))
+          (decf *next-argument-pointer*)))
+    ,(if at-signp
+         `(write-string (if (eql (consume-next-argument t) 1)
+                            "y"
                           "ies")
-                      *destination*))
-      `((when (eql (consume-next-argument t) 1)
-          (write-char #\s *destination*)))))
+                        *destination*)
+         `(when (eql (consume-next-argument t) 1)
+            (write-char #\s *destination*)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1833,7 +1838,7 @@
          ;; Remove the newline but print the following whitespace.
          `((let ((start (1+ (position #\Newline control-string :start start))))
              (write-string ,(subseq control-string start end) *destination*))))
-        (at-signprg
+        (at-signp
          ;; Print the newline, but remove the following whitespace.
          `((write-char #\Newline *destination*)))
         (t
@@ -1872,7 +1877,8 @@
              (error 'invalid-destination
                     :destination destination))))))
 
-(defun format (client destination control-string &rest args)
-  (let (;; initialize part of the runtime environment here
-        (*arguments* (coerce args 'vector)))
-    (format-with-runtime-arguments client destination control-string)))
+(defun format (client destination control &rest args)
+  (if (functionp control)
+      (apply #'funcall control destination args)
+      (let ((*arguments* (coerce args 'vector)))
+        (format-with-runtime-arguments client destination control))))

@@ -22,13 +22,16 @@
                    (let ((argument (aref *arguments*
                                          *next-argument-pointer*)))
                      (incf *next-argument-pointer*)
-                     (unless (typep argument ',(getf (cdr parameter-spec) :type))
-                       (error 'argument-type-error
-                              :expected-type
-                              ',(getf (cdr parameter-spec) :type)
-                              :datum
-                              argument))
-                     argument)))
+                     (cond ((null argument)
+                            ,(getf (cdr parameter-spec) :default-value))
+                           (t
+                            (unless (typep argument ',(getf (cdr parameter-spec) :type))
+                              (error 'argument-type-error
+                                     :expected-type
+                                     ',(getf (cdr parameter-spec) :type)
+                                     :datum
+                                     argument))
+                            argument)))))
           ((eq compile-time-value '|#|)
            ;; The parameter was given the explicit value # in the
            ;; format control string, meaning we use the number of

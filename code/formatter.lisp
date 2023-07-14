@@ -1,6 +1,6 @@
 (cl:in-package #:invistra)
 
-(defun formatter (client control-string)
+(defun formatter (client control-string &key output)
   (check-type control-string string)
   (let ((items (structure-items (split-control-string control-string) nil)))
     `(lambda (destination &rest args)
@@ -23,11 +23,13 @@
                                (throw *catch-tag* nil))))
          (catch *catch-tag*
            ,@(compile-items client items))
-         (when (null destination)
-           (get-output-stream-string *destination*))))))
+         ,(if output
+              `(when (null destination)
+                 (get-output-stream-string *destination*))
+              `(coerce (subseq *arguments* *next-argument-pointer*) 'list))))))
 
 (defun format-compiler-macro (client form destination control-string args)
   (if (not (stringp control-string))
       form
-      `(funcall ,(formatter client control-string)
+      `(funcall ,(formatter client control-string :output t)
                 ,destination ,@args)))
