@@ -131,10 +131,7 @@
 
 (defun consume-next-argument (type)
   (cond (*next-argument-hook*
-         (multiple-value-bind (arg morep)
-             (funcall *next-argument-hook*)
-           (unless morep
-             (error 'no-more-arguments))
+         (let ((arg (funcall *next-argument-hook*)))
            (unless (typep arg type)
              (error 'argument-type-error
                     :expected-type type
@@ -274,7 +271,7 @@
                    (write-string (char-name char) *destination*)))
              ((not colonp)
               `(let ((*print-escape* t))
-                 (incless:write-object ,client char *destination*)))
+                 (incless:write-object ,(incless:client-form client) char *destination*)))
              (t
               `(if (and (graphic-char-p char) (not (eql char #\Space)))
                    (write-char char *destination*)
@@ -619,7 +616,7 @@
 
 (define-format-directive-compiler r-directive
   (cond ((not (null radix))
-         `((print-radix-arg ,client radix ,colonp ,at-signp mincol padchar commachar comma-interval)))
+         `((print-radix-arg ,(incless:client-form client) radix ,colonp ,at-signp mincol padchar commachar comma-interval)))
         ((and colonp at-signp)
          `((print-as-old-roman (consume-next-argument '(integer 1))
                                *destination*)))
@@ -649,7 +646,7 @@
   (print-radix-arg client 10 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler d-directive
-  `((print-radix-arg ,client 10 ,colonp ,at-signp mincol padchar commachar comma-interval)))
+  `((print-radix-arg ,(incless:client-form client) 10 ,colonp ,at-signp mincol padchar commachar comma-interval)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -665,7 +662,7 @@
   (print-radix-arg client 2 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler b-directive
-  `((print-radix-arg ,client 2 ,colonp ,at-signp mincol padchar commachar comma-interval)))
+  `((print-radix-arg ,(incless:client-form client) 2 ,colonp ,at-signp mincol padchar commachar comma-interval)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -681,7 +678,7 @@
   (print-radix-arg client 8 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler o-directive
-  `((print-radix-arg ,client 8 ,colonp ,at-signp mincol padchar commachar comma-interval)))
+  `((print-radix-arg ,(incless:client-form client) 8 ,colonp ,at-signp mincol padchar commachar comma-interval)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -697,7 +694,7 @@
   (print-radix-arg client 16 colonp at-signp mincol padchar commachar comma-interval))
 
 (define-format-directive-compiler x-directive
-  `((print-radix-arg ,client 16 ,colonp ,at-signp mincol padchar commachar comma-interval)))
+  `((print-radix-arg ,(incless:client-form client) 16 ,colonp ,at-signp mincol padchar commachar comma-interval)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -780,9 +777,9 @@
                   `(if (null arg)
                        "()"
                        (with-output-to-string (stream)
-                         (incless:write-object ,client arg stream)))
+                         (incless:write-object ,(incless:client-form client) arg stream)))
                   `(with-output-to-string (stream)
-                     (incless:write-object ,client arg stream))))
+                     (incless:write-object ,(incless:client-form client) arg stream))))
            (pad-length (max minpad (* colinc (ceiling (- mincol (length raw-output)) colinc)))))
       ,@(if at-signp
             `((loop repeat pad-length
@@ -819,9 +816,9 @@
                   `(if (null arg)
                        "()"
                        (with-output-to-string (stream)
-                         (incless:write-object ,client arg stream)))
+                         (incless:write-object ,(incless:client-form client) arg stream)))
                   `(with-output-to-string (stream)
-                     (incless:write-object ,client arg stream))))
+                     (incless:write-object ,(incless:client-form client) arg stream))))
            (pad-length (max minpad (* colinc (ceiling (- mincol (length raw-output)) colinc)))))
       ,@(if at-signp
             `((loop repeat pad-length
@@ -858,16 +855,16 @@
          `((let ((*print-pretty* t)
                  (*print-level* nil)
                  (*print-length* nil))
-             (incless:write-object ,client (consume-next-argument t) *destination*))))
+             (incless:write-object ,(incless:client-form client) (consume-next-argument t) *destination*))))
         (colonp
          `((let ((*print-pretty* t))
-             (incless:write-object ,client (consume-next-argument t) *destination*))))
+             (incless:write-object ,(incless:client-form client) (consume-next-argument t) *destination*))))
         (at-signp
          `((let ((*print-level* nil)
                  (*print-length* nil))
-             (incless:write-object ,client (consume-next-argument t) *destination*))))
+             (incless:write-object ,(incless:client-form client) (consume-next-argument t) *destination*))))
         (t
-         `((incless:write-object ,client (consume-next-argument t) *destination*)))))
+         `((incless:write-object ,(incless:client-form client) (consume-next-argument t) *destination*)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -887,7 +884,7 @@
                                  (t :linear))))
 
 (define-format-directive-compiler underscore-directive
-  `((inravina:pprint-newline ,client *destination*
+  `((inravina:pprint-newline ,(incless:client-form client) *destination*
                              ,(cond ((and colonp at-signp) :mandatory)
                                     (colonp :fill)
                                     (at-signp :miser)
@@ -958,31 +955,26 @@
                        "")))
         (per-line-prefix-p (at-signp (aref (aref (clauses directive) 0)
                                            (1- (length (aref (clauses directive) 0)))))))
-    (if per-line-prefix-p
-        (inravina:pprint-logical-block (client *destination* (consume-next-argument t)
-                                               :per-line-prefix prefix :suffix suffix)
-          (let ((*next-argument-hook* (lambda ()
-                                        (if (inravina:pprint-more-p)
-                                            (values (inravina:pprint-pop) t)
-                                            (values nil nil))))
-                (*escape-hook* (lambda ()
-                                 (inravina:pprint-exit-if-list-exhausted))))
-            (interpret-items client (aref (clauses directive)
-                                          (if (= (length (clauses directive)) 1)
-                                              0
-                                              1)))))
-        (inravina:pprint-logical-block (client *destination* (consume-next-argument t)
-                                               :prefix prefix :suffix suffix)
-          (let ((*next-argument-hook* (lambda ()
-                                        (if (inravina:pprint-more-p)
-                                            (values (inravina:pprint-pop) t)
-                                            (values nil nil))))
-                (*escape-hook* (lambda ()
-                                 (inravina:pprint-exit-if-list-exhausted))))
-            (interpret-items client (aref (clauses directive)
-                                          (if (= (length (clauses directive)) 1)
-                                              0
-                                              1))))))))
+    (flet ((interpret-body (*destination* *escape-hook* p-pop)
+             (let ((*next-argument-hook* (lambda (&aux exited)
+                                           (unwind-protect
+                                                (progn
+                                                  (funcall *escape-hook*)
+                                                  (setf exited t))
+                                             (unless exited
+                                               (error 'no-more-arguments)))
+                                           (funcall p-pop))))
+               (interpret-items client (aref (clauses directive)
+                                             (if (= (length (clauses directive)) 1)
+                                                 0
+                                                 1))))))
+      (if per-line-prefix-p
+          (inravina:execute-pprint-logical-block client *destination*
+                                                 (consume-next-argument t) #'interpret-body
+                                                 :per-line-prefix prefix :suffix suffix)
+          (inravina:execute-pprint-logical-block client *destination*
+                                                 (consume-next-argument t) #'interpret-body
+                                                 :prefix prefix :suffix suffix)))))
 
 (define-format-directive-compiler logical-block-directive
   (let ((prefix (cond ((> (length (clauses directive)) 1)
@@ -999,19 +991,22 @@
                        "")))
         (per-line-prefix-p (at-signp (aref (aref (clauses directive) 0)
                                            (1- (length (aref (clauses directive) 0)))))))
-    `(inravina:pprint-logical-block (,client *destination* (consume-next-argument t)
-                                             ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix
-                                             :suffix ,suffix)
-       (let ((*next-argument-hook* (lambda ()
-                                     (if (inravina:pprint-more-p)
-                                         (values (inravina:pprint-pop) t)
-                                         (values nil nil))))
-             (*escape-hook* (lambda ()
-                              (inravina:pprint-exit-if-list-exhausted))))
-         ,@(compile-items client (aref (clauses directive)
-                                       (if (= (length (clauses directive)) 1)
-                                           0
-                                           1)))))))
+    `((inravina:execute-pprint-logical-block ,(incless:client-form client) *destination*
+                                             (consume-next-argument t)
+                                             (lambda (*destination* *escape-hook* p-pop)
+                                               (let ((*next-argument-hook* (lambda (&aux exited)
+                                                                             (unwind-protect
+                                                                                  (progn
+                                                                                    (funcall *escape-hook*)
+                                                                                    (setf exited t))
+                                                                               (unless exited
+                                                                                 (error 'no-more-arguments)))
+                                                                             (funcall p-pop))))
+                                                 ,@(compile-items client (aref (clauses directive)
+                                                                               (if (= (length (clauses directive)) 1)
+                                                                                   0
+                                                                                   1)))))
+                                             ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix :suffix ,suffix))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1026,7 +1021,7 @@
                           how-many))
 
 (define-format-directive-compiler i-directive
-  `((inravina:pprint-indent ,client *destination*
+  `((inravina:pprint-indent ,(incless:client-form client) *destination*
                             ,(if colonp :current :block)
                             how-many)))
 
@@ -1204,13 +1199,13 @@
 
 (define-format-directive-compiler tabulate-directive
   (cond (colonp
-         `(inravina:pprint-tab ,client *destination*
+         `(inravina:pprint-tab ,(incless:client-form client) *destination*
                                ,(if atsignp :section-relative :section)
                                colnum colinc))
         (atsignp
-         `(format-relative-tab ,client colnum colinc))
+         `(format-relative-tab ,(incless:client-form client) colnum colinc))
         (t
-         `(format-absolute-tab ,client colnum colinc))))
+         `(format-absolute-tab ,(incless:client-form client) colnum colinc))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1635,11 +1630,11 @@
 (define-format-directive-compiler recursive-processing-directive
   (if at-signp
       ;; reuse the arguments from the parent control-string
-      `((format-with-runtime-arguments ,client *destination*
+      `((format-with-runtime-arguments ,(incless:client-form client) *destination*
                                        (consume-next-argument 'string)))
       ;;
       `((apply #'format
-               ,client
+               ,(incless:client-form client)
                *destination*
                (consume-next-argument 'string)
                (consume-next-argument 'list)))))
