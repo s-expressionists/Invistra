@@ -67,7 +67,7 @@
            ;; be acquired at runtime (# or V).  We must use a default
            ;; value if it has any.
            (getf (cdr parameter-spec) :default-value))
-          ((eq compile-time-value 'V)
+          ((eq compile-time-value :argument-reference)
            ;; The parameter was given the explicit value V in the
            ;; format control string, meaning we use the next argument
            ;; to acquire the value of the parameter.  We must test
@@ -89,7 +89,7 @@
                              :datum
                              argument))
                     argument))))
-          ((eq compile-time-value '|#|)
+          ((eq compile-time-value :remaining-argument-count)
            ;; The parameter was given the explicit value # in the
            ;; format control string, meaning we use the number of
            ;; remaining arguments as the value of the parameter.
@@ -167,13 +167,14 @@
 
 (defun compile-time-value (directive slot-name)
   (let ((value (slot-value directive slot-name)))
-    (cond ((or (eq value '|#|) (eq value 'V))
-           nil)
-          ((null value)
-           (let ((parameter-specs (parameter-specs (class-name (class-of directive)))))
-             (getf (cdr (find slot-name parameter-specs :key #'car)) :default-value)))
-          (t
-           value))))
+    (case value
+      ((:remaining-argument-count :argument-reference)
+       :run-time-value)
+      ((nil)
+       (let ((parameter-specs (parameter-specs (class-name (class-of directive)))))
+         (getf (cdr (find slot-name parameter-specs :key #'car)) :default-value)))
+      (otherwise
+       value))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -293,14 +294,14 @@
 
 (define-format-directive-compiler percent-directive
   (let ((how-many (compile-time-value directive 'how-many)))
-    (cond ((null how-many)
-           `((loop repeat how-many
-                   do (terpri *destination*))))
-          ((< how-many 3)
-           (loop repeat how-many
-                 collect `(terpri *destination*)))
-          (t `((loop repeat ,how-many
-                     do (terpri *destination*)))))))
+    (case how-many
+      (0 '())
+      (1 '((terpri *destination*)))
+      (2 '((terpri *destination*)
+           (terpri *destination*)))
+      (otherwise
+        `((loop repeat how-many
+                do (terpri *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -317,20 +318,20 @@
 
 (define-format-directive-compiler ampersand-directive
   (let ((how-many (compile-time-value directive 'how-many)))
-    (cond ((null how-many)
-           `((unless (zerop how-many)
-               (fresh-line *destination*)
-               (loop repeat (1- how-many)
-                     do (terpri *destination*)))))
-          ((zerop how-many)
-           nil)
-          ((< how-many 3)
-           `((fresh-line *destination*)
-             ,@(loop repeat (1- how-many)
-                     collect `(terpri *destination*))))
-          (t `((fresh-line *destination*)
-               (loop repeat ,(1- how-many)
-                     do (terpri *destination*)))))))
+    (case how-many
+      (:run-time-value
+       `((unless (zerop how-many)
+           (fresh-line *destination*)
+           (loop repeat (1- how-many)
+                 do (terpri *destination*)))))
+      (0 nil)
+      (1 `((fresh-line *destination*)))
+      (2 `((fresh-line *destination*)
+           (terpri *destination*)))
+      (otherwise
+       `((fresh-line *destination*)
+         (loop repeat ,(1- how-many)
+               do (terpri *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -344,12 +345,15 @@
         do (write-char #\Page *destination*)))
 
 (define-format-directive-compiler vertical-bar-directive
-    (let ((how-many (compile-time-value directive 'how-many)))
-      (if (< how-many 3)
-          (loop repeat how-many
-                collect '(write-char #\Page *destination*))
-          `((loop repeat ,how-many
-                  do (write-char #\Page *destination*))))))
+  (let ((how-many (compile-time-value directive 'how-many)))
+    (case how-many
+      (0 nil)
+      (1 `((write-char #\Page *destination*)))
+      (2 `((write-char #\Page *destination*)
+           (write-char #\Page *destination*)))
+      (otherwise
+       `((loop repeat how-many
+               do (write-char #\Page *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -364,14 +368,14 @@
 
 (define-format-directive-compiler tilde-directive
   (let ((how-many (compile-time-value directive 'how-many)))
-    (cond ((null how-many)
-           `((loop repeat how-many
-                   do (write-char #\~ *destination*))))
-          ((< how-many 3)
-           (loop repeat how-many
-                 collect `(write-char #\~ *destination*)))
-          (t `((loop repeat ,how-many
-                     do (write-char #\~ *destination*)))))))
+    (case how-many
+      (0 nil)
+      (1 `((write-char #\~ *destination*)))
+      (2 `((write-char #\~ *destination*)
+           (write-char #\~ *destination*)))
+      (otherwise
+       `((loop repeat how-many
+               do (write-char #\~ *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -384,7 +388,10 @@
               (*print-escape* nil)
               (*print-readably* nil))
           (incless:write-object client argument *destination*))
-        (let* ((string (let ((*print-base* radix))
+        (let* ((string (let ((*print-base* radix)
+                             (*print-radix* nil)
+                             (*print-escape* nil)
+                             (*print-readably* nil))
                          (with-output-to-string (stream)
                            (incless:write-object client (abs argument) stream))))
                (comma-length (if colonp
@@ -618,29 +625,33 @@
                                 *destination*))))
 
 (define-format-directive-compiler r-directive
-  (cond ((and colonp at-signp)
-         `((if (null radix)
-               (print-as-old-roman (consume-next-argument '(integer 1))
-                                   *destination*)
-               (print-radix-arg ,(incless:client-form client) radix t t mincol padchar commachar comma-interval))))
-        (at-signp
-         `((if (null radix)
-               (print-as-roman (consume-next-argument '(integer 1))
-                               *destination*)
-               (print-radix-arg ,(incless:client-form client) radix nil t mincol padchar commachar comma-interval))))
-        (colonp
-         `((if (null radix)
-               (print-ordinal-number (consume-next-argument
-                                      `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
-                                     *destination*)
-               (print-radix-arg ,(incless:client-form client) radix t nil mincol padchar commachar comma-interval))))
+  (let ((print-number-radix `(print-radix-arg ,(incless:client-form client)
+                                              radix ,colonp ,at-signp mincol
+                                              padchar commachar comma-interval))
+        (print-null-radix (cond ((and colonp at-signp)
+                                 `(print-as-old-roman (consume-next-argument '(integer 1))
+                                                      *destination*))
+                                (at-signp
+                                 `(print-as-roman (consume-next-argument '(integer 1))
+                                                  *destination*))
+                                (colonp
+                                 `(print-ordinal-number (consume-next-argument
+                                                         `(integer ,(1+ (- (expt 10 65)))
+                                                                   ,(1- (expt 10 65))))
+                                                        *destination*))
+                                (t
+                                 `(print-cardinal-number (consume-next-argument
+                                                          `(integer ,(1+ (- (expt 10 65)))
+                                                                    ,(1- (expt 10 65))))
+                                                         *destination*)))))
+  (cond ((numberp radix)
+         (list print-number-radix))
+        ((null radix)
+         (list print-null-radix))
         (t
          `((if (null radix)
-               (print-cardinal-number (consume-next-argument
-                                       `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
-                                      *destination*)
-               (print-radix-arg ,(incless:client-form client) radix nil nil mincol padchar commachar comma-interval))))))
-
+               ,print-null-radix
+               ,print-number-radix))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -907,8 +918,8 @@
     ())
 
 (define-format-directive-interpreter end-logical-block-directive
-    ;; do nothing
-    nil)
+  ;; do nothing
+  nil)
 
 (define-format-directive-compiler end-logical-block-directive
     ;; do nothing
@@ -1125,10 +1136,10 @@
     directive
     (let ((param-args
            (loop for parameter in given-parameters
-                 collect (cond ((eq parameter '|#|)
+                 collect (cond ((eq parameter :remaining-argument-count)
                                 (- (length *arguments*)
                                    *next-argument-pointer*))
-                               ((eq parameter 'V)
+                               ((eq parameter :argument-reference)
                                 (consume-next-argument t))
                                (t parameter)))))
       (apply function-name
@@ -1152,12 +1163,14 @@
       directive
     (let ((param-args
             (loop for parameter in given-parameters
-                  collect (cond ((eq parameter '|#|)
-                                 `(- (length *arguments*)
-                                     *next-argument-pointer*))
-                                ((eq parameter 'V)
-                                 `(consume-next-argument t))
-                                (t parameter)))))
+                  collect (case parameter
+                            (:remaining-argument-count
+                             `(- (length *arguments*)
+                                 *next-argument-pointer*))
+                            (:argument-reference
+                             `(consume-next-argument t))
+                            (otherwise
+                             parameter)))))
       `((,function-name *destination*
                         (consume-next-argument t)
                         ,colonp

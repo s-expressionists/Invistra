@@ -23,10 +23,10 @@
          (values nil start))
         ((or (eql (char string start) #\v) (eql (char string start) #\V))
          ;; Indicates that the value is to be taken from the arguments.
-         (values 'v (1+ start)))
+         (values :argument-reference (1+ start)))
         ((eql (char string start) #\#)
          ;; Indicates that the value is the remaining number of arguments
-         (values '|#| (1+ start)))
+         (values :remaining-argument-count (1+ start)))
         ((eql (char string start) #\')
          (incf start)
          (when (= start end)

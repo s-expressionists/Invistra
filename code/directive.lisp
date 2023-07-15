@@ -142,8 +142,8 @@
       ;; the slot.
       (let ((parameter-number 1))
         (mapc (lambda (parameter-spec parameter-value)
-                (unless (or (eq parameter-value '|#|)
-                            (eq parameter-value 'V))
+                (unless (or (eq parameter-value :remaining-argument-count)
+                            (eq parameter-value :argument-reference))
                   (unless
                       (or
                        ;; Either a parameter was not supplied, but it has a

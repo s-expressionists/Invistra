@@ -9,7 +9,7 @@
            ;; be acquired at runtime (# or V).  We must use a default
            ;; value of it has any.
            (getf (cdr parameter-spec) :default-value))
-          ((eq compile-time-value 'V)
+          ((eq compile-time-value :argument-reference)
            ;; The parameter was given the explicit value V in the
            ;; format control string, meaning we use the next argument
            ;; to acquire the value of the parameter.  We must generate
@@ -32,7 +32,7 @@
                                      :datum
                                      argument))
                             argument)))))
-          ((eq compile-time-value '|#|)
+          ((eq compile-time-value :remaining-argument-count)
            ;; The parameter was given the explicit value # in the
            ;; format control string, meaning we use the number of
            ;; remaining arguments as the value of the parameter.
