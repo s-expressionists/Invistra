@@ -47,6 +47,14 @@
 ;;; invocation of FORMAT.
 (defvar *arguments*)
 
+(defvar *previous-arguments*)
+
+(defvar *previous-argument-index*)
+
+(defvar *remaining-argument-count*)
+
+(defvar *pop-argument-hook*)
+
 ;;; An index into the vector of arguments indicating the next
 ;;; argument to treat.
 (defvar *next-argument-pointer*)
@@ -57,6 +65,22 @@
 
 ;;; A tag for CATCH/THROW to use by the ~^ directive
 (defvar *catch-tag*)
+
+(defmacro with-arguments (arguments &body body)
+  `(let* ((*arguments* ,arguments)
+          (*previous-argument-index* 0)
+          (*remaining-argument-count* (length *arguments*))
+          (*previous-arguments* (make-array *remaining-argument-count*
+                                            :adjustable t :fill-pointer 0))
+          ;; Any unique object will do.
+          (*catch-tag* (list nil))
+          (*pop-argument-hook* (lambda ()
+                                 (pop *arguments*)))
+          (*escape-hook* (lambda ()
+                           (unless (or *arguments*
+                                       (< *previous-argument-index* (length *previous-arguments*)))
+                             (throw *catch-tag* nil)))))
+     ,@body))
 
 (defun compute-parameter-value (directive parameter-spec)
   (let* ((parameter-name (car parameter-spec))
@@ -80,16 +104,12 @@
            ;; The parameter was given the explicit value # in the
            ;; format control string, meaning we use the number of
            ;; remaining arguments as the value of the parameter.
-           (let ((number-of-remaining-arguments
-                  (- (length *arguments*) *next-argument-pointer*)))
-             (unless (typep number-of-remaining-arguments
-                            (getf (cdr parameter-spec) :type))
-               (error 'argument-type-error
-                      :expected-type
-                      (getf (cdr parameter-spec) :type)
-                      :datum
-                      number-of-remaining-arguments))
-             number-of-remaining-arguments))
+           (unless (typep *remaining-argument-count*
+                          (getf (cdr parameter-spec) :type))
+             (error 'argument-type-error
+                    :expected-type (getf (cdr parameter-spec) :type)
+                    :datum *remaining-argument-count*))
+           *remaining-argument-count*)
           (t
            ;; The parameter was given an explicit value (number or
            ;; character) in the format control string, and this is the
@@ -120,23 +140,49 @@
          ,@body))))
 
 (defun consume-next-argument (type)
-  (cond (*next-argument-hook*
-         (let ((arg (funcall *next-argument-hook*)))
-           (unless (typep arg type)
-             (error 'argument-type-error
-                    :expected-type type
-                    :datum arg))
-           arg))
+  (unless (< *previous-argument-index* (length *previous-arguments*))
+    (let (exited)
+      (unwind-protect
+           (progn
+             (funcall *escape-hook*)
+             (setf exited t))
+        (unless exited
+          (error 'no-more-arguments)))
+      (vector-push-extend (funcall *pop-argument-hook*) *previous-arguments*)))
+  (when (= *previous-argument-index* (length *previous-arguments*))
+    (error 'no-more-arguments))
+  (let ((arg (aref *previous-arguments* *previous-argument-index*)))
+    (incf *previous-argument-index*)
+    (decf *remaining-argument-count*)
+    (unless (typep arg type)
+      (error 'argument-type-error
+             :expected-type type
+             :datum arg))
+    arg))
+
+(defun go-to-argument (index &optional absolute)
+  (when absolute
+    (incf *remaining-argument-count* *previous-argument-index*)
+    (setf *previous-argument-index* 0))
+  (cond ((zerop index)
+         (aref *previous-arguments* *previous-argument-index*))
+        ((plusp index)
+         (prog ()
+          next
+            (decf index)
+            (when (zerop index)
+              (return (consume-next-argument t)))
+            (consume-next-argument t)
+            (go next)))
         (t
-         (when (>= *next-argument-pointer* (length *arguments*))
-           (error 'no-more-arguments))
-         (let ((arg (aref *arguments* *next-argument-pointer*)))
-           (incf *next-argument-pointer*)
-           (unless (typep arg type)
-             (error 'argument-type-error
-                    :expected-type type
-                    :datum arg))
-           arg))))
+         (let ((new-arg-index (+ *previous-argument-index* index)))
+           (when (minusp new-arg-index)
+             (error 'go-to-out-of-bounds
+                    :what-argument new-arg-index
+                    :max-arguments *remaining-argument-count*))
+           (decf *remaining-argument-count* index)
+           (setf *previous-argument-index* new-arg-index)
+           (aref *previous-arguments* *previous-argument-index*)))))
 
 (defmacro define-format-directive-compiler (class-name &body body)
   `(defmethod compile-format-directive (client (directive ,class-name))
@@ -932,24 +978,23 @@
                        "")))
         (per-line-prefix-p (at-signp (aref (aref (clauses directive) 0)
                                            (1- (length (aref (clauses directive) 0))))))
-        (object (if at-signp
-                    (prog1 (coerce (subseq *arguments* *next-argument-pointer*) 'list)
-                      (setf *next-argument-pointer* (length *arguments*)))
-                    (consume-next-argument t))))
-
-    (flet ((interpret-body (*destination* *escape-hook* p-pop)
-             (let ((*next-argument-hook* (lambda (&aux exited)
-                                           (unwind-protect
-                                                (progn
-                                                  (funcall *escape-hook*)
-                                                  (setf exited t))
-                                             (unless exited
-                                               (error 'no-more-arguments)))
-                                           (funcall p-pop))))
-               (interpret-items client (aref (clauses directive)
-                                             (if (= (length (clauses directive)) 1)
-                                                 0
-                                                 1))))))
+        (object (unless at-signp (consume-next-argument t))))
+    (flet ((interpret-body (*destination* escape-hook pop-argument-hook)
+             (if at-signp
+                 (interpret-items client (aref (clauses directive)
+                                               (if (= (length (clauses directive)) 1)
+                                                   0
+                                                   1)))
+                 (let* ((*remaining-argument-count* (length object))
+                        (*previous-arguments* (make-array *remaining-argument-count*
+                                                          :adjustable t :fill-pointer 0))
+                        (*previous-argument-index* 0)
+                        (*escape-hook* escape-hook)
+                        (*pop-argument-hook* pop-argument-hook))
+                   (interpret-items client (aref (clauses directive)
+                                                 (if (= (length (clauses directive)) 1)
+                                                     0
+                                                     1)))))))
       (if per-line-prefix-p
           (inravina:execute-pprint-logical-block client *destination*
                                                  object #'interpret-body
@@ -975,25 +1020,29 @@
                        "")))
         (per-line-prefix-p (at-signp (aref (aref (clauses directive) 0)
                                            (1- (length (aref (clauses directive) 0)))))))
-    `((inravina:execute-pprint-logical-block ,(incless:client-form client) *destination*
-                                             ,(if at-signp
-                                                  `(prog1 (coerce (subseq *arguments* *next-argument-pointer*) 'list)
-                                                     (setf *next-argument-pointer* (length *arguments*)))
-                                                  `(consume-next-argument t))
-                                             (lambda (*destination* *escape-hook* p-pop)
-                                               (let ((*next-argument-hook* (lambda (&aux exited)
-                                                                             (unwind-protect
-                                                                                  (progn
-                                                                                    (funcall *escape-hook*)
-                                                                                    (setf exited t))
-                                                                               (unless exited
-                                                                                 (error 'no-more-arguments)))
-                                                                             (funcall p-pop))))
-                                                 ,@(compile-items client (aref (clauses directive)
-                                                                               (if (= (length (clauses directive)) 1)
-                                                                                   0
-                                                                                   1)))))
-                                             ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix :suffix ,suffix))))
+    (if at-signp
+        `((inravina:execute-pprint-logical-block ,(incless:client-form client) *destination*
+                                                 nil
+                                                 (lambda (*destination* escape-hook pop-argument-hook)
+                                                   (declare (ignore escape-hook pop-argument-hook))
+                                                   ,@(compile-items client (aref (clauses directive)
+                                                                                 (if (= (length (clauses directive)) 1)
+                                                                                     0
+                                                                                     1))))
+                                                 ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix :suffix ,suffix))
+        `((let ((object (consume-next-argument t))
+                (*remaining-object-count* (length object))
+                (*previous-arguments* (make-array *remaining-argument-count*
+                                                  :adjustable t :fill-pointer 0))
+                (*previous-argument-index* 0))
+            (inravina:execute-pprint-logical-block ,(incless:client-form client) *destination*
+                                                   (lambda (*destination* *escape-hook* *pop-argument-hook*)
+
+                                                     ,@(compile-items client (aref (clauses directive)
+                                                                                   (if (= (length (clauses directive)) 1)
+                                                                                       0
+                                                                                       1))))
+                                                   ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix :suffix ,suffix))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1103,8 +1152,7 @@
     (let ((param-args
            (loop for parameter in given-parameters
                  collect (cond ((eq parameter :remaining-argument-count)
-                                (- (length *arguments*)
-                                   *next-argument-pointer*))
+                                *remaining-argument-count*)
                                ((eq parameter :argument-reference)
                                 (consume-next-argument t))
                                (t parameter)))))
@@ -1131,8 +1179,7 @@
             (loop for parameter in given-parameters
                   collect (case parameter
                             (:remaining-argument-count
-                             `(- (length *arguments*)
-                                 *next-argument-pointer*))
+                             '*remaining-argument-count*)
                             (:argument-reference
                              `(consume-next-argument t))
                             (otherwise
@@ -1256,59 +1303,29 @@
   (cond (colonp
          ;; Back up in the list of arguments.
          ;; The default value for the parameter is 1.
-         (let ((new-arg-pointer (- *next-argument-pointer* (or param 1))))
-           (unless (>= new-arg-pointer 0)
-             (error 'go-to-out-of-bounds
-                    :what-argument new-arg-pointer
-                    :max-arguments (length *arguments*)))
-           (setf *next-argument-pointer* new-arg-pointer)))
+         (go-to-argument (- (or param 1))))
         (at-signp
          ;; Go to an absolute argument number.
          ;; The default value for the parameter is 0.
-         (let ((new-arg-pointer (or param 0)))
-           (unless (<= 0 new-arg-pointer (length *arguments*))
-             (error 'go-to-out-of-bounds
-                    :what-argument new-arg-pointer
-                    :max-arguments (length *arguments*)))
-           (setf *next-argument-pointer* new-arg-pointer)))
+         (go-to-argument (or param 0) t))
         (t
          ;; Skip the next arguments.
          ;; The default value for the parameter is 1.
-         (let ((new-arg-pointer (+ *next-argument-pointer* (or param 1))))
-           (unless (<= new-arg-pointer (length *arguments*))
-             (error 'go-to-out-of-bounds
-                    :what-argument new-arg-pointer
-                    :max-arguments (length *arguments*)))
-           (setf *next-argument-pointer* new-arg-pointer)))))
+         (go-to-argument (or param 1)))))
 
 (define-format-directive-compiler go-to-directive
   (cond (colonp
          ;; Back up in the list of arguments.
          ;; The default value for the parameter is 1.
-         `((let ((new-arg-pointer (- *next-argument-pointer* (or param 1))))
-             (unless (>= new-arg-pointer 0)
-               (error 'go-to-out-of-bounds
-                      :what-argument new-arg-pointer
-                      :max-arguments (length *arguments*)))
-             (setf *next-argument-pointer* new-arg-pointer))))
+         `((go-to-argument (- (or param 1)))))
         (at-signp
          ;; Go to an absolute argument number.
          ;; The default value for the parameter is 0.
-         `((let ((new-arg-pointer (or param 0)))
-             (unless (<= 0 new-arg-pointer (length *arguments*))
-               (error 'go-to-out-of-bounds
-                      :what-argument new-arg-pointer
-                      :max-arguments (length *arguments*)))
-             (setf *next-argument-pointer* new-arg-pointer))))
+         `((go-to-argument (or param 0) t)))
         (t
          ;; Skip the next arguments.
          ;; The default value for the parameter is 1.
-         `((let ((new-arg-pointer (+ *next-argument-pointer* (or param 1))))
-             (unless (<= new-arg-pointer (length *arguments*))
-               (error 'go-to-out-of-bounds
-                      :what-argument new-arg-pointer
-                      :max-arguments (length *arguments*)))
-             (setf *next-argument-pointer* new-arg-pointer))))))
+         `((go-to-argument (or param 1))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1380,15 +1397,9 @@
 
 (define-format-directive-interpreter conditional-directive
   (cond (at-signp
-         (when (>= *next-argument-pointer* (length *arguments*))
-           (error 'no-more-arguments))
-         (if (aref *arguments* *next-argument-pointer*)
-             ;; Then do not consume the argument and
-             ;; process the clause.
-             (interpret-items client (aref (clauses directive) 0))
-             ;; Else, consume the argument and
-             ;; do not process the clause
-             (incf *next-argument-pointer*)))
+         (when (consume-next-argument t)
+           (go-to-argument -1)
+           (interpret-items client (aref (clauses directive) 0))))
         (colonp
          (interpret-items client
                           (aref (clauses directive)
@@ -1416,16 +1427,9 @@
 
 (define-format-directive-compiler conditional-directive
   (cond (at-signp
-         `((when (>= *next-argument-pointer* (length *arguments*))
-             (error 'no-more-arguments))
-           (cond ((aref *arguments* *next-argument-pointer*)
-                  ;; Then do not consume the argument and
-                  ;; process the clause.
-                  ,@(compile-items client (aref (clauses directive) 0)))
-                 (t
-                  ;; Else, consume the argument and
-                  ;; do not process the clause
-                  (incf *next-argument-pointer*)))))
+         `((when (consume-next-argument t)
+           (go-to-argument -1)
+           ,@(compile-items client (aref (clauses directive) 0)))))
         (colonp
          `((cond ((consume-next-argument t)
                   ;; Compile the first clause
@@ -1483,12 +1487,7 @@
            ;; The remaining arguments should be lists.  Each argument
            ;; is used in a different iteration.
            (flet ((one-iteration ()
-                    (let* ((*arguments* (coerce (consume-next-argument 'list) 'vector))
-                           (*next-argument-pointer* 0)
-                           (*next-argument-hook* nil)
-                           (*escape-hook* (lambda ()
-                                            (unless (< *next-argument-pointer* (length *arguments*))
-                                              (throw *catch-tag* nil)))))
+                    (with-arguments (consume-next-argument 'list)
                       (catch *catch-tag*
                         (interpret-items client items)))))
              (if (null iteration-limit)
@@ -1506,12 +1505,7 @@
                         (error 'argument-type-error
                                :expected-type 'list
                                :datum args))
-                      (let* ((*arguments* (coerce args 'vector))
-                             (*next-argument-pointer* 0)
-                             (*next-argument-hook* nil)
-                             (*escape-hook* (lambda ()
-                                              (unless (< *next-argument-pointer* (length *arguments*))
-                                                (throw *catch-tag* nil)))))
+                      (with-arguments args
                         (catch *catch-tag*
                           (interpret-items client items)))))
                (if (null iteration-limit)
@@ -1531,13 +1525,8 @@
            ;; no modifiers
            ;; We use one argument, and that should be a list.
            ;; The elements of that list are used by the iteration.
-           (catch *catch-tag*
-             (let* ((*arguments* (coerce (consume-next-argument 'list) 'vector))
-                    (*next-argument-pointer* 0)
-                    (*next-argument-hook* nil)
-                    (*escape-hook* (lambda ()
-                                     (unless (< *next-argument-pointer* (length *arguments*))
-                                       (throw *catch-tag* nil)))))
+           (with-arguments (consume-next-argument 'list)
+             (catch *catch-tag*
                (if (null iteration-limit)
                    (loop do (funcall *escape-hook*)
                             (interpret-items client items))
@@ -1549,24 +1538,19 @@
   ;; eliminate the end-of-iteration directive from the
   ;; list of items
   (let ((items (aref (clauses directive) 0)))
+    (when (= (length items) 1)
+      (error "not yet"))
     (cond ((and colonp at-signp)
            ;; The remaining arguments should be lists.  Each argument
            ;; is used in a different iteration.
-           `((flet ((one-iteration ()
-                      (let* ((*arguments* (coerce (consume-next-argument 'list) 'vector))
-                             (*next-argument-pointer* 0)
-                             (*next-argument-hook* nil)
-                             (*escape-hook* (lambda ()
-                                              (unless (< *next-argument-pointer* (length *arguments*))
-                                                (throw *catch-tag* nil)))))
-                        (catch *catch-tag*
-                          ,@(compile-items client items)))))
-               (catch *catch-tag*
-                 (loop for index from 0
+           `((catch *catch-tag*
+               (loop for index from 0
                      while (or (null iteration-limit)
                                (< index iteration-limit))
                      do (funcall *escape-hook*)
-                        (one-iteration))))))
+                        (with-arguments (consume-next-argument 'list)
+                          (catch *catch-tag*
+                            ,@(compile-items client items)))))))
           (colonp
            ;; We use one argument, and that should be a list of sublists.
            ;; Each sublist is used as arguments for one iteration.
@@ -1576,12 +1560,7 @@
                           (error 'argument-type-error
                                  :expected-type 'list
                                  :datum args))
-                        (let* ((*arguments* (coerce args 'vector))
-                               (*next-argument-pointer* 0)
-                               (*next-argument-hook* nil)
-                               (*escape-hook* (lambda ()
-                                                (unless (< *next-argument-pointer* (length *arguments*))
-                                                  (throw *catch-tag* nil)))))
+                        (with-arguments args
                           (catch *catch-tag*
                             ,@(compile-items client items)))))
                  (loop for args in arg ; a bit unusual naming perhaps
@@ -1590,28 +1569,22 @@
                                  (< index iteration-limit))
                        do (one-iteration args))))))
           (at-signp
-           `((catch *catch-tag*
-               (loop for index from 0
+           `((loop for index from 0
                    while (or (null iteration-limit)
                              (< index iteration-limit))
-                     do (funcall *escape-hook*)
-                        ,@(compile-items client items)))))
+                   do (funcall *escape-hook*)
+                      ,@(compile-items client items))))
           (t
            ;; no modifiers
            ;; We use one argument, and that should be a list.
            ;; The elements of that list are used by the iteration.
-           `((catch *catch-tag*
-               (loop with *arguments* = (coerce (consume-next-argument 'list) 'vector)
-                     with *next-argument-pointer* = 0
-                     *next-argument-hook* = nil
-                     *escape-hook* = (lambda ()
-                                       (unless (< *next-argument-pointer* (length *arguments*))
-                                         (throw *catch-tag* nil)))
-                     for index from 0
-                     while (or (null iteration-limit)
-                               (< index iteration-limit))
-                     do (funcall *escape-hook*)
-                        ,@(compile-items client items))))))))
+           `((with-arguments (consume-next-argument 'list)
+               (catch *catch-tag*
+                 (loop for index from 0
+                       while (or (null iteration-limit)
+                                 (< index iteration-limit))
+                       do (funcall *escape-hook*)
+                          ,@(compile-items client items)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1717,11 +1690,7 @@
 
 (define-format-directive-interpreter plural-directive
   (when colonp
-    (when (zerop *next-argument-pointer*)
-      (error 'go-to-out-of-bounds
-             :what-argument -1
-             :max-arguments (length *arguments*)))
-    (decf *next-argument-pointer*))
+    (go-to-argument -1))
   (if at-signp
       (write-string (if (eql (consume-next-argument t) 1)
                         "y"
@@ -1732,11 +1701,7 @@
 
 (define-format-directive-compiler plural-directive
   `(,@(when colonp
-        `((when (zerop *next-argument-pointer*)
-            (error 'go-to-out-of-bounds
-                   :what-argument -1
-                   :max-arguments (length *arguments*)))
-          (decf *next-argument-pointer*)))
+        `((go-to-argument -1)))
     ,(if at-signp
          `(write-string (if (eql (consume-next-argument t) 1)
                             "y"
@@ -1790,13 +1755,13 @@
            (funcall *escape-hook*))
           ((not (second parameters))
            (when (zerop p1)
-             (funcall *escape-hook*)))
+             (throw *catch-tag* nil)))
           ((not (third parameters))
            (when (= p1 p2)
-             (funcall *escape-hook*)))
+             (throw *catch-tag* nil)))
           (t
            (when (<= p1 p2 p3)
-             (funcall *escape-hook*))))))
+             (throw *catch-tag* nil))))))
 
 (define-format-directive-compiler circumflex-directive
   (let ((parameters (given-parameters directive)))
@@ -1804,13 +1769,13 @@
            `((funcall *escape-hook*)))
           ((not (second parameters))
            `((when (zerop p1)
-               (funcall *escape-hook*))))
+               (throw *catch-tag* nil))))
           ((not (third parameters))
            `((when (= p1 p2)
-               (funcall *escape-hook*))))
+               (throw *catch-tag* nil))))
           (t
            `((when (<= p1 p2 p3)
-               (funcall *escape-hook*)))))))
+               (throw *catch-tag* nil)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1834,8 +1799,8 @@
 (define-format-directive-compiler newline-directive
   (cond (colonp
          ;; Remove the newline but print the following whitespace.
-         `((let ((start (1+ (position #\Newline control-string :start start))))
-             (write-string ,(subseq control-string start end) *destination*))))
+         (let ((start (1+ (position #\Newline control-string :start start))))
+           `((write-string ,(subseq control-string start end) *destination*))))
         (at-signp
          ;; Print the newline, but remove the following whitespace.
          `((write-char #\Newline *destination*)))
@@ -1849,17 +1814,10 @@
 ;;; to call a version of format that doesn't initialize the
 ;;; *arguments* runtime environment variable.
 (defun format-with-runtime-arguments (client destination control-string)
-  (flet ((format-aux (stream items)
+  (flet ((format-aux (*destination* items)
            ;; interpret the control string in a new environment
-           (let* ((*destination* stream)
-                  ;; We are at the beginning of the argument vector.
-                  (*next-argument-pointer* 0)
-                  (*next-argument-hook* nil)
-                  ;; Any unique object will do.
-                  (*catch-tag* (list nil))
-                  (*escape-hook* (lambda ()
-                                   (unless (< *next-argument-pointer* (length *arguments*))
-                                     (throw *catch-tag* nil)))))
+           (let (;; Any unique object will do.
+                 (*catch-tag* (list nil)))
              (catch *catch-tag*
                (interpret-items client items)))))
     (let ((items (structure-items (split-control-string control-string) nil)))
@@ -1879,5 +1837,5 @@
 (defun format (client destination control &rest args)
   (if (functionp control)
       (apply #'funcall control destination args)
-      (let ((*arguments* (coerce args 'vector)))
+      (with-arguments args
         (format-with-runtime-arguments client destination control))))

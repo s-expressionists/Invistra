@@ -16,36 +16,20 @@
            ;; code to test that there are more arguments, to consume
            ;; the next one, and to check that the type of the argument
            ;; acquired is correct.
-           `(progn (when (>= *next-argument-pointer*
-                             (length *arguments*))
-                     (error 'no-more-arguments))
-                   (let ((argument (aref *arguments*
-                                         *next-argument-pointer*)))
-                     (incf *next-argument-pointer*)
-                     (cond ((null argument)
-                            ,(getf (cdr parameter-spec) :default-value))
-                           (t
-                            (unless (typep argument ',(getf (cdr parameter-spec) :type))
-                              (error 'argument-type-error
-                                     :expected-type
-                                     ',(getf (cdr parameter-spec) :type)
-                                     :datum
-                                     argument))
-                            argument)))))
+           `(or (consume-next-argument '(or null ,(getf (cdr parameter-spec) :type)))
+                ,(getf (cdr parameter-spec) :default-value)))
           ((eq compile-time-value :remaining-argument-count)
            ;; The parameter was given the explicit value # in the
            ;; format control string, meaning we use the number of
            ;; remaining arguments as the value of the parameter.
-           `(let ((number-of-remaining-arguments
-                   (- (length *arguments*) *next-argument-pointer*)))
-              (unless (typep number-of-remaining-arguments
-                             ',(getf (cdr parameter-spec) :type))
+           `(if (typep *remaining-argument-count*
+                       ',(getf (cdr parameter-spec) :type))
+                *remaining-argument-count*
                 (error 'argument-type-error
                        :expected-type
                        ',(getf (cdr parameter-spec) :type)
                        :datum
-                       number-of-remaining-arguments))
-              number-of-remaining-arguments))
+                       number-of-remaining-arguments)))
           (t
            ;; The parameter was given an explicit value (number or
            ;; character) in the format control string, and this is the

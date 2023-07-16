@@ -15,19 +15,25 @@
                                    (t
                                     (error 'invalid-destination
                                            :destination destination))))
-              (*arguments* (coerce args 'vector))
-              (*next-argument-hook* nil)
-              (*next-argument-pointer* 0)
+              (*previous-argument-index* 0)
+              (*remaining-argument-count* (length args))
+              (*previous-arguments* (make-array *remaining-argument-count*
+                                                :adjustable t :fill-pointer 0))
+              (*arguments* args)
+              ;; Any unique object will do.
               (*catch-tag* (list nil))
+              (*pop-argument-hook* (lambda ()
+                                     (pop *arguments*)))
               (*escape-hook* (lambda ()
-                               (unless (< *next-argument-pointer* (length *arguments*))
+                               (unless (or *arguments*
+                                           (< *previous-argument-index* (length *previous-arguments*)))
                                  (throw *catch-tag* nil)))))
          (catch *catch-tag*
            ,@(compile-items client items))
          ,(if output
               `(when (null destination)
                  (get-output-stream-string *destination*))
-              `(coerce (subseq *arguments* *next-argument-pointer*) 'list))))))
+              '*arguments*)))))
 
 (defun format-compiler-macro (client form destination control-string args)
   (if (not (stringp control-string))
