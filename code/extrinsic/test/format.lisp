@@ -22,7 +22,7 @@
 
 (defmacro is-equal (expected form)
   `(progn (macrolet ((fmt (destination control-string &rest args)
-                 `(funcall (invistra-extrinsic:formatter ,control-string) ,destination ,@args)))
+                       `(invistra-extrinsic:format ,destination ,control-string ,@args)))
       (is equal
           ,expected
           ,form))
@@ -36,7 +36,7 @@
   `(define-test ,name
      (my-with-standard-io-syntax
        (macrolet ((fmt (destination control-string &rest args)
-                    `(funcall (invistra-extrinsic:formatter ,control-string) ,destination ,@args)))
+                    `(invistra-extrinsic:format ,destination ,control-string ,@args)))
          (is equal
              ,expected
              ,form))
@@ -388,7 +388,7 @@
   (fmt nil "~r" 30))
 
 (define-equal-test radix.cardinal.24
-  "fourty"
+  "forty"
   (fmt nil "~r" 40))
 
 (define-equal-test radix.cardinal.25
@@ -513,7 +513,7 @@
   (fmt nil "~:r" 11))
 
 (define-equal-test radix.ordinal.13
-  "twelvth"
+  "twelfth"
   (fmt nil "~:r" 12))
 
 (define-equal-test radix.ordinal.14
@@ -557,7 +557,7 @@
   (fmt nil "~:r" 30))
 
 (define-equal-test radix.ordinal.24
-  "fourtieth"
+  "fortieth"
   (fmt nil "~:r" 40))
 
 (define-equal-test radix.ordinal.25
@@ -605,7 +605,7 @@
   (fmt nil "~:r" 3005))
 
 (define-equal-test radix.ordinal.36
-  "four thousand twelvth"
+  "four thousand twelfth"
   (fmt nil "~:r" 4012))
 
 (define-equal-test radix.ordinal.37
@@ -1534,3 +1534,17 @@
 (define-equal-test iteration.12
   "E"
   (fmt nil "~0:@{~a~a~}~a" 'e))
+
+;;; Escape
+
+(define-equal-test escape.01
+  "Done."
+  (fmt nil "Done.~^ ~D warning~:P.~^ ~D error~:P."))
+
+(define-equal-test escape.02
+  "Done. 3 warnings."
+  (fmt nil "Done.~^ ~D warning~:P.~^ ~D error~:P." 3))
+
+(define-equal-test escape.03
+  "Done. 1 warning. 5 errors."
+  (fmt nil "Done.~^ ~D warning~:P.~^ ~D error~:P." 1 5))

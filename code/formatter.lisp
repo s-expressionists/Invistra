@@ -20,7 +20,8 @@
               (*next-argument-pointer* 0)
               (*catch-tag* (list nil))
               (*escape-hook* (lambda ()
-                               (throw *catch-tag* nil))))
+                               (unless (< *next-argument-pointer* (length *arguments*))
+                                 (throw *catch-tag* nil)))))
          (catch *catch-tag*
            ,@(compile-items client items))
          ,(if output

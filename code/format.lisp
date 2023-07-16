@@ -73,22 +73,9 @@
            ;; to acquire the value of the parameter.  We must test
            ;; that there are more arguments, consume the next one, and
            ;; check that the type of the argument acquired is correct.
-           (when (>= *next-argument-pointer*
-                     (length *arguments*))
-             (error 'no-more-arguments))
-           (let ((argument (aref *arguments*
-                                 *next-argument-pointer*)))
-             (incf *next-argument-pointer*)
-             (cond ((null argument)
-                    (getf (cdr parameter-spec) :default-value))
-                   (t
-                    (unless (typep argument (getf (cdr parameter-spec) :type))
-                      (error 'argument-type-error
-                             :expected-type
-                             (getf (cdr parameter-spec) :type)
-                             :datum
-                             argument))
-                    argument))))
+           (or (consume-next-argument `(or null
+                                           ,(getf (cdr parameter-spec) :type)))
+               (getf (cdr parameter-spec) :default-value)))
           ((eq compile-time-value :remaining-argument-count)
            ;; The parameter was given the explicit value # in the
            ;; format control string, meaning we use the number of
@@ -179,48 +166,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; Code for individual directives
-
-;;; Signal an error if a modifier has been given for such a directive.
-(defmethod check-directive-syntax progn ((directive no-modifiers-mixin))
-  (with-accessors ((colonp colonp)
-                   (at-signp at-signp)
-                   (control-string control-string)
-                   (end end))
-    directive
-    (when (or colonp at-signp)
-      (error 'directive-takes-no-modifiers
-             :directive directive))))
-
-;;; Signal an error if an at-sign has been given for such a directive.
-(defmethod check-directive-syntax progn ((directive only-colon-mixin))
-  (with-accessors ((at-signp at-signp)
-                   (control-string control-string)
-                   (end end))
-    directive
-    (when at-signp
-      (error 'directive-takes-only-colon
-             :directive directive))))
-
-;;; Signal an error if a colon has been given for such a directive.
-(defmethod check-directive-syntax progn ((directive only-at-sign-mixin))
-  (with-accessors ((colonp colonp)
-                   (control-string control-string)
-                   (end end))
-    directive
-    (when colonp
-      (error 'directive-takes-only-at-sign
-             :directive directive))))
-
-;;; Signal an error if both modifiers have been given for such a directive.
-(defmethod check-directive-syntax progn ((directive at-most-one-modifier-mixin))
-  (with-accessors ((colonp colonp)
-                   (at-signp at-signp)
-                   (control-string control-string)
-                   (end end))
-    directive
-    (when (and colonp at-signp)
-      (error 'directive-takes-at-most-one-modifier
-             :directive directive))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -936,6 +881,15 @@
     ())
 
 (defmethod check-directive-syntax progn ((directive logical-block-directive))
+  (flet ((check-fix (items)
+           (when (notevery #'stringp items)
+             (error "Directives are not allowed in logical block prefix or suffix"))))
+    (when (> (length (clauses directive)) 3)
+      (error "Logical block only allows three clauses"))
+    (when (> (length (clauses directive)) 1)
+      (check-fix (aref (clauses directive) 0)))
+    (when (= (length (clauses directive)) 3)
+      (check-fix (aref (clauses directive) 2))))
   (let* ((last-clause (aref (clauses directive) (1- (length (clauses directive)))))
          (last-item (aref last-clause (1- (length last-clause)))))
     (when (at-signp last-item)
@@ -962,20 +916,27 @@
               do (vector-push-extend item result)))))
 
 (define-format-directive-interpreter logical-block-directive
-  (let ((prefix (cond ((> (length (clauses directive)) 1)
+  (let ((prefix (cond ((and (> (length (clauses directive)) 1)
+                            (> (length (aref (clauses directive) 0)) 1))
                        (aref (aref (clauses directive) 0) 0))
                       (colonp
                        "(")
                       (t
                        "")))
-        (suffix (cond ((= (length (clauses directive)) 3)
+        (suffix (cond ((and (= (length (clauses directive)) 3)
+                            (> (length (aref (clauses directive) 2)) 1))
                        (aref (aref (clauses directive) 2) 0))
                       (colonp
                        ")")
                       (t
                        "")))
         (per-line-prefix-p (at-signp (aref (aref (clauses directive) 0)
-                                           (1- (length (aref (clauses directive) 0)))))))
+                                           (1- (length (aref (clauses directive) 0))))))
+        (object (if at-signp
+                    (prog1 (coerce (subseq *arguments* *next-argument-pointer*) 'list)
+                      (setf *next-argument-pointer* (length *arguments*)))
+                    (consume-next-argument t))))
+
     (flet ((interpret-body (*destination* *escape-hook* p-pop)
              (let ((*next-argument-hook* (lambda (&aux exited)
                                            (unwind-protect
@@ -991,20 +952,22 @@
                                                  1))))))
       (if per-line-prefix-p
           (inravina:execute-pprint-logical-block client *destination*
-                                                 (consume-next-argument t) #'interpret-body
+                                                 object #'interpret-body
                                                  :per-line-prefix prefix :suffix suffix)
           (inravina:execute-pprint-logical-block client *destination*
-                                                 (consume-next-argument t) #'interpret-body
+                                                 object #'interpret-body
                                                  :prefix prefix :suffix suffix)))))
 
 (define-format-directive-compiler logical-block-directive
-  (let ((prefix (cond ((> (length (clauses directive)) 1)
+  (let ((prefix (cond ((and (> (length (clauses directive)) 1)
+                            (> (length (aref (clauses directive) 0)) 1))
                        (aref (aref (clauses directive) 0) 0))
                       (colonp
                        "(")
                       (t
                        "")))
-        (suffix (cond ((= (length (clauses directive)) 3)
+        (suffix (cond ((and (= (length (clauses directive)) 3)
+                            (> (length (aref (clauses directive) 2)) 1))
                        (aref (aref (clauses directive) 2) 0))
                       (colonp
                        ")")
@@ -1013,7 +976,10 @@
         (per-line-prefix-p (at-signp (aref (aref (clauses directive) 0)
                                            (1- (length (aref (clauses directive) 0)))))))
     `((inravina:execute-pprint-logical-block ,(incless:client-form client) *destination*
-                                             (consume-next-argument t)
+                                             ,(if at-signp
+                                                  `(prog1 (coerce (subseq *arguments* *next-argument-pointer*) 'list)
+                                                     (setf *next-argument-pointer* (length *arguments*)))
+                                                  `(consume-next-argument t))
                                              (lambda (*destination* *escape-hook* p-pop)
                                                (let ((*next-argument-hook* (lambda (&aux exited)
                                                                              (unwind-protect
@@ -1517,21 +1483,20 @@
            ;; The remaining arguments should be lists.  Each argument
            ;; is used in a different iteration.
            (flet ((one-iteration ()
-                    (let ((arg (aref *arguments* *next-argument-pointer*)))
-                      (unless (listp arg)
-                        (error 'argument-type-error
-                               :expected-type 'list
-                               :datum arg))
-                      (let ((*arguments* (coerce arg 'vector))
-                            (*next-argument-pointer* 0))
-                        (interpret-items client items))
-                      (incf *next-argument-pointer*))))
+                    (let* ((*arguments* (coerce (consume-next-argument 'list) 'vector))
+                           (*next-argument-pointer* 0)
+                           (*next-argument-hook* nil)
+                           (*escape-hook* (lambda ()
+                                            (unless (< *next-argument-pointer* (length *arguments*))
+                                              (throw *catch-tag* nil)))))
+                      (catch *catch-tag*
+                        (interpret-items client items)))))
              (if (null iteration-limit)
-                 (loop until (= *next-argument-pointer* (length *arguments*))
-                       do (one-iteration))
-                 (loop until (= *next-argument-pointer* (length *arguments*))
-                       repeat iteration-limit
-                       do (one-iteration)))))
+                 (loop do (funcall *escape-hook*)
+                          (one-iteration))
+                 (loop repeat iteration-limit
+                       do (funcall *escape-hook*)
+                          (one-iteration)))))
           (colonp
            ;; We use one argument, and that should be a list of sublists.
            ;; Each sublist is used as arguments for one iteration.
@@ -1541,9 +1506,14 @@
                         (error 'argument-type-error
                                :expected-type 'list
                                :datum args))
-                      (let ((*arguments* (coerce args 'vector))
-                            (*next-argument-pointer* 0))
-                        (interpret-items client items))))
+                      (let* ((*arguments* (coerce args 'vector))
+                             (*next-argument-pointer* 0)
+                             (*next-argument-hook* nil)
+                             (*escape-hook* (lambda ()
+                                              (unless (< *next-argument-pointer* (length *arguments*))
+                                                (throw *catch-tag* nil)))))
+                        (catch *catch-tag*
+                          (interpret-items client items)))))
                (if (null iteration-limit)
                    (loop for args in arg ; a bit unusual naming perhaps
                          do (one-iteration args))
@@ -1552,24 +1522,28 @@
                          do (one-iteration args))))))
           (at-signp
            (if (null iteration-limit)
-               (loop until (= *next-argument-pointer* (length *arguments*))
-                     do (interpret-items client items))
-               (loop until (= *next-argument-pointer* (length *arguments*))
-                     repeat iteration-limit
-                     do (interpret-items client items))))
+               (loop do (funcall *escape-hook*)
+                        (interpret-items client items))
+               (loop repeat iteration-limit
+                     do (funcall *escape-hook*)
+                        (interpret-items client items))))
           (t
            ;; no modifiers
            ;; We use one argument, and that should be a list.
            ;; The elements of that list are used by the iteration.
-           (let ((arg (consume-next-argument 'list)))
-             (let ((*arguments* (coerce arg 'vector))
-                   (*next-argument-pointer* 0))
+           (catch *catch-tag*
+             (let* ((*arguments* (coerce (consume-next-argument 'list) 'vector))
+                    (*next-argument-pointer* 0)
+                    (*next-argument-hook* nil)
+                    (*escape-hook* (lambda ()
+                                     (unless (< *next-argument-pointer* (length *arguments*))
+                                       (throw *catch-tag* nil)))))
                (if (null iteration-limit)
-                   (loop until (= *next-argument-pointer* (length *arguments*))
-                         do (interpret-items client items))
-                   (loop until (= *next-argument-pointer* (length *arguments*))
-                         repeat iteration-limit
-                         do (interpret-items client items)))))))))
+                   (loop do (funcall *escape-hook*)
+                            (interpret-items client items))
+                   (loop repeat iteration-limit
+                         do (funcall *escape-hook*)
+                            (interpret-items client items)))))))))
 
 (define-format-directive-compiler iteration-directive
   ;; eliminate the end-of-iteration directive from the
@@ -1579,20 +1553,20 @@
            ;; The remaining arguments should be lists.  Each argument
            ;; is used in a different iteration.
            `((flet ((one-iteration ()
-                      (let ((arg (aref *arguments* *next-argument-pointer*)))
-                        (unless (listp arg)
-                          (error 'argument-type-error
-                                 :expected-type 'list
-                                 :datum arg))
-                        (let ((*arguments* (coerce arg 'vector))
-                              (*next-argument-pointer* 0))
-                          ,@(compile-items client items))
-                        (incf *next-argument-pointer*))))
-               (loop for index from 0
-                     until (= *next-argument-pointer* (length *arguments*))
+                      (let* ((*arguments* (coerce (consume-next-argument 'list) 'vector))
+                             (*next-argument-pointer* 0)
+                             (*next-argument-hook* nil)
+                             (*escape-hook* (lambda ()
+                                              (unless (< *next-argument-pointer* (length *arguments*))
+                                                (throw *catch-tag* nil)))))
+                        (catch *catch-tag*
+                          ,@(compile-items client items)))))
+               (catch *catch-tag*
+                 (loop for index from 0
                      while (or (null iteration-limit)
                                (< index iteration-limit))
-                     do (one-iteration)))))
+                     do (funcall *escape-hook*)
+                        (one-iteration))))))
           (colonp
            ;; We use one argument, and that should be a list of sublists.
            ;; Each sublist is used as arguments for one iteration.
@@ -1602,31 +1576,42 @@
                           (error 'argument-type-error
                                  :expected-type 'list
                                  :datum args))
-                        (let ((*arguments* (coerce args 'vector))
-                              (*next-argument-pointer* 0))
-                          ,@(compile-items client items))))
+                        (let* ((*arguments* (coerce args 'vector))
+                               (*next-argument-pointer* 0)
+                               (*next-argument-hook* nil)
+                               (*escape-hook* (lambda ()
+                                                (unless (< *next-argument-pointer* (length *arguments*))
+                                                  (throw *catch-tag* nil)))))
+                          (catch *catch-tag*
+                            ,@(compile-items client items)))))
                  (loop for args in arg ; a bit unusual naming perhaps
                        for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
                        do (one-iteration args))))))
           (at-signp
-           `((loop for index from 0
-                   until (= *next-argument-pointer* (length *arguments*))
+           `((catch *catch-tag*
+               (loop for index from 0
                    while (or (null iteration-limit)
                              (< index iteration-limit))
-                   do ,@(compile-items client items))))
+                     do (funcall *escape-hook*)
+                        ,@(compile-items client items)))))
           (t
            ;; no modifiers
            ;; We use one argument, and that should be a list.
            ;; The elements of that list are used by the iteration.
-           `((loop with *arguments* = (coerce (consume-next-argument 'list) 'vector)
-                   with *next-argument-pointer* = 0
-                   for index from 0
-                   until (= *next-argument-pointer* (length *arguments*))
-                   while (or (null iteration-limit)
-                             (< index iteration-limit))
-                   do ,@(compile-items client items)))))))
+           `((catch *catch-tag*
+               (loop with *arguments* = (coerce (consume-next-argument 'list) 'vector)
+                     with *next-argument-pointer* = 0
+                     *next-argument-hook* = nil
+                     *escape-hook* = (lambda ()
+                                       (unless (< *next-argument-pointer* (length *arguments*))
+                                         (throw *catch-tag* nil)))
+                     for index from 0
+                     while (or (null iteration-limit)
+                               (< index iteration-limit))
+                     do (funcall *escape-hook*)
+                        ,@(compile-items client items))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1742,7 +1727,7 @@
                         "y"
                         "ies")
                     *destination*)
-      (when (eql (consume-next-argument t) 1)
+      (unless (eql (consume-next-argument t) 1)
         (write-char #\s *destination*))))
 
 (define-format-directive-compiler plural-directive
@@ -1755,9 +1740,9 @@
     ,(if at-signp
          `(write-string (if (eql (consume-next-argument t) 1)
                             "y"
-                          "ies")
+                            "ies")
                         *destination*)
-         `(when (eql (consume-next-argument t) 1)
+         `(unless (eql (consume-next-argument t) 1)
             (write-char #\s *destination*)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1873,7 +1858,8 @@
                   ;; Any unique object will do.
                   (*catch-tag* (list nil))
                   (*escape-hook* (lambda ()
-                                   (throw *catch-tag* nil))))
+                                   (unless (< *next-argument-pointer* (length *arguments*))
+                                     (throw *catch-tag* nil)))))
              (catch *catch-tag*
                (interpret-items client items)))))
     (let ((items (structure-items (split-control-string control-string) nil)))

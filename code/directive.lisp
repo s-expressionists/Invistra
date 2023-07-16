@@ -173,3 +173,45 @@
                :directive directive
                :at-most-how-many (length parameter-specs)
                :how-many-found (length given-parameters))))))
+
+;;; Signal an error if a modifier has been given for such a directive.
+(defmethod check-directive-syntax progn ((directive no-modifiers-mixin))
+  (with-accessors ((colonp colonp)
+                   (at-signp at-signp)
+                   (control-string control-string)
+                   (end end))
+    directive
+    (when (or colonp at-signp)
+      (error 'directive-takes-no-modifiers
+             :directive directive))))
+
+;;; Signal an error if an at-sign has been given for such a directive.
+(defmethod check-directive-syntax progn ((directive only-colon-mixin))
+  (with-accessors ((at-signp at-signp)
+                   (control-string control-string)
+                   (end end))
+    directive
+    (when at-signp
+      (error 'directive-takes-only-colon
+             :directive directive))))
+
+;;; Signal an error if a colon has been given for such a directive.
+(defmethod check-directive-syntax progn ((directive only-at-sign-mixin))
+  (with-accessors ((colonp colonp)
+                   (control-string control-string)
+                   (end end))
+    directive
+    (when colonp
+      (error 'directive-takes-only-at-sign
+             :directive directive))))
+
+;;; Signal an error if both modifiers have been given for such a directive.
+(defmethod check-directive-syntax progn ((directive at-most-one-modifier-mixin))
+  (with-accessors ((colonp colonp)
+                   (at-signp at-signp)
+                   (control-string control-string)
+                   (end end))
+    directive
+    (when (and colonp at-signp)
+      (error 'directive-takes-at-most-one-modifier
+             :directive directive))))

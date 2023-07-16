@@ -14,6 +14,7 @@
                 :serial t
                 :components ((:file "packages")
                              (:file "utilities")
+                             (:file "conditions")
                              (:file "generic-functions")
                              (:file "directive")
                              (:file "parse-control-string")
@@ -22,6 +23,4 @@
                              (:file "control-string-compiler")
                              (:file "format")
                              (:file "formatter")
-                             (:file "conditions")
                              (:file "condition-reporters-en")))))
-
