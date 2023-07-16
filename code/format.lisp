@@ -72,8 +72,6 @@
           (*remaining-argument-count* (length *arguments*))
           (*previous-arguments* (make-array *remaining-argument-count*
                                             :adjustable t :fill-pointer 0))
-          ;; Any unique object will do.
-          (*catch-tag* (list nil))
           (*pop-argument-hook* (lambda ()
                                  (pop *arguments*)))
           (*escape-hook* (lambda ()
@@ -1486,34 +1484,34 @@
     (cond ((and colonp at-signp)
            ;; The remaining arguments should be lists.  Each argument
            ;; is used in a different iteration.
-           (flet ((one-iteration ()
-                    (with-arguments (consume-next-argument 'list)
-                      (catch *catch-tag*
-                        (interpret-items client items)))))
-             (if (null iteration-limit)
-                 (loop do (funcall *escape-hook*)
-                          (one-iteration))
-                 (loop repeat iteration-limit
-                       do (funcall *escape-hook*)
-                          (one-iteration)))))
+           (catch *catch-tag*
+             (flet ((one-iteration ()
+                      (with-arguments (consume-next-argument 'list)
+                        (interpret-items client items))))
+               (if (null iteration-limit)
+                   (loop do (funcall *escape-hook*)
+                            (one-iteration))
+                   (loop repeat iteration-limit
+                         do (funcall *escape-hook*)
+                            (one-iteration))))))
           (colonp
            ;; We use one argument, and that should be a list of sublists.
            ;; Each sublist is used as arguments for one iteration.
            (let ((arg (consume-next-argument 'list)))
-             (flet ((one-iteration (args)
-                      (unless (listp args)
-                        (error 'argument-type-error
-                               :expected-type 'list
-                               :datum args))
-                      (with-arguments args
-                        (catch *catch-tag*
-                          (interpret-items client items)))))
-               (if (null iteration-limit)
-                   (loop for args in arg ; a bit unusual naming perhaps
-                         do (one-iteration args))
-                   (loop for args in arg ; a bit unusual naming perhaps
-                         repeat iteration-limit
-                         do (one-iteration args))))))
+             (catch *catch-tag*
+               (flet ((one-iteration (args)
+                        (unless (listp args)
+                          (error 'argument-type-error
+                                 :expected-type 'list
+                                 :datum args))
+                        (with-arguments args
+                          (interpret-items client items))))
+                 (if (null iteration-limit)
+                     (loop for args in arg ; a bit unusual naming perhaps
+                           do (one-iteration args))
+                     (loop for args in arg ; a bit unusual naming perhaps
+                           repeat iteration-limit
+                           do (one-iteration args)))))))
           (at-signp
            (if (null iteration-limit)
                (loop do (funcall *escape-hook*)
@@ -1549,31 +1547,30 @@
                                (< index iteration-limit))
                      do (funcall *escape-hook*)
                         (with-arguments (consume-next-argument 'list)
-                          (catch *catch-tag*
-                            ,@(compile-items client items)))))))
+                          ,@(compile-items client items))))))
           (colonp
            ;; We use one argument, and that should be a list of sublists.
            ;; Each sublist is used as arguments for one iteration.
-           `((let ((arg (consume-next-argument 'list)))
-               (flet ((one-iteration (args)
-                        (unless (listp args)
-                          (error 'argument-type-error
-                                 :expected-type 'list
-                                 :datum args))
-                        (with-arguments args
-                          (catch *catch-tag*
-                            ,@(compile-items client items)))))
-                 (loop for args in arg ; a bit unusual naming perhaps
-                       for index from 0
-                       while (or (null iteration-limit)
-                                 (< index iteration-limit))
-                       do (one-iteration args))))))
+           `((catch *catch-tag*
+               (let ((arg (consume-next-argument 'list)))
+                 (flet ((one-iteration (args)
+                          (unless (listp args)
+                            (error 'argument-type-error
+                                   :expected-type 'list
+                                   :datum args))
+                          (with-arguments args
+                            ,@(compile-items client items))))
+                   (loop for args in arg ; a bit unusual naming perhaps
+                         for index from 0
+                         while (or (null iteration-limit)
+                                   (< index iteration-limit))
+                         do (one-iteration args)))))))
           (at-signp
            `((loop for index from 0
                    while (or (null iteration-limit)
                              (< index iteration-limit))
                    do (funcall *escape-hook*)
-                      ,@(compile-items client items))))
+                   ,@(compile-items client items))))
           (t
            ;; no modifiers
            ;; We use one argument, and that should be a list.
