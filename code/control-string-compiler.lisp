@@ -26,10 +26,8 @@
                        ',(getf (cdr parameter-spec) :type))
                 *remaining-argument-count*
                 (error 'argument-type-error
-                       :expected-type
-                       ',(getf (cdr parameter-spec) :type)
-                       :datum
-                       number-of-remaining-arguments)))
+                       :expected-type ',(getf (cdr parameter-spec) :type)
+                       :datum *remaining-argument-count*)))
           (t
            ;; The parameter was given an explicit value (number or
            ;; character) in the format control string, and this is the

@@ -9,7 +9,8 @@
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
   :depends-on ("acclimation"
-               "inravina")
+               "inravina"
+               (:feature (:not :sicl) "trivial-gray-streams"))
   :components ((:module code
                 :serial t
                 :components ((:file "packages")

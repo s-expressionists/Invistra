@@ -1649,38 +1649,26 @@
     ())
 
 (define-format-directive-interpreter case-conversion-directive
-  (let ((output (with-output-to-string (stream)
-                  (let ((*destination* stream))
-                    (interpret-items client (aref (clauses directive) 0))))))
-    (cond ((and colonp at-signp)
-           (nstring-upcase output))
-          (colonp
-           (nstring-capitalize output))
-          (at-signp
-           (let ((pos (position-if #'alphanumericp output)))
-             (when (not (null pos))
-               (setf (char output pos)
-                     (char-upcase (char output pos))))))
-          (t
-           (nstring-downcase output)))
-    (write-string output *destination*)))
+  (let ((*destination* (cond ((and colonp at-signp)
+                              (make-instance 'upcase-stream :target *destination*))
+                             (colonp
+                              (make-instance 'capitalize-stream :target *destination*))
+                             (at-signp
+                              (make-instance 'first-capitalize-stream :target *destination*))
+                             (t
+                              (make-instance 'downcase-stream :target *destination*)))))
+    (interpret-items client (aref (clauses directive) 0))))
 
 (define-format-directive-compiler case-conversion-directive
-  `((let ((output (with-output-to-string (stream)
-                    (let ((*destination* stream))
-                      ,@(compile-items client (aref (clauses directive) 0))))))
-      ,(cond ((and colonp at-signp)
-              `(nstring-upcase output))
-             (colonp
-              `(nstring-capitalize output))
-             (at-signp
-              `(let ((pos (position-if #'alphanumericp output)))
-                 (when (not (null pos))
-                   (setf (char output pos)
-                         (char-upcase (char output pos))))))
-             (t
-              `(nstring-downcase output)))
-      (write-string output *destination*))))
+  `((let ((*destination* ,(cond ((and colonp at-signp)
+                                 '(make-instance 'upcase-stream :target *destination*))
+                                (colonp
+                                 '(make-instance 'capitalize-stream :target *destination*))
+                                (at-signp
+                                 '(make-instance 'first-capitalize-stream :target *destination*))
+                                (t
+                                 '(make-instance 'downcase-stream :target *destination*)))))
+      ,@(compile-items client (aref (clauses directive) 0)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
