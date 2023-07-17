@@ -1384,11 +1384,11 @@
   (fmt nil "~[xyz~;abc~:;def~]" 3))
 
 (define-equal-test conditional.07
-  "abc"
+  "xyz"
   (fmt nil "~:[xyz~;abc~]" nil))
 
 (define-equal-test conditional.08
-  "xyz"
+  "abc"
   (fmt nil "~:[xyz~;abc~]" 24))
 
 (define-equal-test conditional.09
