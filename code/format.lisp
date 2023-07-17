@@ -1023,20 +1023,23 @@
                                                                                  (if (= (length (clauses directive)) 1)
                                                                                      0
                                                                                      1))))
-                                                 ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix :suffix ,suffix))
-        `((let ((object (consume-next-argument t))
-                (*remaining-object-count* (length object))
-                (*previous-arguments* (make-array *remaining-argument-count*
-                                                  :adjustable t :fill-pointer 0))
-                (*previous-argument-index* 0))
+                                                 ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix
+                                                 :suffix ,suffix))
+        `((let* ((object (consume-next-argument t))
+                 (*remaining-object-count* (length object))
+                 (*previous-arguments* (make-array *remaining-argument-count*
+                                                   :adjustable t :fill-pointer 0))
+                 (*previous-argument-index* 0))
             (inravina:execute-pprint-logical-block ,(incless:client-form client) *destination*
+                                                   object
                                                    (lambda (*destination* *escape-hook* *pop-argument-hook*)
 
                                                      ,@(compile-items client (aref (clauses directive)
                                                                                    (if (= (length (clauses directive)) 1)
                                                                                        0
                                                                                        1))))
-                                                   ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix :suffix ,suffix))))))
+                                                   ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix
+                                                   :suffix ,suffix))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

@@ -45,7 +45,8 @@
                     :index start))
            (values value position)))
         (t
-         (error 'expected-parameter-start
+         (values nil start)
+         #+(or)(error 'expected-parameter-start
                 :control-string string
                 :tilde-position tilde-position
                 :index start))))
