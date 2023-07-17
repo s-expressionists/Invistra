@@ -197,15 +197,11 @@
        ,@body)))
 
 (defun compile-time-value (directive slot-name)
-  (let ((value (slot-value directive slot-name)))
-    (case value
-      ((:remaining-argument-count :argument-reference)
-       :run-time-value)
-      ((nil)
-       (let ((parameter-specs (parameter-specs (class-name (class-of directive)))))
-         (getf (cdr (find slot-name parameter-specs :key #'car)) :default-value)))
-      (otherwise
-       value))))
+  (or (slot-value directive slot-name)
+      (getf (cdr (find slot-name
+                       (parameter-specs (class-name (class-of directive)))
+                       :key #'car))
+            :default-value)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -308,7 +304,7 @@
 (define-format-directive-compiler ampersand-directive
   (let ((how-many (compile-time-value directive 'how-many)))
     (case how-many
-      (:run-time-value
+      ((:argument-reference :remaining-argument-count)
        `((unless (zerop how-many)
            (fresh-line *destination*)
            (loop repeat (1- how-many)
@@ -413,7 +409,7 @@
 
 (define-directive #\r r-directive nil (named-parameters-directive)
     ((radix :type (integer 2 36) :default-value nil)
-     (mincol :type (integer 0) :default-value 0)
+     (mincol :type integer :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
      (comma-interval :type (integer 1) :default-value 3)))
@@ -647,7 +643,7 @@
 ;;; 22.3.2.2 ~d Decimal.
 
 (define-directive #\d d-directive nil (named-parameters-directive)
-    ((mincol :type (integer 0) :default-value 0)
+    ((mincol :type integer :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
      (comma-interval :type (integer 1) :default-value 3)))
@@ -663,7 +659,7 @@
 ;;; 22.3.2.3 ~b Binary.
 
 (define-directive #\b b-directive nil (named-parameters-directive)
-    ((mincol :type (integer 0) :default-value 0)
+    ((mincol :type integer :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
      (comma-interval :type (integer 1) :default-value 3)))
@@ -679,7 +675,7 @@
 ;;; 22.3.2.4 ~o Octal.
 
 (define-directive #\o o-directive nil (named-parameters-directive)
-    ((mincol :type (integer 0) :default-value 0)
+    ((mincol :type integer :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
      (comma-interval :type (integer 1) :default-value 3)))
@@ -695,7 +691,7 @@
 ;;; 22.3.2.5 ~x Hexadecimal.
 
 (define-directive #\x x-directive nil (named-parameters-directive)
-    ((mincol :type (integer 0) :default-value 0)
+    ((mincol :type integer :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
      (comma-interval :type (integer 1) :default-value 3)))
@@ -728,10 +724,10 @@
             (cl:format *destination* "float!")
             (cl:format *destination* "aesthetic ~A" argument)))))
 
-(define-format-directive-interpreter f-directive
+#+(or)(define-format-directive-interpreter f-directive
   (print-float-arg colonp at-signp w d k overflowchar padchar))
 
-(define-format-directive-compiler f-directive
+#+(or)(define-format-directive-compiler f-directive
   `((print-float-arg ,colonp ,at-signp w d k overflowchar padchar)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -763,9 +759,9 @@
 ;;; 22.3.4.1 ~a Aesthetic.
 
 (define-directive #\a a-directive nil (named-parameters-directive)
-    ((mincol :type (integer 0) :default-value 0)
+    ((mincol :type integer :default-value 0)
      (colinc :type (integer 0) :default-value 1)
-     (minpad :type (integer 0) :default-value 0)
+     (minpad :type integer :default-value 0)
      (padchar :type character :default-value #\Space)))
 
 (define-format-directive-interpreter a-directive
@@ -804,9 +800,9 @@
 ;;; 22.3.4.2 ~s Standard.
 
 (define-directive #\s s-directive nil (named-parameters-directive)
-    ((mincol :type (integer 0) :default-value 0)
+    ((mincol :type integer :default-value 0)
      (colinc :type (integer 0) :default-value 1)
-     (minpad :type (integer 0) :default-value 0)
+     (minpad :type integer :default-value 0)
      (padchar :type character :default-value #\Space)))
 
 (define-format-directive-interpreter s-directive
@@ -1273,9 +1269,9 @@
     justification-directive
     end-justification-directive
     (named-parameters-directive structured-directive-mixin)
-    ((mincol :type (integer 0) :default-value 0)
+    ((mincol :type integer :default-value 0)
      (colinc :type (integer 0) :default-value 1)
-     (minpad :type (integer 0) :default-value 0)
+     (minpad :type integer :default-value 0)
      (padchar :type character :default-value #\Space)))
 
 (define-format-directive-interpreter justification-directive
@@ -1718,9 +1714,9 @@
 ;;; 22.3.9.2 ~^ Escape upward
 
 (define-directive #\^ circumflex-directive nil (named-parameters-directive)
-    ((p1 :type integer)
-     (p2 :type integer)
-     (p3 :type integer)))
+    ((p1 :type (or character integer))
+     (p2 :type (or character integer))
+     (p3 :type (or character integer))))
 
 (defmethod check-directive-syntax progn
   ((directive circumflex-directive))
@@ -1739,28 +1735,37 @@
     (cond ((not (first parameters))
            (funcall *escape-hook*))
           ((not (second parameters))
-           (when (zerop p1)
+           (when (eql 0 p1)
              (throw *catch-tag* nil)))
           ((not (third parameters))
-           (when (= p1 p2)
+           (when (eql p1 p2)
              (throw *catch-tag* nil)))
           (t
            (when (<= p1 p2 p3)
              (throw *catch-tag* nil))))))
 
 (define-format-directive-compiler circumflex-directive
-  (let ((parameters (given-parameters directive)))
-    (cond ((not (first parameters))
-           `((funcall *escape-hook*)))
-          ((not (second parameters))
-           `((when (zerop p1)
-               (throw *catch-tag* nil))))
-          ((not (third parameters))
-           `((when (= p1 p2)
-               (throw *catch-tag* nil))))
-          (t
-           `((when (<= p1 p2 p3)
-               (throw *catch-tag* nil)))))))
+  (cond ((null p1)
+         `((funcall *escape-hook*)))
+        ((null p2)
+         `((when (or (null p1) (eql 0 p1))
+             (throw *catch-tag* nil))))
+        ((null p3)
+         `((when (or (and (null p1) (null p2))
+                     (and (null p1) (eql 0 p2))
+                     (and (eql 0 p1) (null p2))
+                     (and p1 p2 (eql p1 p2)))
+             (throw *catch-tag* nil))))
+        (t
+         `((when (or (and (null p1) (null p2) (null p3))
+                     (and (null p1) (null p2) (eql 0 p3))
+                     (and (null p1) (eql 0 p2) (null p3))
+                     (and (eql 0 p1) (null p2) (null p3))
+                     (and (null p1) p2 p3 (eql p2 p3))
+                     (and (null p2) p1 p3 (eql p1 p3))
+                     (and (null p3) p1 p2 (eql p1 p2))
+                     (and p1 p2 p3 (<= p1 p2 p3)))
+             (throw *catch-tag* nil))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
