@@ -979,7 +979,7 @@
                                                (if (= (length (clauses directive)) 1)
                                                    0
                                                    1)))
-                 (let* ((*remaining-argument-count* (length object))
+                 (let* ((*remaining-argument-count* (dotted-list-length object))
                         (*previous-arguments* (make-array *remaining-argument-count*
                                                           :adjustable t :fill-pointer 0))
                         (*previous-argument-index* 0)
@@ -1019,14 +1019,15 @@
                                                  nil
                                                  (lambda (*destination* escape-hook pop-argument-hook)
                                                    (declare (ignore escape-hook pop-argument-hook))
-                                                   ,@(compile-items client (aref (clauses directive)
-                                                                                 (if (= (length (clauses directive)) 1)
-                                                                                     0
-                                                                                     1))))
+                                                   (catch *catch-tag*
+                                                     ,@(compile-items client (aref (clauses directive)
+                                                                                   (if (= (length (clauses directive)) 1)
+                                                                                       0
+                                                                                       1)))))
                                                  ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix
                                                  :suffix ,suffix))
         `((let* ((object (consume-next-argument t))
-                 (*remaining-object-count* (length object))
+                 (*remaining-argument-count* (dotted-list-length object))
                  (*previous-arguments* (make-array *remaining-argument-count*
                                                    :adjustable t :fill-pointer 0))
                  (*previous-argument-index* 0))
@@ -1591,7 +1592,7 @@
 (define-format-directive-interpreter recursive-processing-directive
   (if at-signp
       ;; reuse the arguments from the parent control-string
-      (format-with-runtime-arguments *destination*
+      (format-with-runtime-arguments client *destination*
                                      (consume-next-argument 'string))
       ;;
       (apply #'format
@@ -1806,29 +1807,28 @@
 ;;; the arguments of the parent control string, so we need
 ;;; to call a version of format that doesn't initialize the
 ;;; *arguments* runtime environment variable.
-(defun format-with-runtime-arguments (client destination control-string)
-  (flet ((format-aux (*destination* items)
-           ;; interpret the control string in a new environment
-           (let (;; Any unique object will do.
-                 (*catch-tag* (list nil)))
-             (catch *catch-tag*
-               (interpret-items client items)))))
-    (let ((items (structure-items (split-control-string control-string) nil)))
-      (cond ((or (streamp destination)
-                 (and (stringp destination)
-                      (array-has-fill-pointer-p destination)))
-             (format-aux destination items))
-            ((null destination)
-             (with-output-to-string (stream)
-               (format-aux stream items)))
-            ((eq destination t)
-             (format-aux *standard-output* items))
-            (t
-             (error 'invalid-destination
-                    :destination destination))))))
+(defun format-with-runtime-arguments (client control-string)
+  (let ((*catch-tag* (list nil)))
+    (catch *catch-tag*
+      (interpret-items client
+                       (structure-items (split-control-string control-string) nil)))))
 
 (defun format (client destination control &rest args)
-  (if (functionp control)
-      (apply #'funcall control destination args)
-      (with-arguments args
-        (format-with-runtime-arguments client destination control))))
+  (let ((*destination* (cond ((or (streamp destination)
+                                  (and (stringp destination)
+                                       (array-has-fill-pointer-p destination)))
+                              destination)
+                             ((null destination)
+                              (make-string-output-stream))
+                             ((eq destination t)
+                              *standard-output*)
+                             (t
+                              (error 'invalid-destination
+                                     :destination destination)))))
+    (if (functionp control)
+        (apply control *destination* args)
+        (with-arguments args
+          (format-with-runtime-arguments client control)))
+    (if (null destination)
+        (get-output-stream-string *destination*)
+        nil)))

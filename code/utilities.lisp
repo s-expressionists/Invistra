@@ -21,6 +21,19 @@
            (t (cl:format nil "an object of type ~s" type))))
         (t (cl:format nil "an object of type ~s" type))))
 
+(defun dotted-list-length (list)
+  (do ((n 0 (+ n 2))
+       (y list (cddr y))
+       (z list (cdr z)))
+      ((or (null y)
+           (and (eq y z) (plusp n)))
+       n)
+    (when (or (not (consp y))
+              (null (cdr y)))
+      (return (1+ n)))
+    (when (not (consp (cdr y)))
+      (return (+ 2 n)))))
+
 (defclass case-conversion-stream
     (trivial-gray-streams:fundamental-character-output-stream)
   ((target :reader target
