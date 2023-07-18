@@ -719,7 +719,7 @@
 
 (defparameter *digits* "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-(defun print-float-arg (client colonp at-signp w d k overflowchar padchar)
+(defun print-fixed-arg (client colonp at-signp w d k overflowchar padchar)
   (let ((value (consume-next-argument t)))
     (cond ((or (complexp value)
                (not (numberp value)))
@@ -735,8 +735,8 @@
                (when (rationalp value)
                  (setf value (coerce value 'single-float)))
                (setf sign
-                     (cond ((minusp (float-sign value))#\-)
-                           ((and at-signp (plusp value)) #\+)))\
+                     (cond ((minusp (float-sign value)) #\-)
+                           ((and at-signp (plusp value)) #\+)))
                (multiple-value-bind (digits exponent)
                    (burger-dybvig-2 value)
                  (incf exponent k)
@@ -772,12 +772,10 @@
                             (> len w))
                    (round-post (- w
                                   (length pre)
-                                  (if sign 2 1))))
-                 (when (and (null pre)
-                            (or (null w)
-                                (< len w)))
-                   (push 0 pre)
-                   (incf len))
+                                  (if sign 3 2)))
+                   (setf len (+ (if sign 2 1)
+                                (length pre)
+                                (length post))))
                  (when (and (null post)
                             (null d)
                             (or (null w)
@@ -785,6 +783,12 @@
                                 (null d)
                                 (> w (1+ d))))
                    (push 0 post)
+                   (incf len))
+                 (when (and (null pre)
+                            (or (null post)
+                                (null w)
+                                (< len w)))
+                   (push 0 pre)
                    (incf len))
                  (cond ((or (null w)
                             (null overflowchar)
@@ -806,14 +810,152 @@
                               do (write-char overflowchar *destination*)))))))))))
 
 (define-format-directive-interpreter f-directive
-  (print-float-arg client colonp at-signp w d k overflowchar padchar))
+  (print-fixed-arg client colonp at-signp w d k overflowchar padchar))
 
 (define-format-directive-compiler f-directive
-  `((print-float-arg ,(incless:client-form client) ,colonp ,at-signp w d k overflowchar padchar)))
+  `((print-fixed-arg ,(incless:client-form client) ,colonp ,at-signp w d k overflowchar padchar)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.3.2 ~e Exponential floating point.
+
+(define-directive #\e
+    e-directive
+    nil
+    (named-parameters-directive)
+    ((w :type (or null integer)
+        :default-value nil)
+     (d :type (or null integer)
+        :defaule-value nil)
+     (e :type (or null integer)
+        :defaule-value nil)
+     (k :type (or null integer)
+        :default-value 1)
+     (overflowchar :type (or null character)
+                   :default-value nil)
+     (padchar :type character
+              :default-value #\Space)
+     (exponentchar :type (or null character)
+                   :default-value nil)))
+
+(defun print-exponent-arg (client colonp at-signp w d e k overflowchar padchar exponentchar)
+  (let ((value (consume-next-argument t)))
+    (cond ((or (complexp value)
+               (not (numberp value)))
+           (print-radix-arg client 10 colonp at-signp 0 padchar nil nil))
+          (t
+           (let (pre
+                 post sign
+                 len
+                 exp)
+             (flet ((round-post (count)
+                      (when (> (length post) count)
+                        (if (plusp count)
+                            (setf (cdr (nthcdr (1- count) post)) nil)
+                            (setf post nil)))))
+               (when (rationalp value)
+                 (setf value (coerce value 'single-float)))
+               (setf sign
+                     (cond ((minusp (float-sign value)) #\-)
+                           ((and at-signp (plusp value)) #\+)))
+               (multiple-value-bind (digits exponent)
+                   (burger-dybvig-2 value)
+                 (setf exponent (if (zerop (car digits))
+                                    0
+                                    (+ exponent k -2)))
+                 (setf exp (let ((*print-base* 10)
+                                 (*print-radix* nil)
+                                 (*print-escape* nil)
+                                 (*print-readably* nil))
+                             (with-output-to-string (stream)
+                               (incless:write-object client (abs exponent) stream))))
+                 (when (and e (< (length exp) e))
+                   (setf exp (concatenate 'string
+                                          (make-string (- e (length exp)) :initial-element #\0)
+                                          exp)))
+                 (if (minusp k)
+                     (setf post
+                           (nconc (make-list (- k) :initial-element 0)
+                                  digits))
+                     (setf pre (subseq digits 0 k)
+                           post (subseq digits k)))
+                 (when d
+                   (let ((l (length post)))
+                     (cond ((< l d)
+                            (setf post
+                                  (nconc post
+                                         (make-list (- d l)
+                                                    :initial-element 0))))
+                           ((> l d)
+                            (round-post (1- d))))))
+                 (setf len (+ (if sign 4 3)
+                              (length exp)
+                              (length pre)
+                              (length post)))
+                 (when (and w
+                            (null d)
+                            (> len w))
+                   (round-post (- w
+                                  (length pre)
+                                  (length exp)
+                                  (if sign 4 3)))
+                   (setf len (+ (if sign 4 3)
+                                (length pre)
+                                (length exp)
+                                (length post))))
+                 (when (and (null post)
+                            (null d)
+                            (or (null w)
+                                (< len w)
+                                (null d)
+                                (> w (1+ d))))
+                   (push 0 post)
+                   (incf len))
+                 (when (and (null pre)
+                            (or (null post)
+                                (null w)
+                                (< len w)))
+                   (push 0 pre)
+                   (incf len))
+                 (cond ((or (null w)
+                            (null overflowchar)
+                            (<= len w))
+                        (when w
+                          (loop repeat (max 0 (- w len))
+                                do (write-char padchar *destination*)))
+                        (when sign
+                          (write-char sign *destination*))
+                        (when pre
+                          (loop for digit in pre
+                                do (write-char (aref *digits* digit) *destination*)))
+                        (write-char #\. *destination*)
+                        (when post
+                          (loop for digit in post
+                                do (write-char (aref *digits* digit) *destination*)))
+                        (write-char (or exponentchar
+                                        (if (typep value *read-default-float-format*)
+                                            #\e
+                                            (etypecase value
+                                              (short-float #\s)
+                                              (single-float #\f)
+                                              (double-float #\d)
+                                              (long-float #\l))))
+                                    *destination*)
+                        (write-char (if (minusp exponent) #\- #\+) *destination*)
+                        (write-string exp *destination*))
+                       (t
+                        (loop repeat w
+                              do (write-char overflowchar *destination*)))))))))))
+
+(define-format-directive-interpreter e-directive
+  (print-exponent-arg client
+                      colonp at-signp
+                      w d e k overflowchar padchar exponentchar))
+
+(define-format-directive-compiler e-directive
+  `((print-exponent-arg ,(incless:client-form client)
+                        ,colonp ,at-signp
+                        w d e k overflowchar padchar exponentchar)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
