@@ -702,26 +702,114 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.3.1 ~f Fixed-format floating point.
-(define-directive #\f f-directive nil (named-parameters-directive)
-  ((w  :type integer)
-   (d :type integer)
-   (k :type (integer 0) :default-value 0)
-   (overflowchar :type character)
-   (padchar :type character :default-value #\Space)))
+(define-directive #\f
+    f-directive
+    nil
+    (named-parameters-directive)
+    ((w :type (or null integer)
+        :default-value nil)
+     (d :type (or null integer)
+        :defaule-value nil)
+     (k :type (or null integer)
+        :default-value 0)
+     (overflowchar :type (or null character)
+                   :default-value nil)
+     (padchar :type character
+              :default-value #\Space)))
 
-(defun print-float-arg (colonp at-signp w d k overflowchar padchar)
-  (let ((argument (consume-next-argument t)))
-    (if (numberp argument)
-        (cl:format *destination* "decimal ~D" argument)
-        (if (floatp argument)
-            (cl:format *destination* "float!")
-            (cl:format *destination* "aesthetic ~A" argument)))))
+(defparameter *digits* "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-#+(or)(define-format-directive-interpreter f-directive
-  (print-float-arg colonp at-signp w d k overflowchar padchar))
+(defun print-float-arg (client colonp at-signp w d k overflowchar padchar)
+  (let ((value (consume-next-argument t)))
+    (cond ((or (complexp value)
+               (not (numberp value)))
+           (print-radix-arg client 10 colonp at-signp 0 padchar nil nil))
+          (t
+           (let (pre
+                 post sign
+                 len)
+             (flet ((round-post (count)
+                      (if (plusp count)
+                          (setf (cdr (nthcdr (1- count) post)) nil)
+                          (setf post nil))))
+               (when (rationalp value)
+                 (setf value (coerce value 'single-float)))
+               (setf sign
+                     (cond ((minusp (float-sign value))#\-)
+                           ((and at-signp (plusp value)) #\+)))\
+               (multiple-value-bind (digits exponent)
+                   (burger-dybvig-2 value)
+                 (incf exponent k)
+                 (cond ((and (zerop (car digits))))
+                       ((not (plusp exponent))
+                        (setf post
+                              (nconc (make-list (- exponent) :initial-element 0)
+                                     digits)))
+                       ((<= exponent (length digits))
+                        (let ((pair (nthcdr (1- exponent) digits)))
+                          (setf post (cdr pair)
+                                (cdr pair) nil
+                                pre digits)))
+                       (t
+                        (setf pre
+                              (nconc digits
+                                     (make-list (- exponent (length digits))
+                                                :initial-element 0)))))
+                 (when d
+                   (let ((l (length post)))
+                     (cond ((< l d)
+                            (setf post
+                                  (nconc post
+                                         (make-list (- d l)
+                                                    :initial-element 0))))
+                           ((> l d)
+                            (round-post (1- d))))))
+                 (setf len (+ (if sign 2 1)
+                              (length pre)
+                              (length post)))
+                 (when (and w
+                            (null d)
+                            (> len w))
+                   (round-post (- w
+                                  (length pre)
+                                  (if sign 2 1))))
+                 (when (and (null pre)
+                            (or (null w)
+                                (< len w)))
+                   (push 0 pre)
+                   (incf len))
+                 (when (and (null post)
+                            (null d)
+                            (or (null w)
+                                (< len w)
+                                (null d)
+                                (> w (1+ d))))
+                   (push 0 post)
+                   (incf len))
+                 (cond ((or (null w)
+                            (null overflowchar)
+                            (<= len w))
+                        (when w
+                          (loop repeat (max 0 (- w len))
+                                do (write-char padchar *destination*)))
+                        (when sign
+                          (write-char sign *destination*))
+                        (when pre
+                          (loop for digit in pre
+                                do (write-char (aref *digits* digit) *destination*)))
+                        (write-char #\. *destination*)
+                        (when post
+                          (loop for digit in post
+                                do (write-char (aref *digits* digit) *destination*))))
+                       (t
+                        (loop repeat w
+                              do (write-char overflowchar *destination*)))))))))))
 
-#+(or)(define-format-directive-compiler f-directive
-  `((print-float-arg ,colonp ,at-signp w d k overflowchar padchar)))
+(define-format-directive-interpreter f-directive
+  (print-float-arg client colonp at-signp w d k overflowchar padchar))
+
+(define-format-directive-compiler f-directive
+  `((print-float-arg ,(incless:client-form client) ,colonp ,at-signp w d k overflowchar padchar)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
