@@ -1511,19 +1511,7 @@
             (when (null package)
               (error 'no-such-package
                      :directive directive))
-            (multiple-value-bind (symbol status)
-                (find-symbol symbol-name package)
-              (when (or (null status)
-                        (eq status :inherited))
-                (error 'no-such-symbol
-                       :directive directive))
-              (when (and (= position-of-first-package-marker
-                            position-of-last-package-marker)
-                         (eq status :internal))
-                (error 'symbol-not-external
-                       :directive directive))
-              (setf (function-name directive)
-                    symbol))))))))
+            (setf (function-name directive) (intern symbol-name package))))))))
 
 (defmethod interpret-format-directive (client (directive call-function-directive))
   (with-accessors ((control-string control-string)
@@ -1560,20 +1548,21 @@
                    (given-parameters given-parameters)
                    (function-name function-name))
       directive
-    (let ((param-args
-            (loop for parameter in given-parameters
-                  collect (case parameter
-                            (:remaining-argument-count
-                             '*remaining-argument-count*)
-                            (:argument-reference
-                             `(consume-next-argument t))
-                            (otherwise
-                             parameter)))))
-      `((,function-name *destination*
-                        (consume-next-argument t)
-                        ,colonp
-                        ,at-signp
-                        ,@param-args)))))
+    `((let ((param-args (list ,@(mapcar (lambda (parameter)
+                                          (case parameter
+                                            (:remaining-argument-count
+                                             '*remaining-argument-count*)
+                                            (:argument-reference
+                                             '(consume-next-argument t))
+                                            (otherwise
+                                             parameter)))
+                                        given-parameters))))
+        (apply ',function-name
+               *destination*
+               (consume-next-argument t)
+               ,colonp
+               ,at-signp
+               param-args)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
