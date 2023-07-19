@@ -1040,6 +1040,95 @@
 ;;;
 ;;; 22.3.3.4 ~$ Monetary floating point.
 
+(define-directive #\$
+    monetary-directive
+    nil
+    (named-parameters-directive)
+    ((d :type integer
+        :default-value 2)
+     (n :type integer
+        :default-value 1)
+     (w :type (or null integer)
+        :default-value nil)
+     (padchar :type character
+              :default-value #\Space)))
+
+(defun print-monetary-arg (client value digits exponent
+                           colonp at-signp d n w padchar)
+  (let (pre
+        post sign
+        len)
+    (flet ((round-post (count)
+             (if (plusp count)
+                 (setf (cdr (nthcdr (1- count) post)) nil)
+                 (setf post nil))))
+      (setf sign
+            (cond ((minusp (float-sign value)) #\-)
+                  ((and at-signp (plusp value)) #\+)))
+      (cond ((and (zerop (car digits))))
+            ((not (plusp exponent))
+             (setf post
+                   (nconc (make-list (- exponent) :initial-element 0)
+                          digits)))
+            ((<= exponent (length digits))
+             (let ((pair (nthcdr (1- exponent) digits)))
+               (setf post (cdr pair)
+                     (cdr pair) nil
+                     pre digits)))
+            (t
+             (setf pre
+                   (nconc digits
+                          (make-list (- exponent (length digits))
+                                     :initial-element 0)))))
+      (let ((l (length post)))
+        (cond ((< l d)
+               (setf post
+                     (nconc post
+                            (make-list (- d l)
+                                       :initial-element 0))))
+              ((> l d)
+               (round-post (1- d)))))
+      (let ((l (length pre)))
+        (when (< l n)
+          (setf pre (nconc (make-list (- n l)
+                                      :initial-element 0)
+                           pre))))
+      (setf len (+ (if sign 2 1)
+                   (length pre)
+                   (length post)))
+      (cond ((> len (if w (max w 100) 100))
+             (print-exponent-arg client value digits exponent
+                               colonp at-signp w (+ d n -1) nil 1
+                               #\Space padchar nil))
+            (t
+             (when (and colonp sign)
+               (write-char sign *destination*))
+             (when w
+               (loop repeat (max 0 (- w len))
+                     do (write-char padchar *destination*)))
+             (when (and (not colonp) sign)
+               (write-char sign *destination*))
+             (when pre
+               (loop for digit in pre
+                     do (write-char (aref *digits* digit) *destination*)))
+             (write-char #\. *destination*)
+             (when post
+               (loop for digit in post
+                     do (write-char (aref *digits* digit) *destination*))))))))
+
+(define-format-directive-interpreter monetary-directive
+  (print-float-arg client
+                   (lambda (client value digits exponent)
+                     (print-monetary-arg client value digits exponent
+                                        colonp at-signp d n w padchar))))
+
+(define-format-directive-compiler monetary-directive
+  `((print-float-arg ,(incless:client-form client)
+                     (lambda (client value digits exponent)
+                       (print-monetary-arg ,client value digits exponent
+                                           ,colonp ,at-signp d n w padchar)))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.4 Printer operations
