@@ -862,7 +862,7 @@
                    (burger-dybvig-2 value)
                  (setf exponent (if (zerop (car digits))
                                     0
-                                    (+ exponent k -2)))
+                                    (+ exponent (- k))))
                  (setf exp (let ((*print-base* 10)
                                  (*print-radix* nil)
                                  (*print-escape* nil)
@@ -873,21 +873,32 @@
                    (setf exp (concatenate 'string
                                           (make-string (- e (length exp)) :initial-element #\0)
                                           exp)))
-                 (if (minusp k)
-                     (setf post
-                           (nconc (make-list (- k) :initial-element 0)
-                                  digits))
-                     (setf pre (subseq digits 0 k)
-                           post (subseq digits k)))
+                 (cond ((minusp k)
+                        (setf post
+                              (nconc (make-list (- k) :initial-element 0)
+                                     digits)))
+                       ((< (length digits) k)
+                        (setf pre
+                              (nconc digits
+                                     (make-list (- k (length digits)) :initial-element 0))))
+                       (t
+                        (setf pre (subseq digits 0 k)
+                              post (subseq digits k))))
                  (when d
-                   (let ((l (length post)))
-                     (cond ((< l d)
+                   (let ((l (length post))
+                         (dp (cond ((zerop k)
+                                    d)
+                                   ((plusp k)
+                                    (- d k -1))
+                                   (t
+                                    (+ d k 1)))))
+                     (cond ((< l dp)
                             (setf post
                                   (nconc post
-                                         (make-list (- d l)
+                                         (make-list (- dp l)
                                                     :initial-element 0))))
-                           ((> l d)
-                            (round-post (1- d))))))
+                           ((> l dp)
+                            (round-post (1- dp))))))
                  (setf len (+ (if sign 4 3)
                               (length exp)
                               (length pre)
@@ -907,8 +918,8 @@
                             (null d)
                             (or (null w)
                                 (< len w)
-                                (null d)
-                                (> w (1+ d))))
+                                #+(or)(null d)
+                                #+(or)(> w (1+ d))))
                    (push 0 post)
                    (incf len))
                  (when (and (null pre)
