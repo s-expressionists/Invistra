@@ -57,7 +57,11 @@
 
 (defvar *escape-hook*)
 
+(defvar *outer-escape-hook*)
+
 (defvar *catch-tag*)
+
+(defvar *outer-catch-tag*)
 
 (defmacro with-arguments (arguments &body body)
   `(let* ((*arguments* ,arguments)
@@ -1704,8 +1708,8 @@
   (loop with newline-segment = nil
         for clause across (clauses directive)
         for segment = (catch *catch-tag*
-                     (with-output-to-string (*destination*)
-                       (interpret-items client clause)))
+                        (with-output-to-string (*destination*)
+                          (interpret-items client clause)))
         for index from 0
         finally (print-justification client
                                      colonp at-signp mincol colinc minpad padchar
@@ -1721,8 +1725,8 @@
   `((prog (newline-segment segments)
        ,@(loop for clause across (clauses directive)
                for segment = `(catch *catch-tag*
-                             (with-output-to-string (*destination*)
-                               ,@(compile-items client clause)))
+                                (with-output-to-string (*destination*)
+                                  ,@(compile-items client clause)))
                for index from 0
                while segment
                if (and (zerop index)
@@ -1936,21 +1940,27 @@
                  ;; is used in a different iteration.
                  (if (functionp control)
                      (catch *catch-tag*
-                       (loop for index from 0
+                       (loop with *outer-catch-tag* = *catch-tag*
+                             with *outer-escape-hook* = *escape-hook*
+                             for index from 0
                              while (or (null iteration-limit)
                                        (< index iteration-limit))
                              when (or (not oncep) (plusp index))
                                do (funcall *escape-hook*)
                              do (apply control *destination* (consume-next-argument 'list))))
                      (catch *catch-tag*
-                       (loop for index from 0
+                       (loop with *outer-catch-tag* = *catch-tag*
+                             with *outer-escape-hook* = *escape-hook*
+                             with catch-tag = (list nil)
+                             for index from 0
                              while (or (null iteration-limit)
                                        (< index iteration-limit))
                              when (or (not oncep) (plusp index))
                                do (funcall *escape-hook*)
                              do (with-arguments (consume-next-argument 'list)
-                                  (catch *catch-tag*
-                                     (format-with-runtime-arguments client control)))))))
+                                  (let ((*catch-tag* catch-tag))
+                                    (catch *catch-tag*
+                                      (format-with-runtime-arguments client control))))))))
                 (colonp
                  ;; We use one argument, and that should be a list of sublists.
                  ;; Each sublist is used as arguments for one iteration.
@@ -1980,12 +1990,13 @@
                 (at-signp
                  (if (functionp control)
                      nil
-                     (loop for index from 0
-                           while (or (null iteration-limit)
-                                     (< index iteration-limit))
-                           when (or (not oncep) (plusp index))
-                             do (funcall *escape-hook*)
-                           do (format-with-runtime-arguments client control))))
+                     (catch *catch-tag*
+                       (loop for index from 0
+                             while (or (null iteration-limit)
+                                       (< index iteration-limit))
+                             when (or (not oncep) (plusp index))
+                               do (funcall *escape-hook*)
+                             do (format-with-runtime-arguments client control)))))
                 (t
                  ;; no modifiers
                  ;; We use one argument, and that should be a list.
@@ -2008,40 +2019,50 @@
         (cond ((and colonp at-signp)
                ;; The remaining arguments should be lists.  Each argument
                ;; is used in a different iteration.
+               (flet ((one-iteration (args)
+                        (let ((*catch-tag* (list nil)))
+                        (catch *catch-tag*
+                          (with-arguments args
+                            (interpret-items client items))))))
+                 (let ((*outer-catch-tag* *catch-tag*))
+                   (catch *outer-catch-tag*
+                     (loop with *outer-escape-hook* = *escape-hook*
+                           for index from 0
+                           while (or (null iteration-limit)
+                                     (< index iteration-limit))
+                           when (or (not oncep) (plusp index))
+                             do (funcall *escape-hook*)
+                           do (one-iteration (consume-next-argument 'list)))))))
+              (colonp
+               ;; We use one argument, and that should be a list of sublists.
+               ;; Each sublist is used as arguments for one iteration.
+               (flet ((one-iteration (args)
+                        (unless (listp args)
+                          (error 'argument-type-error
+                                 :expected-type 'list
+                                 :datum args))
+                        (with-arguments args
+                          (catch *catch-tag*
+                            (interpret-items client items)))))
+                 (let ((*outer-catch-tag* (list nil)))
+                   (catch *outer-catch-tag*
+                     (do* ((arg (consume-next-argument 'list))
+                           (index 0 (1+ index))
+                           (*outer-escape-hook* (lambda ()
+                                                  (unless arg
+                                                    (throw *outer-catch-tag* nil)))))
+                          ((or (null arg)
+                               (and iteration-limit
+                                    (= index iteration-limit))))
+                       (one-iteration (pop arg)))))))
+              (at-signp
                (catch *catch-tag*
                  (loop for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
                        when (or (not oncep) (plusp index))
                          do (funcall *escape-hook*)
-                       do (with-arguments (consume-next-argument 'list)
-                            (catch *catch-tag*
-                              (interpret-items client items))))))
-              (colonp
-               ;; We use one argument, and that should be a list of sublists.
-               ;; Each sublist is used as arguments for one iteration.
-               (let ((arg (consume-next-argument 'list)))
-                 (flet ((one-iteration (args)
-                          (unless (listp args)
-                            (error 'argument-type-error
-                                   :expected-type 'list
-                                   :datum args))
-                          (with-arguments args
-                            (catch *catch-tag*
-                              (interpret-items client items)))))
-                   (if (null iteration-limit)
-                       (loop for args in arg ; a bit unusual naming perhaps
-                             do (one-iteration args))
-                       (loop for args in arg ; a bit unusual naming perhaps
-                             repeat iteration-limit
-                             do (one-iteration args))))))
-              (at-signp
-               (loop for index from 0
-                     while (or (null iteration-limit)
-                               (< index iteration-limit))
-                     when (or (not oncep) (plusp index))
-                       do (funcall *escape-hook*)
-                     do (interpret-items client items)))
+                       do (interpret-items client items))))
               (t
                ;; no modifiers
                ;; We use one argument, and that should be a list.
@@ -2065,7 +2086,10 @@
                ;; The remaining arguments should be lists.  Each argument
                ;; is used in a different iteration.
                `((catch *catch-tag*
-                   (loop with control = (consume-next-argument '(or function string))
+                   (loop with *outer-catch-tag* = *catch-tag*
+                         with *outer-escape-hook* = *escape-hook*
+                         with catch-tag = (list nil)
+                         with control = (consume-next-argument '(or function string))
                          for index from 0
                          while (or (null iteration-limit)
                                    (< index iteration-limit))
@@ -2074,10 +2098,11 @@
                                '(do (funcall *escape-hook*)))
                          do (if (functionp control)
                                 (apply control *destination* (consume-next-argument 'list))
-                                (catch *catch-tag*
-                                  (with-arguments (consume-next-argument 'list)
-                                    (format-with-runtime-arguments ,(incless:client-form client)
-                                                                   control))))))))
+                                (let ((*catch-tag* catch-tag))
+                                  (catch *catch-tag*
+                                    (with-arguments (consume-next-argument 'list)
+                                      (format-with-runtime-arguments ,(incless:client-form client)
+                                                                     control)))))))))
               (colonp
                ;; We use one argument, and that should be a list of sublists.
                ;; Each sublist is used as arguments for one iteration.
@@ -2100,15 +2125,16 @@
                                      (< index iteration-limit))
                            do (one-iteration args))))))
               (at-signp
-               `((loop with control = (consume-next-argument 'string)
-                       for index from 0
-                       while (or (null iteration-limit)
-                                 (< index iteration-limit))
-                       ,@(if oncep
-                             '(when (plusp index) do (funcall *escape-hook*))
-                             '(do (funcall *escape-hook*)))
-                       do (format-with-runtime-arguments ,(incless:client-form client)
-                                                         control))))
+               `((catch *catch-tag*
+                   (loop with control = (consume-next-argument '(or function string))
+                         for index from 0
+                         while (or (null iteration-limit)
+                                   (< index iteration-limit))
+                         ,@(if oncep
+                               '(when (plusp index) do (funcall *escape-hook*))
+                               '(do (funcall *escape-hook*)))
+                         do (format-with-runtime-arguments ,(incless:client-form client)
+                                                           control)))))
               (t
                ;; no modifiers
                ;; We use one argument, and that should be a list.
@@ -2136,41 +2162,51 @@
                  ;; The remaining arguments should be lists.  Each argument
                  ;; is used in a different iteration.
                  `((catch *catch-tag*
+                     (loop with *outer-catch-tag* = *catch-tag*
+                           with *outer-escape-hook* = *escape-hook*
+                           with catch-tag = (list nil)
+                           for index from 0
+                           while (or (null iteration-limit)
+                                     (< index iteration-limit))
+                           ,@(if oncep
+                                 '(when (plusp index) do (funcall *escape-hook*))
+                                 '(do (funcall *escape-hook*)))
+                           do (let ((*catch-tag* catch-tag))
+                                (catch *catch-tag*
+                                  (with-arguments (consume-next-argument 'list)
+                                    ,@compiled-items)))))))
+                (colonp
+                 ;; We use one argument, and that should be a list of sublists.
+                 ;; Each sublist is used as arguments for one iteration.
+                 `((flet ((one-iteration (args)
+                            (unless (listp args)
+                              (error 'argument-type-error
+                                     :expected-type 'list
+                                     :datum args))
+                            (with-arguments args
+                              (catch *catch-tag*
+                                ,@compiled-items))))
+                     (let ((*outer-catch-tag* (list nil)))
+                       (catch *outer-catch-tag*
+                         (do* ((arg (consume-next-argument 'list))
+                               (index 0 (1+ index))
+                               (*outer-escape-hook* (lambda ()
+                                                      (unless arg
+                                                        (throw *outer-catch-tag* nil)))))
+                              ((or (null arg)
+                                   (and iteration-limit
+                                        (= index iteration-limit))))
+                           (one-iteration (pop arg))))))))
+                (at-signp
+                 `((catch *catch-tag*
                      (loop for index from 0
                            while (or (null iteration-limit)
                                      (< index iteration-limit))
                            ,@(if oncep
                                  '(when (plusp index) do (funcall *escape-hook*))
                                  '(do (funcall *escape-hook*)))
-                           do (catch *catch-tag*
-                                (with-arguments (consume-next-argument 'list)
-                                  ,@compiled-items))))))
-                (colonp
-                 ;; We use one argument, and that should be a list of sublists.
-                 ;; Each sublist is used as arguments for one iteration.
-                 `((let ((arg (consume-next-argument 'list)))
-                     (flet ((one-iteration (args)
-                              (unless (listp args)
-                                (error 'argument-type-error
-                                       :expected-type 'list
-                                       :datum args))
-                              (catch *catch-tag*
-                                (with-arguments args
-                                  ,@compiled-items))))
-                       (loop for args in arg ; a bit unusual naming perhaps
-                             for index from 0
-                             while (or (null iteration-limit)
-                                       (< index iteration-limit))
-                             do (one-iteration args))))))
-                (at-signp
-                 `((loop for index from 0
-                         while (or (null iteration-limit)
-                                   (< index iteration-limit))
-                         ,@(if oncep
-                               '(when (plusp index) do (funcall *escape-hook*))
-                               '(do (funcall *escape-hook*)))
-                         ,@(when compiled-items
-                             (list* 'do compiled-items)))))
+                           ,@(when compiled-items
+                               (list* 'do compiled-items))))))
                 (t
                  ;; no modifiers
                  ;; We use one argument, and that should be a list.
@@ -2341,35 +2377,35 @@
 (define-format-directive-interpreter circumflex-directive
   (let ((parameters (given-parameters directive)))
     (cond ((not (first parameters))
-           (funcall *escape-hook*))
+           (funcall (if colonp *outer-escape-hook* *escape-hook*)))
           ((not (second parameters))
            (when (eql 0 p1)
-             (throw *catch-tag* nil)))
+             (throw (if colonp *outer-catch-tag* *catch-tag*) nil)))
           ((not (third parameters))
            (when (eql p1 p2)
-             (throw *catch-tag* nil)))
+             (throw (if colonp *outer-catch-tag* *catch-tag*) nil)))
           (t
            (when (<= p1 p2 p3)
-             (throw *catch-tag* nil))))))
+             (throw (if colonp *outer-catch-tag* *catch-tag*) nil))))))
 
 (define-format-directive-compiler circumflex-directive
   (cond ((null p1)
-         `((funcall *escape-hook*)))
+         `((funcall ,(if colonp '*outer-escape-hook* '*escape-hook*))))
         ((null p2)
          `((cond ((null p1)
-                  (funcall *escape-hook*))
+                  (funcall ,(if colonp '*outer-escape-hook* '*escape-hook*)))
                  ((eql 0 p1)
-                  (throw *catch-tag* nil)))))
+                  (throw ,(if colonp '*outer-catch-tag* '*catch-tag*) nil)))))
         ((null p3)
          `((cond ((and (null p1) (null p2))
-                  (funcall *escape-hook*))
+                  (funcall ,(if colonp '*outer-escape-hook* '*escape-hook*)))
                  ((or (and (null p1) (eql 0 p2))
                       (and (eql 0 p1) (null p2))
                       (and p1 p2 (eql p1 p2)))
-                  (throw *catch-tag* nil)))))
+                  (throw ,(if colonp '*outer-catch-tag* '*catch-tag*) nil)))))
         (t
          `((cond ((and (null p1) (null p2) (null p3))
-                  (funcall *escape-hook*))
+                  (funcall ,(if colonp '*outer-escape-hook* '*escape-hook*)))
                  ((or (and (null p1) (null p2) (eql 0 p3))
                       (and (null p1) (eql 0 p2) (null p3))
                       (and (eql 0 p1) (null p2) (null p3))
@@ -2377,7 +2413,7 @@
                       (and (null p2) p1 p3 (eql p1 p3))
                       (and (null p3) p1 p2 (eql p1 p2))
                       (and p1 p2 p3 (<= p1 p2 p3)))
-                  (throw *catch-tag* nil)))))))
+                  (throw ,(if colonp '*outer-catch-tag* '*catch-tag*) nil)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
