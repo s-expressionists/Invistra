@@ -50,7 +50,11 @@
 
 (defmethod check-directive-syntax progn ((directive logical-block-directive))
   (flet ((check-fix (items)
-           (when (notevery #'stringp items)
+           (when (notevery (lambda (item)
+                             (or (stringp item)
+                                 (structured-end-p item)
+                                 (structured-separator-p item)))
+                           items)
              (error "Directives are not allowed in logical block prefix or suffix"))))
     (when (> (length (clauses directive)) 3)
       (error "Logical block only allows three clauses"))
@@ -64,16 +68,18 @@
          (*newline-kind* (if (at-signp (aref last-clause (1- (length last-clause))))
                              :fill
                              nil))
-         (prefix (cond ((and (> (length (clauses directive)) 1)
-                             (> (length (aref (clauses directive) 0)) 1))
-                        (aref (aref (clauses directive) 0) 0))
+         (prefix (cond ((> (length (clauses directive)) 1)
+                        (if (> (length (aref (clauses directive) 0)) 1)
+                            (aref (aref (clauses directive) 0) 0)
+                            ""))
                        (colonp
                         "(")
                        (t
                         "")))
-         (suffix (cond ((and (= (length (clauses directive)) 3)
-                             (> (length (aref (clauses directive) 2)) 1))
-                        (aref (aref (clauses directive) 2) 0))
+         (suffix (cond ((> (length (clauses directive)) 2)
+                        (if (> (length (aref (clauses directive) 2)) 1)
+                            (aref (aref (clauses directive) 2) 0)
+                            ""))
                        (colonp
                         ")")
                        (t
@@ -111,16 +117,18 @@
          (*newline-kind* (if (at-signp (aref last-clause (1- (length last-clause))))
                              :fill
                              nil))
-         (prefix (cond ((and (> (length (clauses directive)) 1)
-                             (> (length (aref (clauses directive) 0)) 1))
-                        (aref (aref (clauses directive) 0) 0))
+         (prefix (cond ((> (length (clauses directive)) 1)
+                        (if (> (length (aref (clauses directive) 0)) 1)
+                            (aref (aref (clauses directive) 0) 0)
+                            ""))
                        (colonp
                         "(")
                        (t
                         "")))
-         (suffix (cond ((and (= (length (clauses directive)) 3)
-                             (> (length (aref (clauses directive) 2)) 1))
-                        (aref (aref (clauses directive) 2) 0))
+         (suffix (cond ((> (length (clauses directive)) 2)
+                        (if (> (length (aref (clauses directive) 2)) 1)
+                            (aref (aref (clauses directive) 2) 0)
+                            ""))
                        (colonp
                         ")")
                        (t
