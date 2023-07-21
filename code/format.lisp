@@ -51,6 +51,8 @@
 
 (defvar *pop-argument-hook*)
 
+(defvar *pop-remaining-arguments*)
+
 (defvar *inner-exit-if-exhausted* nil)
 
 (defvar *outer-exit-if-exhausted* nil)
@@ -63,7 +65,7 @@
 
 (defvar *outer-tag* nil)
 
-(defmacro with-arguments ((arguments &key tailp) &body body)
+(defmacro with-arguments (arguments &body body)
   (let ((block-name (gensym))
         (arguments-var (gensym)))
     `(catch ',block-name
@@ -74,6 +76,9 @@
                                                 :adjustable t :fill-pointer 0))
               (*pop-argument-hook* (lambda ()
                                      (pop ,arguments-var)))
+              (*pop-remaining-arguments* (lambda ()
+                                           (prog1 ,arguments-var
+                                             (setf ,arguments-var nil))))
               (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
               (*outer-exit* *inner-exit*)
               (*outer-tag* *inner-tag*)
@@ -85,11 +90,7 @@
               (*inner-exit* (lambda (&optional ret)
                               (throw ',block-name ret)))
               (*inner-tag* ',block-name))
-         ,@body
-         ,@(when tailp
-             `((concatenate 'list
-                (subseq *previous-arguments* *previous-argument-index*)
-                ,arguments-var)))))))
+         ,@body))))
 
 (defun compute-parameter-value (directive parameter-spec)
   (let* ((parameter-name (car parameter-spec))
@@ -168,6 +169,18 @@
              :expected-type type
              :datum arg))
     arg))
+
+(defun consume-remaining-arguments ()
+  (let* ((tail (funcall *pop-remaining-arguments*))
+         (tail-len (length tail)))
+    (adjust-array *previous-arguments* (+ (length *previous-arguments*) tail-len))
+    (replace *previous-arguments* tail :start1 (length *previous-arguments*))
+    (setf tail
+          (concatenate 'list
+                       (subseq *previous-arguments* *previous-argument-index*)
+                       tail))
+    (setf *previous-argument-index* (length *previous-arguments*))
+    tail))
 
 (defun go-to-argument (index &optional absolute)
   (when absolute
@@ -1971,7 +1984,7 @@
                                        (< index iteration-limit))
                              when (or (not oncep) (plusp index))
                                do (funcall *inner-exit-if-exhausted*)
-                             do (with-arguments ((consume-next-argument 'list))
+                             do (with-arguments (consume-next-argument 'list)
                                   (let ((*inner-tag* catch-tag))
                                     (catch *inner-tag*
                                       (format-with-runtime-arguments client control))))))))
@@ -1992,7 +2005,7 @@
                                   (error 'argument-type-error
                                          :expected-type 'list
                                          :datum args))
-                                (with-arguments (args)
+                                (with-arguments args
                                   (catch *inner-tag*
                                      (format-with-runtime-arguments client control)))))
                          (if (null iteration-limit)
@@ -2003,7 +2016,13 @@
                                    do (one-iteration args)))))))
                 (at-signp
                  (if (functionp control)
-                     nil
+                     (loop for args = (consume-remaining-arguments)
+                             then (apply control *destination* args)
+                           for index from 0
+                           finally (go-to-argument (- (length args)))
+                           while (and (or (null iteration-limit)
+                                          (< index iteration-limit))
+                                      (or (and oncep (zerop index)) args)))
                      (catch *inner-tag*
                        (loop for index from 0
                              while (or (null iteration-limit)
@@ -2022,7 +2041,7 @@
                            while (and (or (null iteration-limit)
                                           (< index iteration-limit))
                                       (or (and oncep (zerop index)) args)))
-                     (with-arguments ((consume-next-argument 'list))
+                     (with-arguments (consume-next-argument 'list)
                        (catch *inner-tag*
                          (loop for index from 0
                                while (or (null iteration-limit)
@@ -2039,18 +2058,18 @@
                                  (< index iteration-limit))
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
-                       do (with-arguments ((consume-next-argument 'list))
+                       do (with-arguments (consume-next-argument 'list)
                             (interpret-items client items)))))
               (colonp
                ;; We use one argument, and that should be a list of sublists.
                ;; Each sublist is used as arguments for one iteration.
-               (with-arguments ((consume-next-argument 'list))
+               (with-arguments (consume-next-argument 'list)
                  (loop for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
-                       do (with-arguments ((consume-next-argument 'list))
+                       do (with-arguments (consume-next-argument 'list)
                             (interpret-items client items)))))
               (at-signp
                (catch *inner-tag*
@@ -2064,7 +2083,7 @@
                ;; no modifiers
                ;; We use one argument, and that should be a list.
                ;; The elements of that list are used by the iteration.
-               (with-arguments ((consume-next-argument 'list))
+               (with-arguments (consume-next-argument 'list)
                  (loop for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
@@ -2092,14 +2111,14 @@
                            if (functionp control)
                              do (apply control *destination* (consume-next-argument 'list))
                            else
-                             do (with-arguments ((consume-next-argument 'list))
+                             do (with-arguments (consume-next-argument 'list)
                                   (format-with-runtime-arguments ,(incless:client-form client)
                                                                  control)))))))
               (colonp
                ;; We use one argument, and that should be a list of sublists.
                ;; Each sublist is used as arguments for one iteration.
                `((let ((control (consume-next-argument '(or function string))))
-                   (with-arguments ((consume-next-argument 'list))
+                   (with-arguments (consume-next-argument 'list)
                      (loop for index from 0
                            while (or (null iteration-limit)
                                      (< index iteration-limit))
@@ -2109,13 +2128,21 @@
                            if (functionp control)
                              do (apply control *destination* (consume-next-argument 'list))
                            else
-                             do (with-arguments ((consume-next-argument 'list))
+                             do (with-arguments (consume-next-argument 'list)
                                   (format-with-runtime-arguments ,(incless:client-form client)
                                                                  control)))))))
               (at-signp
                `((let ((control (consume-next-argument '(or function string))))
                    (if (functionp control)
-                       nil
+                       (loop for args = (consume-remaining-arguments)
+                               then (apply control *destination* args)
+                             for index from 0
+                             finally (go-to-argument (- (length args)))
+                             while (and (or (null iteration-limit)
+                                            (< index iteration-limit))
+                                        ,(if oncep
+                                             '(or (zerop index) args)
+                                             'args)))
                        (catch *inner-tag*
                          (loop for index from 0
                                while (or (null iteration-limit)
@@ -2139,7 +2166,7 @@
                                         ,(if oncep
                                              '(or (zerop index) args)
                                              'args)))
-                       (with-arguments ((consume-next-argument 'list))
+                       (with-arguments (consume-next-argument 'list)
                          (loop for index from 0
                                while (or (null iteration-limit)
                                          (< index iteration-limit))
@@ -2159,19 +2186,19 @@
                            ,@(if oncep
                                  '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                  '(do (funcall *inner-exit-if-exhausted*)))
-                           do (with-arguments ((consume-next-argument 'list))
+                           do (with-arguments (consume-next-argument 'list)
                                 ,@compiled-items)))))
                 (colonp
                  ;; We use one argument, and that should be a list of sublists.
                  ;; Each sublist is used as arguments for one iteration.
-                 `((with-arguments ((consume-next-argument 'list))
+                 `((with-arguments (consume-next-argument 'list)
                      (loop for index from 0
                            while (or (null iteration-limit)
                                      (< index iteration-limit))
                            ,@(if oncep
                                  '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                  '(do (funcall *inner-exit-if-exhausted*)))
-                           do (with-arguments ((consume-next-argument 'list))
+                           do (with-arguments (consume-next-argument 'list)
                                 ,@compiled-items)))))
                 (at-signp
                  `((catch *inner-tag*
@@ -2187,7 +2214,7 @@
                  ;; no modifiers
                  ;; We use one argument, and that should be a list.
                  ;; The elements of that list are used by the iteration.
-                 `((with-arguments ((consume-next-argument 'list))
+                 `((with-arguments (consume-next-argument 'list)
                      (loop for index from 0
                            while (or (null iteration-limit)
                                      (< index iteration-limit))
@@ -2445,7 +2472,7 @@
                                      :destination destination)))))
     (if (functionp control)
         (apply control *destination* args)
-        (with-arguments (args)
+        (with-arguments args
           (format-with-runtime-arguments client control)))
     (if (null destination)
         (get-output-stream-string *destination*)
