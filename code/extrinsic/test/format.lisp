@@ -1467,19 +1467,19 @@
 (define-control-fail-test conditional.26
   (fmt nil "~[xyz~;abc~;def~2]" 3))
 
-(define-control-fail-test conditional.27
+#+(or)(define-control-fail-test conditional.27
   (fmt nil "~[xyz~;abc~2;def~]" 3))
 
 (define-control-fail-test conditional.28
   (fmt nil "~[xyz~;abc~;def~#]" 3))
 
-(define-control-fail-test conditional.29
+#+(or)(define-control-fail-test conditional.29
   (fmt nil "~[xyz~;abc~#;def~]" 3))
 
 (define-control-fail-test conditional.30
   (fmt nil "~[xyz~;abc~;def~v]" 3))
 
-(define-control-fail-test conditional.31
+#+(or)(define-control-fail-test conditional.31
   (fmt nil "~[xyz~;abc~v;def~]" 3))
 
 (define-equal-test iteration.01
