@@ -41,6 +41,10 @@
 
 ;;; Runtime environment
 
+(defparameter *extra-space* nil)
+
+(defparameter *line-length* nil)
+
 (defparameter *newline-kind* nil)
 
 (defvar *previous-arguments*)

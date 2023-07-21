@@ -90,12 +90,13 @@
      (minpad :type integer :default-value 0)
      (padchar :type character :default-value #\Space)))
 
-(defun line-length (stream)
+(defun str-line-length (stream)
   (or *print-right-margin*
       (trivial-stream-column:line-length stream)
       100))
 
-(defun print-justification (client pad-left pad-right mincol colinc minpad padchar
+(defun print-justification (client pad-left pad-right extra-space line-len
+                            mincol colinc minpad padchar
                             newline-segment segments)
   (when (and (not pad-left) (not pad-right) (null (cdr segments)))
     (setf pad-left t))
@@ -109,8 +110,9 @@
          (padding (- total-length chars)))
     (when (and newline-segment
                (> (+ (or (trivial-stream-column:line-column *destination*) 0)
-                     total-length)
-                  (line-length *destination*)))
+                     total-length (or extra-space 0))
+                  (or line-len
+                      (str-line-length *destination*))))
       (write-string newline-segment *destination*))
     (when pad-left
       (incf pad-count))
@@ -138,13 +140,16 @@
 
 (define-format-directive-interpreter justification-directive
   (loop with newline-segment = nil
+        with *extra-space* = nil
+        with *line-length* = nil
         for clause across (clauses directive)
         for segment = (catch *inner-tag*
                         (with-output-to-string (*destination*)
                           (interpret-items client clause)))
         for index from 0
         finally (print-justification client
-                                     colonp at-signp mincol colinc minpad padchar
+                                     colonp at-signp *extra-space* *line-length*
+                                     mincol colinc minpad padchar
                                      newline-segment segments)
         while segment
         if (and (zerop index)
@@ -154,7 +159,8 @@
           collect segment into segments))
 
 (define-format-directive-compiler justification-directive
-  `((prog (newline-segment segments)
+  `((prog (newline-segment segments
+           *extra-space* *line-length*)
        ,@(loop for clause across (clauses directive)
                for segment = `(catch *inner-tag*
                                 (with-output-to-string (*destination*)
@@ -174,5 +180,6 @@
                                 (go end))))
      end
        (print-justification ,(incless:client-form client)
-                            ,colonp ,at-signp mincol colinc minpad padchar
+                            ,colonp ,at-signp *extra-space* *line-length*
+                            mincol colinc minpad padchar
                             newline-segment (nreverse segments)))))

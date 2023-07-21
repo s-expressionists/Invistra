@@ -15,17 +15,24 @@
 (define-directive #\;
     semicolon-directive
     nil
-    (named-parameters-directive only-colon-mixin)
-    ())
+    (named-parameters-directive)
+    ((extra-space :type (or null integer) :default-value nil)
+     (line-length :type (or null integer) :default-value nil)))
 
 (defmethod structured-separator-p ((directive semicolon-directive))
   t)
 
 (define-format-directive-interpreter semicolon-directive
-  nil)
+  (when extra-space
+    (setf *extra-space* extra-space))
+  (when line-length
+    (setf *line-length* line-length)))
 
 (define-format-directive-compiler semicolon-directive
-  nil)
+  `((when extra-space
+      (setf *extra-space* extra-space))
+    (when line-length
+      (setf *line-length* line-length))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
