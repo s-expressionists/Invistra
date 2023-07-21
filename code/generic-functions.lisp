@@ -13,7 +13,10 @@
 ;;; Given a name of a type of a directive, return a list of parameter
 ;;; specifiers for that type of directive.  Each type of directive
 ;;; should supply an eql specialized method for this generic function.
-(defgeneric parameter-specs (directive-name))
+(defgeneric parameter-specs (directive-name)
+  (:method (directive-name)
+    (declare (ignore directive-name))
+    nil))
 
 ;;; Check the syntax of a directive.
 (defgeneric check-directive-syntax (directive)

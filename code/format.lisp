@@ -37,11 +37,11 @@
 
 (defun interpret-items (client items)
   (loop for item across items
-        do (if (stringp item)
-               (write-string item *destination*)
-               (interpret-format-directive client item))))
+        do (interpret-format-directive client item)))
 
 ;;; Runtime environment
+
+(defparameter *newline-kind* nil)
 
 (defvar *previous-arguments*)
 
@@ -256,3 +256,39 @@
     (if (null destination)
         (get-output-stream-string *destination*)
         nil)))
+
+(defmethod interpret-format-directive (client (item string))
+  (if *newline-kind*
+      (loop with start = 0
+            with in-blank-p = nil
+            for char across item
+            for index from 0
+            for blankp = (and (find char #(#\Space #\Tab #\Page #\Return)) t)
+            finally (write-string (subseq item start) *destination*)
+                    (when in-blank-p
+                      (inravina:pprint-newline client *destination* *newline-kind*))
+            when (and in-blank-p (not blankp))
+              do (write-string (subseq item start index) *destination*)
+                 (inravina:pprint-newline client *destination* *newline-kind*)
+                 (setf start index)
+            do (setf in-blank-p blankp))
+      (write-string item *destination*)))
+
+(defmethod compile-format-directive (client (item string))
+  (if *newline-kind*
+      (loop with start = 0
+            with in-blank-p = nil
+            with pprint-newline = `(inravina:pprint-newline ,(incless:client-form client) *destination* ,*newline-kind*)
+            for char across item
+            for index from 0
+            for blankp = (and (find char #(#\Space #\Tab #\Page #\Return)) t)
+            finally (return (nconc forms
+                                   `((write-string ,(subseq item start) *destination*))
+                                   (when in-blank-p
+                                     (list pprint-newline))))
+            when (and in-blank-p (not blankp))
+              collect `(write-string ,(subseq item start index) *destination*) into forms and
+              collect pprint-newline into forms and
+              do (setf start index)
+            do (setf in-blank-p blankp))
+      `((write-string ,item *destination*))))

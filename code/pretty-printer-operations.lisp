@@ -57,50 +57,31 @@
     (when (> (length (clauses directive)) 1)
       (check-fix (aref (clauses directive) 0)))
     (when (= (length (clauses directive)) 3)
-      (check-fix (aref (clauses directive) 2))))
-  (let* ((last-clause (aref (clauses directive) (1- (length (clauses directive)))))
-         (last-item (aref last-clause (1- (length last-clause)))))
-    (when (at-signp last-item)
-      (loop with index = (if (= (length (clauses directive)) 1) 0 1)
-            with current = (aref (clauses directive) index)
-            with result = (make-array (* 2 (length current)) :adjustable t :fill-pointer 0)
-            for item across current
-            finally (setf (aref (clauses directive) index) result)
-            if (stringp item)
-              do (loop with start = 0
-                       with in-blank-p = nil
-                       for char across item
-                       for index from 0
-                       for blankp = (and (find char #(#\Space #\Tab #\Page #\Return)) t)
-                       finally (vector-push-extend (subseq item start) result)
-                               (when in-blank-p
-                            (vector-push-extend (make-instance 'underscore-directive :colonp t :at-signp nil) result))
-                       when (and in-blank-p (not blankp))
-                         do (vector-push-extend (subseq item start index) result)
-                            (vector-push-extend (make-instance 'underscore-directive :colonp t :at-signp nil) result)
-                            (setf start index)
-                       do (setf in-blank-p blankp))
-            else
-              do (vector-push-extend item result)))))
+      (check-fix (aref (clauses directive) 2)))))
 
 (define-format-directive-interpreter logical-block-directive
-  (let ((prefix (cond ((and (> (length (clauses directive)) 1)
-                            (> (length (aref (clauses directive) 0)) 1))
-                       (aref (aref (clauses directive) 0) 0))
-                      (colonp
-                       "(")
-                      (t
-                       "")))
-        (suffix (cond ((and (= (length (clauses directive)) 3)
-                            (> (length (aref (clauses directive) 2)) 1))
-                       (aref (aref (clauses directive) 2) 0))
-                      (colonp
-                       ")")
-                      (t
-                       "")))
-        (per-line-prefix-p (at-signp (aref (aref (clauses directive) 0)
-                                           (1- (length (aref (clauses directive) 0))))))
-        (object (unless at-signp (consume-next-argument t))))
+  (let* ((last-clause (aref (clauses directive) (1- (length (clauses directive)))))
+         (*newline-kind* (if (at-signp (aref last-clause (1- (length last-clause))))
+                             :fill
+                             nil))
+         (prefix (cond ((and (> (length (clauses directive)) 1)
+                             (> (length (aref (clauses directive) 0)) 1))
+                        (aref (aref (clauses directive) 0) 0))
+                       (colonp
+                        "(")
+                       (t
+                        "")))
+         (suffix (cond ((and (= (length (clauses directive)) 3)
+                             (> (length (aref (clauses directive) 2)) 1))
+                        (aref (aref (clauses directive) 2) 0))
+                       (colonp
+                        ")")
+                       (t
+                        "")))
+         (per-line-prefix-p (and (> (length (clauses directive)) 1)
+                                 (at-signp (aref (aref (clauses directive) 0)
+                                            (1- (length (aref (clauses directive) 0)))))))
+         (object (unless at-signp (consume-next-argument t))))
     (flet ((interpret-body (*destination* escape-hook pop-argument-hook)
              (if at-signp
                  (interpret-items client (aref (clauses directive)
@@ -126,22 +107,27 @@
                                                  :prefix prefix :suffix suffix)))))
 
 (define-format-directive-compiler logical-block-directive
-  (let ((prefix (cond ((and (> (length (clauses directive)) 1)
-                            (> (length (aref (clauses directive) 0)) 1))
-                       (aref (aref (clauses directive) 0) 0))
-                      (colonp
-                       "(")
-                      (t
-                       "")))
-        (suffix (cond ((and (= (length (clauses directive)) 3)
-                            (> (length (aref (clauses directive) 2)) 1))
-                       (aref (aref (clauses directive) 2) 0))
-                      (colonp
-                       ")")
-                      (t
-                       "")))
-        (per-line-prefix-p (at-signp (aref (aref (clauses directive) 0)
-                                           (1- (length (aref (clauses directive) 0)))))))
+  (let* ((last-clause (aref (clauses directive) (1- (length (clauses directive)))))
+         (*newline-kind* (if (at-signp (aref last-clause (1- (length last-clause))))
+                             :fill
+                             nil))
+         (prefix (cond ((and (> (length (clauses directive)) 1)
+                             (> (length (aref (clauses directive) 0)) 1))
+                        (aref (aref (clauses directive) 0) 0))
+                       (colonp
+                        "(")
+                       (t
+                        "")))
+         (suffix (cond ((and (= (length (clauses directive)) 3)
+                             (> (length (aref (clauses directive) 2)) 1))
+                        (aref (aref (clauses directive) 2) 0))
+                       (colonp
+                        ")")
+                       (t
+                        "")))
+         (per-line-prefix-p (and (> (length (clauses directive)) 1)
+                                 (at-signp (aref (aref (clauses directive) 0)
+                                            (1- (length (aref (clauses directive) 0))))))))
     (if at-signp
         `((inravina:execute-pprint-logical-block ,(incless:client-form client) *destination*
                                                  nil
