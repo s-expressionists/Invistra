@@ -51,7 +51,8 @@
      :compile-at :execute
      (fail-compile (macrolet ((fmt (destination control-string &rest args)
                                 `(invistra-extrinsic:format ,destination ,control-string ,@args)))
-                     ,form))
+                     ,form)
+                   condition)
      (fail (macrolet ((fmt (destination control-string &rest args)
                         `(invistra-extrinsic:format ,destination (progn ,control-string) ,@args)))
              ,form))))
