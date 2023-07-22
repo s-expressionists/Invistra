@@ -198,55 +198,51 @@
     ()
   (%function-name :accessor function-name))
 
+(defmethod parse-directive-suffix ((directive-character (eql #\/)) control-string start end)
+  (let ((position-of-trailing-slash
+          (position #\/ control-string :start start :end end)))
+    (when (null position-of-trailing-slash)
+      (error 'end-of-control-string-error
+             :control-string string
+             :tilde-position start
+             :why "expected a trailing slash"))
+    (1+ position-of-trailing-slash)))
+
 (defmethod check-directive-syntax progn ((directive call-function-directive))
   ;; Check that there is at most one package marker in the function name.
   ;; Also, compute a symbol from the name.
   (with-accessors ((control-string control-string)
                    (start start)
+                   (suffix-start suffix-start)
                    (end end)
                    (colonp colonp))
-    directive
-    ;; To figure out where the name of the function starts and ends,
-    ;; we cannot search from the beginning of the directive, because
-    ;; the given parameters can contain arbitrary characters following
-    ;; a single quote (indicating a character parameter).  However,
-    ;; we know that the last character of the directive is the trailing
-    ;; #\/ of the function name, and the one preceding that is the
-    ;; #\/ preceding the function name.
-    (let ((pos1 (1+ (position #\/ control-string :end (1- end) :from-end t)))
-          (pos2 (1- end)))
-      (let ((position-of-first-package-marker
-             (position #\: control-string :start pos1 :end pos2))
-            (position-of-last-package-marker
-             (position #\: control-string :start pos1 :end pos2 :from-end t)))
-        (when (and (not (null position-of-first-package-marker))
-                   (> position-of-last-package-marker
-                      (1+ position-of-first-package-marker)))
-          (error 'too-many-package-markers
-                 :directive directive))
-        ;; The HyperSpec says that all the characters of the function
-        ;; name are treated as if they were upper-case.  It would
-        ;; probably be smarter to follow the readtable-case of the
-        ;; current readtable, but that's not what the spec says.
-        (let ((package-name
-               (if (null position-of-first-package-marker)
-                   "COMMON-LISP-USER"
-                   (string-upcase
-                    (subseq control-string
-                            pos1
-                            position-of-first-package-marker))))
-              (symbol-name
-               (string-upcase
-                (subseq control-string
-                        (if (null position-of-first-package-marker)
-                            pos1
-                            (1+ position-of-last-package-marker))
-                        pos2))))
-          (let ((package (find-package package-name)))
-            (when (null package)
-              (error 'no-such-package
-                     :directive directive))
-            (setf (function-name directive) (intern symbol-name package))))))))
+      directive
+    ;; The HyperSpec says that all the characters of the function
+    ;; name are treated as if they were upper-case.
+    (let* ((position-of-package-marker
+             (position #\: control-string :start suffix-start :end (1- end)))
+           (package-name
+             (if (null position-of-package-marker)
+                 "COMMON-LISP-USER"
+                 (string-upcase
+                  (subseq control-string
+                          suffix-start
+                          position-of-package-marker))))
+           (symbol-name
+             (string-upcase
+              (subseq control-string
+                      (cond ((null position-of-package-marker)
+                             suffix-start)
+                            ((char= #\: (char control-string (1+ position-of-package-marker)))
+                             (+ 2 position-of-package-marker))
+                            (t
+                             (1+ position-of-package-marker)))
+                      (1- end))))
+           (package (find-package package-name)))
+      (when (null package)
+        (error 'no-such-package
+               :directive directive))
+      (setf (function-name directive) (intern symbol-name package)))))
 
 (defmethod interpret-format-directive (client (directive call-function-directive))
   (with-accessors ((control-string control-string)

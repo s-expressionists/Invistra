@@ -4,6 +4,8 @@
 
 (defgeneric start (directive))
 
+(defgeneric suffix-start (directive))
+
 (defgeneric end (directive))
 
 (defgeneric directive-character (directive))
@@ -37,6 +39,7 @@
    (%control-string :initarg :control-string :reader control-string)
    ;; the position in the control string of the ~ character.
    (%start :initarg :start :reader start)
+   (%suffix-start :initarg :suffix-start :reader suffix-start)
    ;; the first position beyond the directive character
    (%end :initarg :end :reader end)
    ;; The directive character used.

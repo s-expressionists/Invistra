@@ -28,3 +28,8 @@
 
 ;;; The directive compiler.
 (defgeneric compile-format-directive (client directive))
+
+(defgeneric parse-directive-suffix (directive-character control-string start end)
+  (:method (directive-character control-string start end)
+    (declare (ignore directive-character control-string end))
+    start))

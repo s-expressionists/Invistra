@@ -101,12 +101,16 @@
 
 (define-directive #\Newline newline-directive nil (named-parameters-directive at-most-one-modifier-mixin) ())
 
+(defmethod parse-directive-suffix ((directive-character (eql #\Newline)) control-string start end)
+  (or (position-if (lambda (char)
+                     (not (find char #(#\Space #\Tab #\Page #\Return))))
+                   control-string :start start :end end)
+      end))
+
 (define-format-directive-interpreter newline-directive
   (cond (colonp
          ;; Remove the newline but print the following whitespace.
-         (let ((start (1+ (position #\Newline control-string :start start))))
-           (loop for index from start below end
-                 do (write-char (char control-string index) *destination*))))
+         (write-string (subseq control-string suffix-start end) *destination*))
         (at-signp
          ;; Print the newline, but remove the following whitespace.
          (write-char #\Newline *destination*))
@@ -117,8 +121,7 @@
 (define-format-directive-compiler newline-directive
   (cond (colonp
          ;; Remove the newline but print the following whitespace.
-         (let ((start (1+ (position #\Newline control-string :start start))))
-           `((write-string ,(subseq control-string start end) *destination*))))
+         `((write-string ,(subseq control-string suffix-start end) *destination*)))
         (at-signp
          ;; Print the newline, but remove the following whitespace.
          `((write-char #\Newline *destination*)))
