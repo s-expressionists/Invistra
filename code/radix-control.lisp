@@ -7,7 +7,7 @@
 (defun print-radix-arg (client radix colonp at-signp mincol padchar commachar comma-interval)
   (let ((argument (consume-next-argument t)))
     (if (not (integerp argument))
-        (let ((*print-base* 10)
+        (let ((*print-base* radix)
               (*print-escape* nil)
               (*print-readably* nil))
           (incless:write-object client argument *destination*))
@@ -219,7 +219,7 @@
            (write-char #\Space stream)
            (print-ordinal-tenths rest stream)))))
 
-;;; Print an ordninal number n such that - 10^65 < n < 10^65.
+;;; Print an ordinal number n such that - 10^65 < n < 10^65.
 (defun print-ordinal-number (n stream)
   (cond ((minusp n)
          (write-string "negative " stream)
