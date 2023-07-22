@@ -169,7 +169,7 @@
 ;;; 22.3.5.3 ~i Indent
 
 (define-directive #\i i-directive nil (named-parameters-directive)
-    ((how-many :type (integer 0) :default-value 0)))
+    ((how-many :type integer :default-value 0)))
 
 (define-format-directive-interpreter i-directive
   (inravina:pprint-indent client *destination*
