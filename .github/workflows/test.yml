@@ -17,6 +17,8 @@ jobs:
       matrix:
         lisp:
         - abcl
+        - clasp
+        - ecl
         - sbcl
     runs-on: ubuntu-latest
     container:
