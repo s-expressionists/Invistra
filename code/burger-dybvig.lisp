@@ -342,9 +342,10 @@
   (multiple-value-bind (f e)
       (integer-decode-float x)
     ;; adjust mantissa and exponent
-    (let ((diff (- (float-precision x) (float-digits x))))
-      (setf f (* f (expt 2 diff)))
-      (decf e diff))
+    (when (< (float-precision x) (float-digits x))
+      (let ((shift (- (float-digits x) (integer-length f))))
+        (setf f (ash f shift))
+        (decf e shift)))
     (let (r s m+ m-)
       (if (>= e 0)
           (progn (if (= (decode-float x) 0.5)
