@@ -17,20 +17,42 @@
                                value)))
         (multiple-value-call func client coerced-value (burger-dybvig-2 coerced-value))))))
 
-(defun round-digits (digits decimal-position count)
-  (when (and (< (+ decimal-position count) (length digits))
-             (> (aref digits (+ decimal-position count)) 4))
-    (loop for pos = (+ decimal-position count -1)
-          for (carry new-digit) = (multiple-value-list (floor (1+ (aref digits pos)) 10))
-          do (setf (aref digits pos) new-digit)
-          when (zerop carry)
-            do (loop-finish)
-          when (zerop pos)
-            do (setf digits (concatenate 'vector #(1) digits))
-               (incf decimal-position)
-               (loop-finish)))
-  (values (subseq digits 0 (+ decimal-position (max 0 count)))
-          decimal-position))
+(defclass decimal ()
+  ((%digits :accessor decimal-digits
+            :initarg :digits)
+   (%position :accessor decimal-position
+              :initarg :position
+              :initform 0)))
+
+(defun round-decimal (decimal count)
+  (with-accessors ((decimal-digits decimal-digits)
+                   (decimal-position decimal-position))
+      decimal
+    (when (and (< (+ decimal-position count) (length decimal-digits))
+               (< -1 (+ decimal-position count) (length decimal-digits))
+               (> (aref decimal-digits (+ decimal-position count)) 4))
+      (loop for pos = (+ decimal-position count -1)
+            for (carry new-digit) = (multiple-value-list (floor (1+ (aref decimal-digits pos)) 10))
+            do (setf (aref decimal-digits pos) new-digit)
+            when (zerop carry)
+              do (loop-finish)
+            when (zerop pos)
+              do (setf decimal-digits (concatenate 'vector #(1) decimal-digits))
+                 (incf decimal-position)
+                 (loop-finish)))
+    (setf decimal-digits
+          (subseq decimal-digits 0 (+ decimal-position (max 0 count))))))
+
+(defun print-decimal (decimal)
+  (loop with d-pos = (decimal-position decimal)
+        with len = (length (decimal-digits decimal))
+        for digit across (decimal-digits decimal)
+        for pos from 0
+        finally (when (= d-pos len)
+                  (write-char #\. *destination*))
+        when (= pos d-pos)
+          do (write-char #\. *destination*)
+        do (write-char (aref *digits* digit) *destination*)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -52,99 +74,95 @@
 
 (defparameter *digits* "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-(defun print-fixed-arg (client value digits exponent colonp at-signp w d k overflowchar padchar)
+(defun print-fixed-arg (client value digits exponent
+                        colonp at-signp w d k overflowchar padchar)
   (declare (ignore client colonp))
-  (setf digits (coerce digits 'vector))
-  (let (decimal-position
+  (let ((decimal (make-instance 'decimal :digits digits))
         sign
         len)
-    (setf sign
-          (cond ((minusp (float-sign value)) #\-)
-                ((and at-signp (plusp value)) #\+)))
-    (incf exponent k)
-    (cond ((zerop (aref digits 0))
-           (setf decimal-position 1))
-          ((not (plusp exponent))
-           (setf decimal-position 0
-                 digits (concatenate 'vector
-                                     (make-array (- exponent) :initial-element 0)
-                                     digits)))
-          ((<= exponent (length digits))
-           (setf decimal-position exponent))
-          (t
-           (setf digits (concatenate 'vector digits
-                                     (make-array (- exponent (length digits))
-                                                 :initial-element 0))
-                 decimal-position (length digits))))
-    (setf len (+ (if sign 2 1)
-                 (length digits)))
-    (when (and w
-               (null d)
-               (> len w))
-      (multiple-value-setq (digits decimal-position)
-        (round-digits digits decimal-position
-                      (min (- (length digits) decimal-position)
+    (with-accessors ((decimal-digits decimal-digits)
+                     (decimal-position decimal-position))
+        decimal
+      (setf sign
+            (cond ((minusp (float-sign value)) #\-)
+                  ((and at-signp (plusp value)) #\+)))
+      (incf exponent k)
+      (cond ((zerop (aref decimal-digits 0))
+             (setf decimal-position 1))
+            ((not (plusp exponent))
+             (setf decimal-position 0
+                   decimal-digits (concatenate 'vector
+                                               (make-array (- exponent) :initial-element 0)
+                                               decimal-digits)))
+            ((<= exponent (length decimal-digits))
+             (setf decimal-position exponent))
+            (t
+             (setf decimal-digits (concatenate 'vector
+                                               decimal-digits
+                                               (make-array (- exponent (length decimal-digits))
+                                                           :initial-element 0))
+                   decimal-position exponent)))
+      (setf len (+ (if sign 2 1)
+                   (length decimal-digits)))
+      (when (and w
+                 (null d)
+                 (> len w))
+        (round-decimal decimal
+                      (min (- (length decimal-digits) decimal-position)
                            (max 0
                                 (- w
                                    decimal-position
-                                   (if sign 2 1))))))
-      (let ((q (or (find-if #'plusp digits :start decimal-position :from-end t)
-                   decimal-position)))
-        (when (< q (1- (length digits)))
-          (setf digits (subseq digits 0 q)))))
-    (when d
-      (let ((l (- (length digits) decimal-position)))
-        (cond ((< l d)
-               (setf digits
-                     (concatenate 'vector
-                                  digits
-                                  (make-array (- d l)
-                                              :initial-element 0))))
-              ((> l d)
-               (multiple-value-setq (digits decimal-position)
-                 (round-digits digits decimal-position d))))))
-    (setf len (+ (if sign 2 1)
-                 (length digits)))
-    (when (and (= decimal-position (length digits))
-               (null d)
-               (or (zerop (length digits))
-                   (null w)
-                   (null overflowchar)
-                   (< len w)))
-      (setf digits (concatenate 'vector digits #(0)))
-      (incf len))
-    (when (and (zerop decimal-position)
-               (or (zerop (length digits))
-                   (and
-                    (< value (expt 10 (- k)))
-                    (or (null w) (null d)
-                        (> w (1+ d)))
-                    (or (= decimal-position (length digits))
-                        (null w)
-                        (< len w)))))
-      (setf digits (concatenate 'vector #(0) digits))
-      (incf decimal-position)
-      (incf len))
-    (cond ((or (null w)
-               (null overflowchar)
-               (<= len w))
-           (when w
-             (loop repeat (max 0 (- w len))
-                   do (write-char padchar *destination*)))
-           (when sign
-             (write-char sign *destination*))
-           (loop for digit across digits
-                 for pos from 0
-                 finally (when (= decimal-position (length digits))
-                           (write-char #\. *destination*))
-                 when (= pos decimal-position)
-                   do (write-char #\. *destination*)
-                 do (write-char (aref *digits* digit) *destination*))
-           nil)
-          (t
-           (loop repeat w
-                 do (write-char overflowchar *destination*))
-           t))))
+                                   (if sign 2 1)))))
+        (let ((q (or (find-if #'plusp decimal-digits :start decimal-position :from-end t)
+                     decimal-position)))
+          (when (< q (1- (length decimal-digits)))
+            (setf decimal-digits (subseq decimal-digits 0 q)))))
+      (when d
+        (let ((l (- (length decimal-digits) decimal-position)))
+          (cond ((< l d)
+                 (setf decimal-digits
+                       (concatenate 'vector
+                                    decimal-digits
+                                    (make-array (- d l)
+                                                :initial-element 0))))
+                ((> l d)
+                 (round-decimal decimal d)))))
+      (setf len (+ (if sign 2 1)
+                   (length decimal-digits)))
+      (when (and (= decimal-position (length decimal-digits))
+                 (null d)
+                 (or (zerop (length decimal-digits))
+                     (null w)
+                     (null overflowchar)
+                     (< len w)))
+        (setf decimal-digits (concatenate 'vector decimal-digits #(0)))
+        (incf len))
+      (when (and (zerop decimal-position)
+                 (or (zerop (length decimal-digits))
+                     (and
+                      (< value (expt 10 (- k)))
+                      (or (null w) (null d)
+                          (> w (1+ d)))
+                      (or (= decimal-position (length decimal-digits))
+                          (null w)
+                          (< len w)))))
+        (setf decimal-digits (concatenate 'vector #(0) decimal-digits))
+        (incf decimal-position)
+        (incf len))
+      (cond ((or (null w)
+                 (null overflowchar)
+                 (<= len w))
+             (when w
+               (loop repeat (max 0 (- w len))
+                     do (write-char padchar *destination*)))
+             (when sign
+               (write-char sign *destination*))
+             (print-decimal decimal)
+             nil)
+            (t
+             (loop repeat w
+                   do (write-char overflowchar *destination*))
+             t)))))
 
 (define-format-directive-interpreter f-directive
   (print-float-arg client
@@ -182,19 +200,16 @@
                    :default-value nil)))
 
 (defun print-exponent-arg (client value digits exponent colonp at-signp w d e k overflowchar padchar exponentchar)
-  (let (pre
-        post sign
-        len
-        exp)
-    (flet ((round-post (count)
-             (when (> (length post) count)
-               (if (plusp count)
-                   (setf (cdr (nthcdr (1- count) post)) nil)
-                   (setf post nil)))))
+  (let ((decimal (make-instance 'decimal :digits digits))
+        sign
+        len exp)
+    (with-accessors ((decimal-digits decimal-digits)
+                     (decimal-position decimal-position))
+        decimal
       (setf sign
             (cond ((minusp (float-sign value)) #\-)
                   ((and at-signp (plusp value)) #\+)))
-      (setf exponent (if (zerop (car digits))
+      (setf exponent (if (zerop (aref decimal-digits 0))
                          0
                          (+ exponent (- k))))
       (setf exp (let ((*print-base* 10)
@@ -208,18 +223,19 @@
                                (make-string (- e (length exp)) :initial-element #\0)
                                exp)))
       (cond ((minusp k)
-             (setf post
-                   (nconc (make-list (- k) :initial-element 0)
-                          digits)))
-            ((< (length digits) k)
-             (setf pre
-                   (nconc digits
-                          (make-list (- k (length digits)) :initial-element 0))))
+             (setf decimal-digits (concatenate 'vector
+                                               (make-array (- k) :initial-element 0)
+                                               decimal-digits)
+                   decimal-position 0))
+            ((< (length decimal-digits) k)
+             (setf decimal-digits
+                   (concatenate 'vector decimal-digits
+                                (make-array (- k (length decimal-digits)) :initial-element 0))
+                   decimal-position (length decimal-digits)))
             (t
-             (setf pre (subseq digits 0 k)
-                   post (subseq digits k))))
+             (setf decimal-position k)))
       (when d
-        (let ((l (length post))
+        (let ((l (- (length decimal-digits) decimal-position))
               (dp (cond ((zerop k)
                          d)
                         ((plusp k)
@@ -227,40 +243,39 @@
                         (t
                          (+ d k 1)))))
           (cond ((< l dp)
-                 (setf post
-                       (nconc post
-                              (make-list (- dp l)
-                                         :initial-element 0))))
+                 (setf decimal-digits
+                       (concatenate 'vector
+                                    decimal-digits
+                                    (make-array (- dp l)
+                                                :initial-element 0))))
                 ((> l dp)
-                 (round-post (1- dp))))))
+                 (round-decimal decimal (1- dp))))))
       (setf len (+ (if sign 4 3)
                    (length exp)
-                   (length pre)
-                   (length post)))
+                   (length decimal-digits)))
       (when (and w
                  (null d)
                  (> len w))
-        (round-post (- w
-                       (length pre)
-                       (length exp)
-                       (if sign 4 3)))
+        (round-decimal decimal
+                      (- w
+                         (length decimal-digits)
+                         (if sign 4 3)))
         (setf len (+ (if sign 4 3)
-                     (length pre)
-                     (length exp)
-                     (length post))))
-      (when (and (null post)
+                     (length decimal-digits))))
+      (when (and (= decimal-position (length decimal-digits))
                  (null d)
                  (or (null w)
                      (< len w)
                      #+(or)(null d)
                      #+(or)(> w (1+ d))))
-        (push 0 post)
+        (setf decimal-digits (concatenate 'vector decimal-digits #(0)))
         (incf len))
-      (when (and (null pre)
-                 (or (null post)
+      (when (and (zerop decimal-position)
+                 (or (= decimal-position (length decimal-digits))
                      (null w)
                      (< len w)))
-        (push 0 pre)
+        (setf decimal-digits (concatenate 'vector #(0) decimal-digits))
+        (incf decimal-position)
         (incf len))
       (cond ((or (null w)
                  (null overflowchar)
@@ -270,13 +285,7 @@
                      do (write-char padchar *destination*)))
              (when sign
                (write-char sign *destination*))
-             (when pre
-               (loop for digit in pre
-                     do (write-char (aref *digits* digit) *destination*)))
-             (write-char #\. *destination*)
-             (when post
-               (loop for digit in post
-                     do (write-char (aref *digits* digit) *destination*)))
+             (print-decimal decimal)
              (write-char (or exponentchar
                              (if (typep value *read-default-float-format*)
                                  #\e
@@ -385,51 +394,50 @@
 
 (defun print-monetary-arg (client value digits exponent
                            colonp at-signp d n w padchar)
-  (let (pre
-        post sign
+  (let ((decimal (make-instance 'decimal :digits digits))
+        sign
         len)
-    (flet ((round-post (count)
-             (if (plusp count)
-                 (setf (cdr (nthcdr (1- count) post)) nil)
-                 (setf post nil))))
+    (with-accessors ((decimal-digits decimal-digits)
+                     (decimal-position decimal-position))
+        decimal
       (setf sign
             (cond ((minusp (float-sign value)) #\-)
                   ((and at-signp (plusp value)) #\+)))
-      (cond ((and (zerop (car digits))))
+      (cond ((zerop (aref decimal-digits 0))
+             (setf decimal-position 1))
             ((not (plusp exponent))
-             (setf post
-                   (nconc (make-list (- exponent) :initial-element 0)
-                          digits)))
-            ((<= exponent (length digits))
-             (let ((pair (nthcdr (1- exponent) digits)))
-               (setf post (cdr pair)
-                     (cdr pair) nil
-                     pre digits)))
+             (setf decimal-position 0
+                   decimal-digits (concatenate 'vector
+                                               (make-array (- exponent) :initial-element 0)
+                                               decimal-digits)))
+            ((<= exponent (length decimal-digits))
+             (setf decimal-position exponent))
             (t
-             (setf pre
-                   (nconc digits
-                          (make-list (- exponent (length digits))
-                                     :initial-element 0)))))
-      (let ((l (length post)))
+             (setf decimal-digits (concatenate 'vector
+                                               decimal-digits
+                                               (make-array (- exponent) :initial-element 0))
+                   decimal-position exponent)))
+      (let ((l (- (length decimal-digits) decimal-position)))
         (cond ((< l d)
-               (setf post
-                     (nconc post
-                            (make-list (- d l)
-                                       :initial-element 0))))
+               (setf decimal-digits
+                     (concatenate 'vector
+                                  decimal-digits
+                                  (make-array (- d l)
+                                              :initial-element 0))))
               ((> l d)
-               (round-post (1- d)))))
-      (let ((l (length pre)))
-        (when (< l n)
-          (setf pre (nconc (make-list (- n l)
-                                      :initial-element 0)
-                           pre))))
+               (round-decimal decimal (1- d)))))
+      (when (< decimal-position n)
+        (setf decimal-digits (concatenate 'vector
+                                          (make-array (- n decimal-position)
+                                                      :initial-element 0)
+                                          decimal-digits)
+              decimal-position n))
       (setf len (+ (if sign 2 1)
-                   (length pre)
-                   (length post)))
+                   (length decimal-digits)))
       (cond ((> len (if w (max w 100) 100))
              (print-exponent-arg client value digits exponent
-                               colonp at-signp w (+ d n -1) nil 1
-                               #\Space padchar nil))
+                                 colonp at-signp w (+ d n -1) nil 1
+                                 #\Space padchar nil))
             (t
              (when (and colonp sign)
                (write-char sign *destination*))
@@ -438,13 +446,7 @@
                      do (write-char padchar *destination*)))
              (when (and (not colonp) sign)
                (write-char sign *destination*))
-             (when pre
-               (loop for digit in pre
-                     do (write-char (aref *digits* digit) *destination*)))
-             (write-char #\. *destination*)
-             (when post
-               (loop for digit in post
-                     do (write-char (aref *digits* digit) *destination*))))))))
+             (print-decimal decimal))))))
 
 (define-format-directive-interpreter monetary-directive
   (print-float-arg client
