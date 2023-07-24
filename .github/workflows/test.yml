@@ -16,9 +16,6 @@ jobs:
       fail-fast: false
       matrix:
         lisp:
-        - abcl
-        - clasp
-        - ecl
         - sbcl
     runs-on: ubuntu-latest
     container:
@@ -37,7 +34,7 @@ jobs:
     - name: Checkout Inravina
       uses: actions/checkout@v3
       with:
-        repository: yitzchak/Inravina
+        repository: s-expressionists/Inravina
         path: inravina
     - name: Checkout Repository
       uses: actions/checkout@v3
