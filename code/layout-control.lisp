@@ -12,6 +12,10 @@
     ((colnum :type (integer 0) :default-value 1)
      (colinc :type (integer 0) :default-value 1)))
 
+(defmethod layout-requirements ((item tabulate-directive))
+  (when (colonp item)
+    (list :logical-block)))
+
 (defun format-relative-tab (client colnum colinc)
   (if (inravina:pretty-stream-p *destination*)
       (inravina:pprint-tab client *destination* :line-relative colnum colinc)
@@ -89,6 +93,13 @@
      (colinc :type (integer 0) :default-value 1)
      (minpad :type integer :default-value 0)
      (padchar :type character :default-value #\Space)))
+
+(defmethod layout-requirements :around ((item justification-directive))
+  (merge-layout-requirements (list (if (colonp (aref (aref (clauses item) 0) (1- (length (aref (clauses item) 0)))))
+                                       :justify-dynamic
+                                       :justify))
+                             (call-next-method)
+                             t))
 
 (defun str-line-length (stream)
   (or *print-right-margin*

@@ -10,6 +10,9 @@
 
 (define-directive #\_ underscore-directive nil (named-parameters-directive) ())
 
+(defmethod layout-requirements ((item underscore-directive))
+  (list :logical-block))
+
 (define-format-directive-interpreter underscore-directive
   (inravina:pprint-newline client *destination*
                            (cond ((and colonp at-signp) :mandatory)
@@ -47,6 +50,11 @@
     end-logical-block-directive
     (named-parameters-directive structured-directive-mixin)
     ())
+
+(defmethod layout-requirements :around ((item logical-block-directive))
+  (merge-layout-requirements (list :logical-block)
+                             (call-next-method)
+                             t))
 
 (defmethod check-directive-syntax progn ((directive logical-block-directive))
   (flet ((check-fix (items)
@@ -170,6 +178,9 @@
 
 (define-directive #\i i-directive nil (named-parameters-directive)
     ((how-many :type integer :default-value 0)))
+
+(defmethod layout-requirements ((item i-directive))
+  (list :logical-block))
 
 (define-format-directive-interpreter i-directive
   (inravina:pprint-indent client *destination*

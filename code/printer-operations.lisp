@@ -98,6 +98,9 @@
 
 (define-directive #\w w-directive nil (named-parameters-directive) ())
 
+(defmethod layout-requirements ((item w-directive))
+  (list :logical-block))
+
 (define-format-directive-interpreter w-directive
   (cond ((and colonp at-signp)
          (let ((*print-pretty* t)

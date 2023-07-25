@@ -1,5 +1,17 @@
 (cl:in-package #:invistra)
 
+(defun merge-layout-requirements (r1 r2 ancestor)
+  (when (or (and (member :justify-dynamic r1)
+                 (member :logical-block r2))
+            (and (member :logical-block r1)
+                 (member :justify-dynamic r2)))
+    (error "fu"))
+  (when (and ancestor
+             (member :justify r1)
+             (member :logical-block r2))
+    (error "bar"))
+  (union r1 r2))
+
 (defgeneric control-string (directive))
 
 (defgeneric start (directive))
@@ -82,6 +94,16 @@
 
 (defmethod structured-end-p ((directive end-structured-directive-mixin))
   t)
+
+(defmethod layout-requirements ((item structured-directive-mixin))
+  (loop with requirements = nil
+        for clause across (clauses item)
+        finally (return requirements)
+        do (loop for it across clause
+                 do (setf requirements
+                          (merge-layout-requirements (layout-requirements it)
+                                                     requirements
+                                                     nil)))))
 
 ;;; Specialize a directive according to a particular directive
 ;;; character.

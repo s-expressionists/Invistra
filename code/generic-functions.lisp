@@ -33,3 +33,8 @@
   (:method (directive-character control-string start end)
     (declare (ignore directive-character control-string end))
     start))
+
+(defgeneric layout-requirements (item)
+  (:method (item)
+    (declare (ignore item))
+    nil))
