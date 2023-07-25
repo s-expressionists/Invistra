@@ -249,7 +249,7 @@
                                     (make-array (- dp l)
                                                 :initial-element 0))))
                 ((> l dp)
-                 (round-decimal decimal (1- dp))))))
+                 (round-decimal decimal dp)))))
       (setf len (+ (if sign 4 3)
                    (length exp)
                    (length decimal-digits)))
