@@ -7,15 +7,15 @@
 (defun print-float-arg (client func)
   (let ((value (consume-next-argument t)))
     (if (or (complexp value)
-               (not (numberp value)))
+            (not (numberp value)))
         (let ((*print-base* 10)
               (*print-escape* nil)
               (*print-readably* nil))
           (incless:write-object client value *destination*))
-      (let ((coerced-value (if (rationalp value)
-                               (coerce value 'single-float)
-                               value)))
-        (multiple-value-call func client coerced-value (burger-dybvig-2 coerced-value))))))
+        (let ((coerced-value (if (floatp value)
+                                 value
+                                 (coerce value 'single-float))))
+          (multiple-value-call func client coerced-value (burger-dybvig-2 coerced-value))))))
 
 (defclass decimal ()
   ((%digits :accessor decimal-digits

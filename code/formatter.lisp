@@ -9,8 +9,8 @@
          (consume-remaining-arguments)))))
 
 (defun format-compiler-macro (client form destination control-string args)
-  (if (not (stringp control-string))
-      form
-      `(format ,(incless:client-form client) ,destination
-               ,(formatter client control-string)
-               ,@args)))
+  `(format ,(incless:client-form client) ,destination
+           ,(if (stringp control-string)
+                (formatter client control-string)
+                control-string)
+           ,@args))

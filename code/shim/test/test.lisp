@@ -38,12 +38,11 @@
 
 (defun test (&rest args &key skip-sync &allow-other-keys)
   (let* ((system (asdf:find-system :invistra-shim/test))
-         #+(or)(expected-failures (asdf:component-pathname (asdf:find-component system '("expected-failures"
-                                                                                   #+abcl "abcl.sexp"
+         (expected-failures (asdf:component-pathname (asdf:find-component system '("expected-failures"
                                                                                    #+clasp "clasp.sexp"
-                                                                                   #+cmucl "cmucl.sexp"
                                                                                    #+ecl "ecl.sexp"
-                                                                                   #-(or abcl clasp cmucl ecl)
+                                                                                   #+sbcl "sbcl.sexp"
+                                                                                   #-(or clasp ecl sbcl)
                                                                                    "default.sexp"))))
          (*default-pathname-defaults* (merge-pathnames (make-pathname :directory '(:relative "dependencies" "ansi-test"))
                                                        (asdf:component-pathname system))))
@@ -56,4 +55,4 @@
                           (cdr (symbol-value (find-symbol "*ENTRIES*" :regression-test)))))
       (unless (alexandria:starts-with-subseq "FORMAT" (symbol-name name))
         (uiop:symbol-call :regression-test :rem-test name)))
-    (uiop:symbol-call :regression-test :do-tests :exit t #+(or) :expected-failures #+(or) expected-failures)))
+    (uiop:symbol-call :regression-test :do-tests :exit t :expected-failures expected-failures)))

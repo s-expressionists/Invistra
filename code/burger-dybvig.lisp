@@ -224,7 +224,7 @@
 ;;; to find an approximate value of k, then we find the exact
 ;;; one by a small search around the appriximation.
 (defun scale (r &optional high-ok)
-  (let* ((try (1- (ceiling (log r 10))))
+  (let* ((try (1- (ceiling (log (coerce r 'long-float) 10))))
          (expt (expt 10 try)))
     (loop while (or (and high-ok (< r expt))
                     (and (not high-ok) (<= r expt)))
@@ -349,8 +349,8 @@
         (setf f (ash f shift))
         (decf e shift)))
     (let (r s m+ m-
-          (high-ok #+sbcl (evenp f) #-sbcl nil)
-          (low-ok #+sbcl (evenp f) #-sbcl nil))
+          (high-ok #+(or clasp sbcl) (evenp f) #-(or clasp sbcl) nil)
+          (low-ok #+(or clasp sbcl) (evenp f) #-(or clasp sbcl) nil))
       (if (>= e 0)
           (progn (if (= (decode-float x) 0.5)
                      (setf m- (expt 2 e)
