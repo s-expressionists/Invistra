@@ -356,7 +356,7 @@
                      (setf m- (expt 2 e)
                            m+ (* m- 2)
                            s 4
-                           r (* f m+  2))
+                           r (* f m+ 2))
                      (setf m- (expt 2 e)
                            m+ m-
                            s 2
