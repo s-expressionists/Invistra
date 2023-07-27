@@ -17,8 +17,8 @@
     (list :logical-block)))
 
 (defun format-relative-tab (client colnum colinc)
-  (if (inravina:pretty-stream-p *destination*)
-      (inravina:pprint-tab client *destination* :line-relative colnum colinc)
+  (if #+sicl nil #-sicl (inravina:pretty-stream-p *destination*)
+      #+sicl nil #-sicl (inravina:pprint-tab client *destination* :line-relative colnum colinc)
       (let* ((cur (trivial-stream-column:line-column *destination*)))
         (trivial-stream-column:advance-to-column (if (and cur (plusp colinc))
                                                      (* (ceiling (+ cur colnum) colinc) colinc)
@@ -26,8 +26,8 @@
                                                  *destination*))))
 
 (defun format-absolute-tab (client colnum colinc)
-  (if (inravina:pretty-stream-p *destination*)
-      (inravina:pprint-tab client *destination* :line colnum colinc)
+  (if #+sicl nil #-sicl (inravina:pretty-stream-p *destination*)
+      #+sicl nil #-sicl (inravina:pprint-tab client *destination* :line colnum colinc)
       (let ((cur (trivial-stream-column:line-column *destination*)))
         (cond ((null cur)
                (write-string "  " *destination*))
@@ -39,6 +39,7 @@
 
 (define-format-directive-interpreter tabulate-directive
   (cond (colonp
+         #-sicl
          (inravina:pprint-tab client *destination*
                               (if at-signp :section-relative :section)
                               colnum colinc))
@@ -49,6 +50,7 @@
 
 (define-format-directive-compiler tabulate-directive
   (cond (colonp
+         #-sicl
          `((inravina:pprint-tab ,(incless:client-form client) *destination*
                                 ,(if at-signp :section-relative :section)
                                 colnum colinc)))

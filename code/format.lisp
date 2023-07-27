@@ -271,17 +271,18 @@
             for index from 0
             for blankp = (and (find char #(#\Space #\Tab #\Page #\Return)) t)
             finally (write-string (subseq item start) *destination*)
-                    (when in-blank-p
-                      (inravina:pprint-newline client *destination* *newline-kind*))
+                    #-sicl (when in-blank-p
+                             (inravina:pprint-newline client *destination* *newline-kind*))
             when (and in-blank-p (not blankp))
               do (write-string (subseq item start index) *destination*)
-                 (inravina:pprint-newline client *destination* *newline-kind*)
+                 #-sicl (inravina:pprint-newline client *destination* *newline-kind*)
                  (setf start index)
             do (setf in-blank-p blankp))
       (write-string item *destination*)))
 
 (defmethod compile-format-directive (client (item string))
   (if *newline-kind*
+      #+sicl nil #-sicl
       (loop with start = 0
             with in-blank-p = nil
             with pprint-newline = `(inravina:pprint-newline ,(incless:client-form client) *destination* ,*newline-kind*)

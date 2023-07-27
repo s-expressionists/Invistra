@@ -14,6 +14,7 @@
   (list :logical-block))
 
 (define-format-directive-interpreter underscore-directive
+  #-sicl
   (inravina:pprint-newline client *destination*
                            (cond ((and colonp at-signp) :mandatory)
                                  (colonp :fill)
@@ -21,6 +22,7 @@
                                  (t :linear))))
 
 (define-format-directive-compiler underscore-directive
+  #-sicl
   `((inravina:pprint-newline ,(incless:client-form client) *destination*
                              ,(cond ((and colonp at-signp) :mandatory)
                                     (colonp :fill)
@@ -72,6 +74,7 @@
       (check-fix (aref (clauses directive) 2)))))
 
 (define-format-directive-interpreter logical-block-directive
+  #-sicl
   (let* ((last-clause (aref (clauses directive) (1- (length (clauses directive)))))
          (*newline-kind* (if (at-signp (aref last-clause (1- (length last-clause))))
                              :fill
@@ -121,6 +124,7 @@
                                                  :prefix prefix :suffix suffix)))))
 
 (define-format-directive-compiler logical-block-directive
+  #-sicl
   (let* ((last-clause (aref (clauses directive) (1- (length (clauses directive)))))
          (*newline-kind* (if (at-signp (aref last-clause (1- (length last-clause))))
                              :fill
@@ -183,11 +187,13 @@
   (list :logical-block))
 
 (define-format-directive-interpreter i-directive
+  #-sicl
   (inravina:pprint-indent client *destination*
                           (if colonp :current :block)
                           how-many))
 
 (define-format-directive-compiler i-directive
+  #-sicl
   `((inravina:pprint-indent ,(incless:client-form client) *destination*
                             ,(if colonp :current :block)
                             how-many)))
