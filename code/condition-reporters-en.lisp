@@ -269,3 +269,27 @@
   (cl:format stream
           "The object ~s is not a valid destination for a format operation."
           (destination condition)))
+
+(defmethod acclimation:report-condition
+    ((condition illegal-directive)
+     stream
+     (language acclimation:english))
+  (cl:format stream
+             "Directives are not allowed in logical block prefix or suffix."))
+
+(defmethod acclimation:report-condition
+    ((condition logical-block-only-permits-three-clauses)
+     stream
+     (language acclimation:english))
+  (cl:format stream
+             "A logical block directive allows at most three clauses."))
+
+(defmethod acclimation:report-condition
+    ((condition incompatible-layout-requirements)
+     stream
+     (language acclimation:english))
+  (cl:format stream
+             "The layout requirement ~a is not compatible with the requirement of ~a~:[~; as an ancestor~]."
+             (requirement2 condition)
+             (requirement1 condition)
+             (ancestor condition)))

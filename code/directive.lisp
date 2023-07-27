@@ -4,12 +4,14 @@
   (when (or (and (member :justify-dynamic r1)
                  (member :logical-block r2))
             (and (member :logical-block r1)
-                 (member :justify-dynamic r2)))
-    (error "fu"))
-  (when (and ancestor
-             (member :justify r1)
-             (member :logical-block r2))
-    (error "bar"))
+                 (member :justify-dynamic r2))
+            (and ancestor
+                 (member :justify r1)
+                 (member :logical-block r2)))
+    (error 'incompatible-layout-requirements
+           :requirement1 r1
+           :requirement2 r2
+           :ancestor ancestor))
   (union r1 r2))
 
 (defgeneric control-string (directive))
