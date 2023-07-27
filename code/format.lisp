@@ -245,6 +245,7 @@
 
 (defun format (client destination control &rest args)
   (let ((*destination* (cond ((or (streamp destination)
+                                  #-sicl (inravina:pretty-stream-p client destination)
                                   (and (stringp destination)
                                        (array-has-fill-pointer-p destination)))
                               destination)

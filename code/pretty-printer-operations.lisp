@@ -115,13 +115,11 @@
                                                  (if (= (length (clauses directive)) 1)
                                                      0
                                                      1)))))))
-      (if per-line-prefix-p
-          (inravina:execute-pprint-logical-block client *destination*
-                                                 object #'interpret-body
-                                                 :per-line-prefix prefix :suffix suffix)
-          (inravina:execute-pprint-logical-block client *destination*
-                                                 object #'interpret-body
-                                                 :prefix prefix :suffix suffix)))))
+      (inravina:execute-logical-block client *destination*
+                                      object #'interpret-body
+                                      :prefix prefix
+                                      :per-line-prefix-p per-line-prefix-p
+                                      :suffix suffix))))
 
 (define-format-directive-compiler logical-block-directive
   #-sicl
@@ -149,32 +147,32 @@
                                  (at-signp (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0))))))))
     (if at-signp
-        `((inravina:execute-pprint-logical-block ,(incless:client-form client) *destination*
-                                                 nil
-                                                 (lambda (*destination* escape-hook pop-argument-hook)
-                                                   (declare (ignore escape-hook pop-argument-hook))
-                                                   (catch *inner-tag*
-                                                     ,@(compile-items client (aref (clauses directive)
-                                                                                   (if (= (length (clauses directive)) 1)
-                                                                                       0
-                                                                                       1)))))
-                                                 ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix
-                                                 :suffix ,suffix))
+        `((inravina:execute-logical-block ,(incless:client-form client) *destination*
+                                          nil
+                                          (lambda (*destination* escape-hook pop-argument-hook)
+                                            (declare (ignore escape-hook pop-argument-hook))
+                                            (catch *inner-tag*
+                                              ,@(compile-items client (aref (clauses directive)
+                                                                            (if (= (length (clauses directive)) 1)
+                                                                                0
+                                                                                1)))))
+                                          :prefix ,prefix :suffix ,suffix
+                                          :per-line-prefix-p ,per-line-prefix-p))
         `((let* ((object (consume-next-argument t))
                  (*remaining-argument-count* (dotted-list-length object))
                  (*previous-arguments* (make-array *remaining-argument-count*
                                                    :adjustable t :fill-pointer 0))
                  (*previous-argument-index* 0))
-            (inravina:execute-pprint-logical-block ,(incless:client-form client) *destination*
-                                                   object
-                                                   (lambda (*destination* *inner-exit-if-exhausted* *pop-argument-hook*)
+            (inravina:execute-logical-block ,(incless:client-form client) *destination*
+                                            object
+                                            (lambda (*destination* *inner-exit-if-exhausted* *pop-argument-hook*)
 
-                                                     ,@(compile-items client (aref (clauses directive)
-                                                                                   (if (= (length (clauses directive)) 1)
-                                                                                       0
-                                                                                       1))))
-                                                   ,(if per-line-prefix-p :per-line-prefix :prefix) ,prefix
-                                                   :suffix ,suffix))))))
+                                              ,@(compile-items client (aref (clauses directive)
+                                                                            (if (= (length (clauses directive)) 1)
+                                                                                0
+                                                                                1))))
+                                            :prefix ,prefix :suffix ,suffix
+                                            :per-line-prefix-p ,per-line-prefix-p))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
