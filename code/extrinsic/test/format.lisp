@@ -1296,7 +1296,7 @@
   (fmt nil "~1w" 234))
 
 (define-control-fail-test write.11
-  (assert-error 'error (fmt nil "~'aw" 234)))
+  (fmt nil "~'aw" 234))
 
 (define-equal-test go-to.01
   "ac"
