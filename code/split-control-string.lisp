@@ -29,11 +29,13 @@
                                                parameters
                                                colonp
                                                at-signp
+                                               suffix-start
                                                end-of-directive-position)
                              (parse-format-directive control-string tilde-position)
                            (prog1 (make-instance 'directive
                                     :control-string control-string
                                     :start tilde-position
+                                    :suffix-start suffix-start
                                     :end end-of-directive-position
                                     :directive-character (char-upcase directive-character)
                                     :given-parameters parameters

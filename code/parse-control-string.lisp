@@ -23,10 +23,10 @@
          (values nil start))
         ((or (eql (char string start) #\v) (eql (char string start) #\V))
          ;; Indicates that the value is to be taken from the arguments.
-         (values 'v (1+ start)))
+         (values :argument-reference (1+ start)))
         ((eql (char string start) #\#)
          ;; Indicates that the value is the remaining number of arguments
-         (values '|#| (1+ start)))
+         (values :remaining-argument-count (1+ start)))
         ((eql (char string start) #\')
          (incf start)
          (when (= start end)
@@ -45,7 +45,8 @@
                     :index start))
            (values value position)))
         (t
-         (error 'expected-parameter-start
+         (values nil start)
+         #+(or)(error 'expected-parameter-start
                 :control-string string
                 :tilde-position tilde-position
                 :index start))))
@@ -127,23 +128,7 @@
         ;; We need to handle the special cases of the ~Newline and ~/
         ;; directives, because those directive comprise characters
         ;; that follow the directive character itself.
-        (let ((directive-character (char string position2)))
-          (incf position2)
-          (cond ((eql directive-character #\Newline)
-                 ;; I think we must assume standard syntax here, because
-                 ;; there is no portable way of checking the syntax type of
-                 ;; a character.
-                 (loop while (and (< position2 end)
-                                  (find (char string position2)
-                                        #(#\Space #\Tab #\Page #\Return)))
-                  do (incf position2)))
-                ((eql directive-character #\/)
-                 (let ((position-of-trailing-slash
-                        (position #\/ string :start position2)))
-                   (when (null position-of-trailing-slash)
-                     (error 'end-of-control-string-error
-                            :control-string string
-                            :tilde-position start
-                            :why "expected a trailing slash"))
-                   (setf position2 (1+ position-of-trailing-slash)))))
-          (values directive-character parameters colonp at-signp position2))))))
+        (let ((directive-character (char string position2))
+              (suffix-start (incf position2)))
+          (setf position2 (parse-directive-suffix directive-character string suffix-start end))
+          (values directive-character parameters colonp at-signp suffix-start position2))))))

@@ -123,3 +123,19 @@
 
 (define-condition invalid-destination (format-error)
   ((%destination :initarg :destination :reader destination)))
+
+(define-condition illegal-directive (directive-syntax-error)
+  ())
+
+(define-condition logical-block-only-permits-three-clauses
+    (directive-syntax-error)
+  ())
+
+(define-condition incompatible-layout-requirements
+    (directive-syntax-error)
+  ((%requirement1 :reader requirement1
+                  :initarg :requirement1)
+   (%requirement2 :reader requirement2
+                  :initarg :requirement2)
+   (%ancestor :reader ancestor
+              :initarg :ancestor)))

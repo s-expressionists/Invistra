@@ -1,3 +1,9 @@
 (defpackage #:invistra
   (:use #:cl)
-  (:export))
+  (:shadow #:format
+           #:formatter)
+  #+sicl
+  (:local-nicknames (:trivial-gray-streams :cyclosis))
+  (:export #:format
+           #:formatter
+           #:format-compiler-macro))

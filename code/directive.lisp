@@ -1,8 +1,24 @@
 (cl:in-package #:invistra)
 
+(defun merge-layout-requirements (r1 r2 ancestor)
+  (when (or (and (member :justify-dynamic r1)
+                 (member :logical-block r2))
+            (and (member :logical-block r1)
+                 (member :justify-dynamic r2))
+            (and ancestor
+                 (member :justify r1)
+                 (member :logical-block r2)))
+    (error 'incompatible-layout-requirements
+           :requirement1 r1
+           :requirement2 r2
+           :ancestor ancestor))
+  (union r1 r2))
+
 (defgeneric control-string (directive))
 
 (defgeneric start (directive))
+
+(defgeneric suffix-start (directive))
 
 (defgeneric end (directive))
 
@@ -14,6 +30,21 @@
 
 (defgeneric at-signp (directive))
 
+(defgeneric structured-end-p (directive)
+  (:method (directive)
+    (declare (ignore directive))
+    nil))
+
+(defgeneric structured-separator-p (directive)
+  (:method (directive)
+    (declare (ignore directive))
+    nil))
+
+(defgeneric structured-start-p (directive)
+  (:method (directive)
+    (declare (ignore directive))
+    nil))
+
 ;;; How we represent a directive.  It may seem wasteful to allocate
 ;;; a class instance for each directive, but most format directives
 ;;; are handled at compile time anyway.
@@ -22,6 +53,7 @@
    (%control-string :initarg :control-string :reader control-string)
    ;; the position in the control string of the ~ character.
    (%start :initarg :start :reader start)
+   (%suffix-start :initarg :suffix-start :reader suffix-start)
    ;; the first position beyond the directive character
    (%end :initarg :end :reader end)
    ;; The directive character used.
@@ -52,14 +84,35 @@
 
 ;;; Mixin class for structured directives
 (defclass structured-directive-mixin ()
-  ((%items :initarg :items :reader items)))
+  ((%clauses :initarg :clauses
+             :initform #()
+             :accessor clauses)))
+
+(defmethod structured-start-p ((directive structured-directive-mixin))
+  t)
+
+;;; Mixin class for directives that end structured directives
+(defclass end-structured-directive-mixin () ())
+
+(defmethod structured-end-p ((directive end-structured-directive-mixin))
+  t)
+
+(defmethod layout-requirements ((item structured-directive-mixin))
+  (loop with requirements = nil
+        for clause across (clauses item)
+        finally (return requirements)
+        do (loop for it across clause
+                 do (setf requirements
+                          (merge-layout-requirements (layout-requirements it)
+                                                     requirements
+                                                     nil)))))
 
 ;;; Specialize a directive according to a particular directive
 ;;; character.
-(defun specialize-directive (directive)
+(defun specialize-directive (directive end-directive)
   (change-class
    directive
-   (directive-subclass-name (directive-character directive) directive)))
+   (directive-subclass-name (directive-character directive) directive end-directive)))
 
 ;;; A macro that helps us define directives. It takes a directive
 ;;; character, a directive name (to be used for the class) and a body
@@ -68,12 +121,22 @@
 ;;; parameter, and the remaining elemnts are keyword/value pairs.
 ;;; Currently, the only keywords allowed are :type and
 ;;; :default-value.
-(defmacro define-directive (character name superclasses parameters &body slots)
+(defmacro define-directive (character name end-name superclasses parameters &body slots)
   `(progn
      (defmethod directive-subclass-name
-         ((char (eql ,(char-upcase character))) directive)
+         ((char (eql ,(char-upcase character))) directive
+          ,(if end-name `(end-directive ,end-name) 'end-directive))
        (declare (ignore directive))
        ',name)
+
+     ,(when end-name
+        `(defmethod directive-subclass-name
+             ((char (eql ,(char-upcase character))) directive end-directive)
+           (declare (ignore end-directive))
+           (error 'unmatched-directive
+                  :directive directive
+                  :control-string (control-string directive)
+                  :tilde-position (start directive))))
 
      (eval-when (:compile-toplevel :load-toplevel :execute)
        (defmethod parameter-specs ((directive-name (eql ',name)))
@@ -106,8 +169,8 @@
       ;; the slot.
       (let ((parameter-number 1))
         (mapc (lambda (parameter-spec parameter-value)
-                (unless (or (eq parameter-value '|#|)
-                            (eq parameter-value 'V))
+                (unless (or (eq parameter-value :remaining-argument-count)
+                            (eq parameter-value :argument-reference))
                   (unless
                       (or
                        ;; Either a parameter was not supplied, but it has a
@@ -137,3 +200,45 @@
                :directive directive
                :at-most-how-many (length parameter-specs)
                :how-many-found (length given-parameters))))))
+
+;;; Signal an error if a modifier has been given for such a directive.
+(defmethod check-directive-syntax progn ((directive no-modifiers-mixin))
+  (with-accessors ((colonp colonp)
+                   (at-signp at-signp)
+                   (control-string control-string)
+                   (end end))
+    directive
+    (when (or colonp at-signp)
+      (error 'directive-takes-no-modifiers
+             :directive directive))))
+
+;;; Signal an error if an at-sign has been given for such a directive.
+(defmethod check-directive-syntax progn ((directive only-colon-mixin))
+  (with-accessors ((at-signp at-signp)
+                   (control-string control-string)
+                   (end end))
+    directive
+    (when at-signp
+      (error 'directive-takes-only-colon
+             :directive directive))))
+
+;;; Signal an error if a colon has been given for such a directive.
+(defmethod check-directive-syntax progn ((directive only-at-sign-mixin))
+  (with-accessors ((colonp colonp)
+                   (control-string control-string)
+                   (end end))
+    directive
+    (when colonp
+      (error 'directive-takes-only-at-sign
+             :directive directive))))
+
+;;; Signal an error if both modifiers have been given for such a directive.
+(defmethod check-directive-syntax progn ((directive at-most-one-modifier-mixin))
+  (with-accessors ((colonp colonp)
+                   (at-signp at-signp)
+                   (control-string control-string)
+                   (end end))
+    directive
+    (when (and colonp at-signp)
+      (error 'directive-takes-at-most-one-modifier
+             :directive directive))))
