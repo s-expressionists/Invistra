@@ -15,44 +15,8 @@
         (let ((coerced-value (if (floatp value)
                                  value
                                  (coerce value 'single-float))))
-          (multiple-value-call func client coerced-value (burger-dybvig-2 coerced-value))))))
-
-(defclass decimal ()
-  ((%digits :accessor decimal-digits
-            :initarg :digits)
-   (%position :accessor decimal-position
-              :initarg :position
-              :initform 0)))
-
-(defun round-decimal (decimal count)
-  (with-accessors ((decimal-digits decimal-digits)
-                   (decimal-position decimal-position))
-      decimal
-    (when (and (< (+ decimal-position count) (length decimal-digits))
-               (< -1 (+ decimal-position count) (length decimal-digits))
-               (> (aref decimal-digits (+ decimal-position count)) 4))
-      (loop for pos = (+ decimal-position count -1)
-            for (carry new-digit) = (multiple-value-list (floor (1+ (aref decimal-digits pos)) 10))
-            do (setf (aref decimal-digits pos) new-digit)
-            when (zerop carry)
-              do (loop-finish)
-            when (zerop pos)
-              do (setf decimal-digits (concatenate 'vector #(1) decimal-digits))
-                 (incf decimal-position)
-                 (loop-finish)))
-    (setf decimal-digits
-          (subseq decimal-digits 0 (+ decimal-position (max 0 count))))))
-
-(defun print-decimal (decimal)
-  (loop with d-pos = (decimal-position decimal)
-        with len = (length (decimal-digits decimal))
-        for digit across (decimal-digits decimal)
-        for pos from 0
-        finally (when (= d-pos len)
-                  (write-char #\. *destination*))
-        when (= pos d-pos)
-          do (write-char #\. *destination*)
-        do (write-char (aref *digits* digit) *destination*)))
+          (multiple-value-call func client coerced-value
+            (incless:burger-dybvig-2 coerced-value))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -75,11 +39,11 @@
 (defun print-fixed-arg (client value digits exponent
                         colonp at-signp w d k overflowchar padchar)
   (declare (ignore client colonp))
-  (let ((decimal (make-instance 'decimal :digits digits))
+  (let ((decimal (make-instance 'incless:decimal :digits digits))
         sign
         len)
-    (with-accessors ((decimal-digits decimal-digits)
-                     (decimal-position decimal-position))
+    (with-accessors ((decimal-digits incless:decimal-digits)
+                     (decimal-position incless:decimal-position))
         decimal
       (setf sign
             (cond ((minusp (float-sign value)) #\-)
@@ -105,7 +69,7 @@
       (when (and w
                  (null d)
                  (> len w))
-        (round-decimal decimal
+        (incless:round-decimal decimal
                       (min (- (length decimal-digits) decimal-position)
                            (max 0
                                 (- w
@@ -124,7 +88,7 @@
                                     (make-array (- d l)
                                                 :initial-element 0))))
                 ((> l d)
-                 (round-decimal decimal d)))))
+                 (incless:round-decimal decimal d)))))
       (setf len (+ (if sign 2 1)
                    (length decimal-digits)))
       (when (and (= decimal-position (length decimal-digits))
@@ -155,7 +119,7 @@
                      do (write-char padchar *destination*)))
              (when sign
                (write-char sign *destination*))
-             (print-decimal decimal)
+             (incless:print-decimal decimal *destination*)
              nil)
             (t
              (loop repeat w
@@ -199,11 +163,11 @@
 
 (defun print-exponent-arg (client value digits exponent colonp at-signp w d e k overflowchar padchar exponentchar)
   (declare (ignore colonp))
-  (let ((decimal (make-instance 'decimal :digits digits))
+  (let ((decimal (make-instance 'incless:decimal :digits digits))
         sign
         len exp)
-    (with-accessors ((decimal-digits decimal-digits)
-                     (decimal-position decimal-position))
+    (with-accessors ((decimal-digits incless:decimal-digits)
+                     (decimal-position incless:decimal-position))
         decimal
       (setf sign
             (cond ((minusp (float-sign value)) #\-)
@@ -249,14 +213,14 @@
                                     (make-array (- dp l)
                                                 :initial-element 0))))
                 ((> l dp)
-                 (round-decimal decimal dp)))))
+                 (incless:round-decimal decimal dp)))))
       (setf len (+ (if sign 4 3)
                    (length exp)
                    (length decimal-digits)))
       (when (and w
                  (null d)
                  (> len w))
-        (round-decimal decimal
+        (incless:round-decimal decimal
                       (- w
                          (length decimal-digits)
                          (if sign 4 3)))
@@ -285,7 +249,7 @@
                      do (write-char padchar *destination*)))
              (when sign
                (write-char sign *destination*))
-             (print-decimal decimal)
+             (incless:print-decimal decimal *destination*)
              (write-char (or exponentchar
                              (if (typep value *read-default-float-format*)
                                  #+abcl #\E #-abcl #\e
@@ -394,11 +358,11 @@
 
 (defun print-monetary-arg (client value digits exponent
                            colonp at-signp d n w padchar)
-  (let ((decimal (make-instance 'decimal :digits digits))
+  (let ((decimal (make-instance 'incless:decimal :digits digits))
         sign
         len)
-    (with-accessors ((decimal-digits decimal-digits)
-                     (decimal-position decimal-position))
+    (with-accessors ((decimal-digits incless:decimal-digits)
+                     (decimal-position incless:decimal-position))
         decimal
       (setf sign
             (cond ((minusp (float-sign value)) #\-)
@@ -425,7 +389,7 @@
                                   (make-array (- d l)
                                               :initial-element 0))))
               ((> l d)
-               (round-decimal decimal (1- d)))))
+               (incless:round-decimal decimal (1- d)))))
       (when (< decimal-position n)
         (setf decimal-digits (concatenate 'vector
                                           (make-array (- n decimal-position)
@@ -446,7 +410,7 @@
                      do (write-char padchar *destination*)))
              (when (and (not colonp) sign)
                (write-char sign *destination*))
-             (print-decimal decimal))))))
+             (incless:print-decimal decimal *destination*))))))
 
 (define-format-directive-interpreter monetary-directive
   (print-float-arg client
