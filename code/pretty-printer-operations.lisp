@@ -218,7 +218,7 @@
           (position #\/ control-string :start start :end end)))
     (when (null position-of-trailing-slash)
       (error 'end-of-control-string-error
-             :control-string string
+             :control-string control-string
              :tilde-position start
              :why "expected a trailing slash"))
     (1+ position-of-trailing-slash)))

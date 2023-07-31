@@ -54,6 +54,6 @@
         append (compile-directive client item)))
 
 (defun compile-control-string (client control-string)
-  (let ((items (structure-items (split-control-string control-string) nil)))
+  (let ((items (structure-items (split-control-string control-string))))
     `(progn ,@(loop for item across items
                     collect (compile-item client item)))))

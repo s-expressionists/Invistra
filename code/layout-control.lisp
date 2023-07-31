@@ -111,6 +111,7 @@
 (defun print-justification (client pad-left pad-right extra-space line-len
                             mincol colinc minpad padchar
                             newline-segment segments)
+  (declare (ignore client))
   (when (and (not pad-left) (not pad-right) (null (cdr segments)))
     (setf pad-left t))
   (let* ((pad-count (1- (length segments)))

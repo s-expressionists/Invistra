@@ -72,8 +72,6 @@
      (padchar :type character
               :default-value #\Space)))
 
-(defparameter *digits* "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
 (defun print-fixed-arg (client value digits exponent
                         colonp at-signp w d k overflowchar padchar)
   (declare (ignore client colonp))
@@ -200,6 +198,7 @@
                    :default-value nil)))
 
 (defun print-exponent-arg (client value digits exponent colonp at-signp w d e k overflowchar padchar exponentchar)
+  (declare (ignore colonp))
   (let ((decimal (make-instance 'decimal :digits digits))
         sign
         len exp)
@@ -209,7 +208,8 @@
       (setf sign
             (cond ((minusp (float-sign value)) #\-)
                   ((and at-signp (plusp value)) #\+)))
-      (setf exponent (if (zerop (aref decimal-digits 0))
+      (setf exponent (if (or (zerop (length decimal-digits))
+                             (zerop (aref decimal-digits 0)))
                          0
                          (+ exponent (- k))))
       (setf exp (let ((*print-base* 10)
@@ -288,12 +288,12 @@
              (print-decimal decimal)
              (write-char (or exponentchar
                              (if (typep value *read-default-float-format*)
-                                 #\e
+                                 #+abcl #\E #-abcl #\e
                                  (etypecase value
-                                   (short-float #\s)
-                                   (single-float #\f)
-                                   (double-float #\d)
-                                   (long-float #\l))))
+                                   (short-float #+abcl #\S #-abcl #\s)
+                                   (single-float #+abcl #\F #-abcl #\f)
+                                   (double-float #+abcl #\D #-abcl #\d)
+                                   (long-float #+abcl #\L #-abcl #\l))))
                          *destination*)
              (write-char (if (minusp exponent) #\- #\+) *destination*)
              (write-string exp *destination*))
