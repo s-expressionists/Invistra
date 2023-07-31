@@ -97,3 +97,5 @@
              (write-char (char-downcase char) (target stream)))
             (t
              (write-char char (target stream)))))))
+
+(defparameter *digits* "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
