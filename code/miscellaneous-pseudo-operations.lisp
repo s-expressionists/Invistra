@@ -56,17 +56,16 @@
              :parameter3 3))))
 
 (define-format-directive-interpreter circumflex-directive
-  (let ((parameters (given-parameters directive)))
-    (cond ((and (null p1) (null p2) (null p3))
-           (funcall (if colonp *outer-exit-if-exhausted* *inner-exit-if-exhausted*)))
-          ((or (and (eql p1 0) (null p2) (null p3))
-               (and (null p1) (eql p2 0) (null p3))
-               (and (null p1) (null p2) (eql p3 0))
-               (and (null p1) p2 p3 (eql p2 p3))
-               (and (null p2) p1 p3 (eql p1 p3))
-               (and (null p3) p1 p2 (eql p1 p2))
-               (and p1 p2 p3 (<= p1 p2 p3)))
-           (funcall (if colonp *outer-exit* *inner-exit*) nil)))))
+  (cond ((and (null p1) (null p2) (null p3))
+         (funcall (if colonp *outer-exit-if-exhausted* *inner-exit-if-exhausted*)))
+        ((or (and (eql p1 0) (null p2) (null p3))
+             (and (null p1) (eql p2 0) (null p3))
+             (and (null p1) (null p2) (eql p3 0))
+             (and (null p1) p2 p3 (eql p2 p3))
+             (and (null p2) p1 p3 (eql p1 p3))
+             (and (null p3) p1 p2 (eql p1 p2))
+             (and p1 p2 p3 (<= p1 p2 p3)))
+         (funcall (if colonp *outer-exit* *inner-exit*) nil))))
 
 (define-format-directive-compiler circumflex-directive
   (cond ((null p1)

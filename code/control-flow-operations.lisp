@@ -145,10 +145,9 @@
                                                    (1- (length (clauses directive)))))))
                  ;; Else, execute the corresponding clause
                  (case val
-                   ,@(loop for i from 0 below (length (clauses directive))
+                   ,@(loop for i from 0
                            for clause across (clauses directive)
-                           collect `(,i ,@(compile-items client
-                                                         (aref (clauses directive) i)))))))))))
+                           collect `(,i ,@(compile-items client clause))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
