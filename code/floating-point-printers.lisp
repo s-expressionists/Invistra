@@ -343,9 +343,9 @@
                           colonp at-signp w d e k
                           overflowchar padchar exponentchar)
   (unless d
-    (let ((q (length (if (minusp exponent)
-                         (- (length digits) exponent)
-                         (max (length digits) exponent)))))
+    (let ((q (if (minusp exponent)
+                 (- (length digits) exponent)
+                 (max (length digits) exponent))))
       (setq d (max q (min exponent 7)))))
   (let* ((ee (if e (+ e 2) 4))
          (ww (if w (- w ee) nil))
@@ -416,7 +416,9 @@
             (t
              (setf decimal-digits (concatenate 'vector
                                                decimal-digits
-                                               (make-array (- exponent) :initial-element 0))
+                                               (make-array (- exponent
+                                                              (length decimal-digits))
+                                                           :initial-element 0))
                    decimal-position exponent)))
       (let ((l (- (length decimal-digits) decimal-position)))
         (cond ((< l d)
