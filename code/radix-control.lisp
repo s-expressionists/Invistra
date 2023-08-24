@@ -45,7 +45,7 @@
 ;;;
 ;;; 22.3.2.1 ~r Radix.
 
-(define-directive #\r r-directive nil (named-parameters-directive)
+(define-directive t #\r r-directive t (named-parameters-directive)
     ((radix :type (integer 2 36) :default-value nil)
      (mincol :type integer :default-value 0)
      (padchar :type character :default-value #\Space)
@@ -280,7 +280,7 @@
 ;;;
 ;;; 22.3.2.2 ~d Decimal.
 
-(define-directive #\d d-directive nil (named-parameters-directive)
+(define-directive t #\d d-directive t (named-parameters-directive)
     ((mincol :type integer :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
@@ -296,7 +296,7 @@
 ;;;
 ;;; 22.3.2.3 ~b Binary.
 
-(define-directive #\b b-directive nil (named-parameters-directive)
+(define-directive t #\b b-directive t (named-parameters-directive)
     ((mincol :type integer :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
@@ -312,7 +312,7 @@
 ;;;
 ;;; 22.3.2.4 ~o Octal.
 
-(define-directive #\o o-directive nil (named-parameters-directive)
+(define-directive t #\o o-directive t (named-parameters-directive)
     ((mincol :type integer :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)
@@ -328,7 +328,7 @@
 ;;;
 ;;; 22.3.2.5 ~x Hexadecimal.
 
-(define-directive #\x x-directive nil (named-parameters-directive)
+(define-directive t #\x x-directive t (named-parameters-directive)
     ((mincol :type integer :default-value 0)
      (padchar :type character :default-value #\Space)
      (commachar :type character :default-value #\,)

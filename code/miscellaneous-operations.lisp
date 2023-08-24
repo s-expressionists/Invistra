@@ -8,9 +8,9 @@
 ;;;
 ;;; 22.3.8.2 ~) End of case conversion
 
-(define-directive #\)
+(define-directive t #\)
     end-case-conversion-directive
-    nil
+    t
     (named-parameters-directive
      no-modifiers-mixin end-structured-directive-mixin)
     ())
@@ -27,7 +27,7 @@
 ;;;
 ;;; 22.3.8.1 ~( Case conversion
 
-(define-directive #\(
+(define-directive t #\(
     case-conversion-directive
     end-case-conversion-directive
     (named-parameters-directive structured-directive-mixin)
@@ -59,7 +59,7 @@
 ;;;
 ;;; 22.3.8.3 ~p Plural
 
-(define-directive #\p plural-directive nil (named-parameters-directive) ())
+(define-directive t #\p plural-directive t (named-parameters-directive) ())
 
 (define-format-directive-interpreter plural-directive
   (when colonp

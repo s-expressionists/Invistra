@@ -8,7 +8,7 @@
 ;;;
 ;;; 22.3.1.1 ~c Character
 
-(define-directive #\c c-directive nil (named-parameters-directive) ())
+(define-directive t #\c c-directive t (named-parameters-directive) ())
 
 (define-format-directive-interpreter c-directive
   (let ((char (consume-next-argument 'character)))
@@ -63,7 +63,7 @@
 ;;;
 ;;; 22.3.1.2 ~% Newline.
 
-(define-directive #\% percent-directive nil (named-parameters-directive no-modifiers-mixin)
+(define-directive t #\% percent-directive t (named-parameters-directive no-modifiers-mixin)
     ((how-many :type (integer 0) :default-value 1)))
 
 (define-format-directive-interpreter percent-directive
@@ -85,7 +85,7 @@
 ;;;
 ;;; 22.3.1.3 ~& Fresh line and newlines.
 
-(define-directive #\& ampersand-directive nil (named-parameters-directive no-modifiers-mixin)
+(define-directive t #\& ampersand-directive t (named-parameters-directive no-modifiers-mixin)
     ((how-many :type (integer 0) :default-value 1)))
 
 (define-format-directive-interpreter ampersand-directive
@@ -115,7 +115,7 @@
 ;;;
 ;;; 22.3.1.4 ~| Page separators.
 
-(define-directive #\| vertical-bar-directive nil (named-parameters-directive no-modifiers-mixin)
+(define-directive t #\| vertical-bar-directive t (named-parameters-directive no-modifiers-mixin)
     ((how-many :type (integer 0) :default-value 1)))
 
 (define-format-directive-interpreter vertical-bar-directive
@@ -137,7 +137,7 @@
 ;;;
 ;;; 22.3.1.5 ~~ Tildes.
 
-(define-directive #\~ tilde-directive nil (named-parameters-directive no-modifiers-mixin)
+(define-directive t #\~ tilde-directive t (named-parameters-directive no-modifiers-mixin)
     ((how-many :type (integer 0) :default-value 1)))
 
 (define-format-directive-interpreter tilde-directive

@@ -58,9 +58,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.3.1 ~f Fixed-format floating point.
-(define-directive #\f
+(define-directive t #\f
     f-directive
-    nil
+    t
     (named-parameters-directive)
     ((w :type (or null integer)
         :default-value nil)
@@ -179,9 +179,9 @@
 ;;;
 ;;; 22.3.3.2 ~e Exponential floating point.
 
-(define-directive #\e
+(define-directive t #\e
     e-directive
-    nil
+    t
     (named-parameters-directive)
     ((w :type (or null integer)
         :default-value nil)
@@ -320,9 +320,9 @@
 ;;;
 ;;; 22.3.3.3 ~g General floating point.
 
-(define-directive #\g
+(define-directive t #\g
     g-directive
-    nil
+    t
     (named-parameters-directive)
     ((w :type (or null integer)
         :default-value nil)
@@ -380,9 +380,9 @@
 ;;;
 ;;; 22.3.3.4 ~$ Monetary floating point.
 
-(define-directive #\$
+(define-directive t #\$
     monetary-directive
-    nil
+    t
     (named-parameters-directive)
     ((d :type integer
         :default-value 2)

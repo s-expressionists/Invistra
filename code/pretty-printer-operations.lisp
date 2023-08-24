@@ -8,7 +8,7 @@
 ;;;
 ;;; 22.3.5.1 ~_ Conditional newline
 
-(define-directive #\_ underscore-directive nil (named-parameters-directive) ())
+(define-directive t #\_ underscore-directive t (named-parameters-directive) ())
 
 (defmethod layout-requirements ((item underscore-directive))
   (list :logical-block))
@@ -29,9 +29,9 @@
                                     (at-signp :miser)
                                     (t :linear)))))
 
-(define-directive #\>
+(define-directive t #\>
     end-logical-block-directive
-    nil
+    t
     (named-parameters-directive end-structured-directive-mixin)
     ())
 
@@ -47,7 +47,7 @@
 ;;;
 ;;; 22.3.5.2 ~< Logical block
 
-(define-directive #\<
+(define-directive t #\<
     logical-block-directive
     end-logical-block-directive
     (named-parameters-directive structured-directive-mixin)
@@ -178,7 +178,7 @@
 ;;;
 ;;; 22.3.5.3 ~i Indent
 
-(define-directive #\i i-directive nil (named-parameters-directive)
+(define-directive t #\i i-directive t (named-parameters-directive)
     ((how-many :type integer :default-value 0)))
 
 (defmethod layout-requirements ((item i-directive))
@@ -209,7 +209,7 @@
 ;;; So, define-format-directive-interpreter cannot be used, since its
 ;;; main purpose is to give lexical access to each parameter by name.
 
-(define-directive #\/ call-function-directive nil (directive)
+(define-directive t #\/ call-function-directive t (directive)
     ()
   (%function-name :accessor function-name))
 

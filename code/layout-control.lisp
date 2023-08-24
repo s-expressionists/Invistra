@@ -8,7 +8,7 @@
 ;;;
 ;;; 22.3.6.1 ~TAB Tabulate
 
-(define-directive #\t tabulate-directive nil (named-parameters-directive)
+(define-directive t #\t tabulate-directive t (named-parameters-directive)
     ((colnum :type (integer 0) :default-value 1)
      (colinc :type (integer 0) :default-value 1)))
 
@@ -63,9 +63,9 @@
 ;;;
 ;;; 22.3.6.3 ~> End of justification or of logical block
 
-(define-directive #\>
+(define-directive t #\>
     end-justification-directive
-    nil
+    t
     (named-parameters-directive end-structured-directive-mixin)
     ())
 
@@ -87,7 +87,7 @@
 ;;;
 ;;; 22.3.6.2 ~< Justification
 
-(define-directive #\<
+(define-directive t #\<
     justification-directive
     end-justification-directive
     (named-parameters-directive structured-directive-mixin)

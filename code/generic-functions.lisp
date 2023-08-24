@@ -38,3 +38,5 @@
   (:method (item)
     (declare (ignore item))
     nil))
+
+(defgeneric specialize-directive (client directive-character directive end-directive))

@@ -2,7 +2,7 @@
 
 (defun formatter (client control-string)
   (check-type control-string string)
-  (let ((items (structure-items (split-control-string control-string))))
+  (let ((items (structure-items client (split-control-string control-string))))
     `(lambda (*destination* &rest args)
        (with-arguments args
          ,@(compile-items client items)

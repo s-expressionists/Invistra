@@ -8,7 +8,7 @@
 ;;;
 ;;; 22.3.7.1 ~* Go to
 
-(define-directive #\* go-to-directive nil (named-parameters-directive at-most-one-modifier-mixin)
+(define-directive t #\* go-to-directive t (named-parameters-directive at-most-one-modifier-mixin)
     ((param :type (integer 0))))
 
 (define-format-directive-interpreter go-to-directive
@@ -43,7 +43,7 @@
 ;;;
 ;;; 22.3.7.3 ~] End of conditional expression
 
-(define-directive #\] end-conditional-directive nil (named-parameters-directive no-modifiers-mixin end-structured-directive-mixin) ())
+(define-directive t #\] end-conditional-directive t (named-parameters-directive no-modifiers-mixin end-structured-directive-mixin) ())
 
 (define-format-directive-interpreter end-conditional-directive
     ;; do nothing
@@ -57,7 +57,7 @@
 ;;;
 ;;; 22.3.7.2 ~[ Conditional expression
 
-(define-directive #\[ conditional-directive end-conditional-directive
+(define-directive t #\[ conditional-directive end-conditional-directive
   (named-parameters-directive structured-directive-mixin at-most-one-modifier-mixin)
     ((param :type integer))
   (%last-clause-is-default-p :initform nil :accessor last-clause-is-default-p))
@@ -153,7 +153,7 @@
 ;;;
 ;;; 22.3.7.5 ~} End of iteration
 
-(define-directive #\} end-iteration-directive nil (named-parameters-directive only-colon-mixin end-structured-directive-mixin) ())
+(define-directive t #\} end-iteration-directive t (named-parameters-directive only-colon-mixin end-structured-directive-mixin) ())
 
 (define-format-directive-interpreter end-iteration-directive
     ;; do nothing
@@ -167,7 +167,7 @@
 ;;;
 ;;; 22.3.7.4 ~{ Iteration
 
-(define-directive #\{ iteration-directive end-iteration-directive
+(define-directive t #\{ iteration-directive end-iteration-directive
   (named-parameters-directive structured-directive-mixin)
     ((iteration-limit :type (integer 0))))
 
@@ -444,7 +444,7 @@
 ;;;
 ;;; 22.3.7.6 ~? Recursive processing
 
-(define-directive #\? recursive-processing-directive nil (named-parameters-directive only-at-sign-mixin) ())
+(define-directive t #\? recursive-processing-directive t (named-parameters-directive only-at-sign-mixin) ())
 
 (define-format-directive-interpreter recursive-processing-directive
   (if at-signp

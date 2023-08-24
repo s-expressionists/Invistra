@@ -16,7 +16,7 @@
 ;;;
 ;;; 22.3.4.1 ~a Aesthetic.
 
-(define-directive #\a a-directive nil (named-parameters-directive)
+(define-directive t #\a a-directive t (named-parameters-directive)
     ((mincol :type integer :default-value 0)
      (colinc :type (integer 0) :default-value 1)
      (minpad :type integer :default-value 0)
@@ -57,7 +57,7 @@
 ;;;
 ;;; 22.3.4.2 ~s Standard.
 
-(define-directive #\s s-directive nil (named-parameters-directive)
+(define-directive t #\s s-directive t (named-parameters-directive)
     ((mincol :type integer :default-value 0)
      (colinc :type (integer 0) :default-value 1)
      (minpad :type integer :default-value 0)
@@ -96,7 +96,7 @@
 ;;;
 ;;; 22.3.4.3 ~w Write.
 
-(define-directive #\w w-directive nil (named-parameters-directive) ())
+(define-directive t #\w w-directive t (named-parameters-directive) ())
 
 (defmethod layout-requirements ((item w-directive))
   (list :logical-block))

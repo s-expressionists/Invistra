@@ -109,7 +109,7 @@
 
 ;;; Specialize a directive according to a particular directive
 ;;; character.
-(defun specialize-directive (directive end-directive)
+#+(or)(defun specialize-directive (directive end-directive)
   (change-class
    directive
    (directive-subclass-name (directive-character directive) directive end-directive)))
@@ -121,18 +121,21 @@
 ;;; parameter, and the remaining elemnts are keyword/value pairs.
 ;;; Currently, the only keywords allowed are :type and
 ;;; :default-value.
-(defmacro define-directive (character name end-name superclasses parameters &body slots)
+(defmacro define-directive (client-name character name
+                            end-name superclasses parameters
+                            &body slots)
   `(progn
-     (defmethod directive-subclass-name
-         ((char (eql ,(char-upcase character))) directive
-          ,(if end-name `(end-directive ,end-name) 'end-directive))
-       (declare (ignore directive))
-       ',name)
+     (defmethod specialize-directive ((client ,client-name)
+                                      (char (eql ,(char-upcase character)))
+                                      directive
+                                      (end-directive ,end-name))
+       (change-class directive ',name))
 
-     ,(when end-name
-        `(defmethod directive-subclass-name
-             ((char (eql ,(char-upcase character))) directive end-directive)
-           (declare (ignore end-directive))
+     ,(unless (eq end-name t)
+        `(defmethod specialize-directive ((client ,client-name)
+                                          (char (eql ,(char-upcase character)))
+                                          directive
+                                          (end-directive t))
            (error 'unmatched-directive
                   :directive directive
                   :control-string (control-string directive)

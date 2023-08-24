@@ -4,7 +4,7 @@
   end
   (clauses (list nil)))
 
-(defun structure-items (items)
+(defun structure-items (client items)
   (loop with result = (list (make-group))
         for item in (reverse items)
         finally (reduce (lambda (req it)
@@ -15,7 +15,8 @@
                         :initial-value nil)
                 (return (coerce (car (group-clauses (car result))) 'vector))
         unless (stringp item)
-          do (specialize-directive item (group-end (car result)))
+          do (specialize-directive client (directive-character item)
+                                   item (group-end (car result)))
              (cond ((structured-start-p item)
                     (setf (clauses item) (map 'vector
                                               (lambda (items)

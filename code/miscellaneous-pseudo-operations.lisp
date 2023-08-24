@@ -12,9 +12,9 @@
 ;;;
 ;;; 22.3.9.1 ~; Clause separator
 
-(define-directive #\;
+(define-directive t #\;
     semicolon-directive
-    nil
+    t
     (named-parameters-directive)
     ((extra-space :type (or null integer) :default-value nil)
      (line-length :type (or null integer) :default-value nil)))
@@ -38,7 +38,7 @@
 ;;;
 ;;; 22.3.9.2 ~^ Escape upward
 
-(define-directive #\^ circumflex-directive nil (named-parameters-directive)
+(define-directive t #\^ circumflex-directive t (named-parameters-directive)
     ((p1 :type (or character integer))
      (p2 :type (or character integer))
      (p3 :type (or character integer))))
@@ -98,7 +98,7 @@
 ;;;
 ;;; 22.3.9.3 ~Newline Igored newline
 
-(define-directive #\Newline newline-directive nil (named-parameters-directive at-most-one-modifier-mixin) ())
+(define-directive t #\Newline newline-directive t (named-parameters-directive at-most-one-modifier-mixin) ())
 
 (defmethod parse-directive-suffix ((directive-character (eql #\Newline)) control-string start end)
   (or (position-if (lambda (char)
