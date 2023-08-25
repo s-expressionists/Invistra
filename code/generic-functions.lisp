@@ -3,10 +3,11 @@
 ;;; Return the name of a subclass to be used for a particular
 ;;; directive.  Each particular directive subclass must be accompanied
 ;;; by an eql-specialized method on this generic function.
-(defgeneric directive-subclass-name (directive-character directive end-directive))
+(defgeneric specialize-directive (client directive-character directive end-directive))
 
 ;;; For the default case, signal an error.
-(defmethod directive-subclass-name (directive-character directive end-directive)
+(defmethod specialize-directive (client directive-character directive end-directive)
+  (declare (ignore client directive-character end-directive))
   (error 'unknown-directive-character
          :directive directive))
 
@@ -18,8 +19,13 @@
     (declare (ignore directive-name))
     nil))
 
+(defgeneric parameter-specifications (client directive)
+  (:method (client directive)
+    (declare (ignore client directive))
+    '((:type (or character integer)))))
+
 ;;; Check the syntax of a directive.
-(defgeneric check-directive-syntax (directive)
+(defgeneric check-directive-syntax (client directive)
   (:method-combination progn :most-specific-last))
 
 ;;; DIRECTIVE is an instance of a subclass of the DIRECTIVE class
@@ -39,4 +45,3 @@
     (declare (ignore item))
     nil))
 
-(defgeneric specialize-directive (client directive-character directive end-directive))

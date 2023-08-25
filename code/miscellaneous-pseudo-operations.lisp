@@ -44,7 +44,8 @@
      (p3 :type (or character integer))))
 
 (defmethod check-directive-syntax progn
-  ((directive circumflex-directive))
+    (client (directive circumflex-directive))
+  (declare (ignore client))
   (let ((parameters (given-parameters directive)))
     (when (and (second parameters) (not (first parameters)))
       (error 'parameter-omitted

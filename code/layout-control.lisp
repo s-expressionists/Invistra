@@ -69,7 +69,8 @@
     (named-parameters-directive end-structured-directive-mixin)
     ())
 
-(defmethod check-directive-syntax progn ((directive end-justification-directive))
+(defmethod check-directive-syntax progn (client (directive end-justification-directive))
+  (declare (ignore client))
   (cond ((colonp directive)
          (change-class directive 'end-logical-block-directive))
         ((at-signp directive)

@@ -62,7 +62,8 @@
     ((param :type integer))
   (%last-clause-is-default-p :initform nil :accessor last-clause-is-default-p))
 
-(defmethod check-directive-syntax progn ((directive conditional-directive))
+(defmethod check-directive-syntax progn (client (directive conditional-directive))
+  (declare (ignore client))
   ;; Check that, if a parameter is given, then there are
   ;; no modifiers.
   (when (and (not (null (given-parameters directive)))

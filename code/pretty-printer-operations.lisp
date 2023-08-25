@@ -58,7 +58,8 @@
                              (call-next-method)
                              t))
 
-(defmethod check-directive-syntax progn ((directive logical-block-directive))
+(defmethod check-directive-syntax progn (client (directive logical-block-directive))
+  (declare (ignore client))
   (flet ((check-fix (items)
            (when (notevery (lambda (item)
                              (or (stringp item)
@@ -223,7 +224,8 @@
              :why "expected a trailing slash"))
     (1+ position-of-trailing-slash)))
 
-(defmethod check-directive-syntax progn ((directive call-function-directive))
+(defmethod check-directive-syntax progn (client (directive call-function-directive))
+  (declare (ignore client))
   ;; Check that there is at most one package marker in the function name.
   ;; Also, compute a symbol from the name.
   (with-accessors ((control-string control-string)

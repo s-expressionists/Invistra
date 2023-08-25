@@ -107,13 +107,6 @@
                                                      requirements
                                                      nil)))))
 
-;;; Specialize a directive according to a particular directive
-;;; character.
-#+(or)(defun specialize-directive (directive end-directive)
-  (change-class
-   directive
-   (directive-subclass-name (directive-character directive) directive end-directive)))
-
 ;;; A macro that helps us define directives. It takes a directive
 ;;; character, a directive name (to be used for the class) and a body
 ;;; in the form of a list of parameter specifications.  Each parameter
@@ -147,7 +140,13 @@
                  collect (if (getf (cdr parameter) :default-value)
                              parameter
                              (cons (car parameter)
-                                   (list* :default-value nil (cdr parameter)))))))
+                                   (list* :default-value nil (cdr parameter))))))
+       (defmethod parameter-specifications ((client ,client-name)
+                                            (directive ,name))
+         ',(mapcar (lambda (spec)
+                     (list* :count 1
+                            (cdr spec)))
+                   parameters)))
 
      (defclass ,name ,superclasses
        (,@(loop for parameter in parameters
@@ -161,7 +160,8 @@
 ;;;
 ;;; Checking syntax, interpreting, and compiling directives.
 
-(defmethod check-directive-syntax progn (directive)
+(defmethod check-directive-syntax progn (client directive)
+  (declare (ignore client))
   (with-accessors ((given-parameters given-parameters))
     directive
     (let ((parameter-specs (parameter-specs (class-name (class-of directive)))))
@@ -192,7 +192,8 @@
         parameter-specs
         given-parameters)))))
 
-(defmethod check-directive-syntax progn ((directive named-parameters-directive))
+(defmethod check-directive-syntax progn (client (directive named-parameters-directive))
+  (declare (ignore client))
   (with-accessors ((given-parameters given-parameters))
     directive
     (let ((parameter-specs (parameter-specs (class-name (class-of directive)))))
@@ -205,7 +206,8 @@
                :how-many-found (length given-parameters))))))
 
 ;;; Signal an error if a modifier has been given for such a directive.
-(defmethod check-directive-syntax progn ((directive no-modifiers-mixin))
+(defmethod check-directive-syntax progn (client (directive no-modifiers-mixin))
+  (declare (ignore client))
   (with-accessors ((colonp colonp)
                    (at-signp at-signp)
                    (control-string control-string)
@@ -216,7 +218,8 @@
              :directive directive))))
 
 ;;; Signal an error if an at-sign has been given for such a directive.
-(defmethod check-directive-syntax progn ((directive only-colon-mixin))
+(defmethod check-directive-syntax progn (client (directive only-colon-mixin))
+  (declare (ignore client))
   (with-accessors ((at-signp at-signp)
                    (control-string control-string)
                    (end end))
@@ -226,7 +229,8 @@
              :directive directive))))
 
 ;;; Signal an error if a colon has been given for such a directive.
-(defmethod check-directive-syntax progn ((directive only-at-sign-mixin))
+(defmethod check-directive-syntax progn (client (directive only-at-sign-mixin))
+  (declare (ignore client))
   (with-accessors ((colonp colonp)
                    (control-string control-string)
                    (end end))
@@ -236,7 +240,8 @@
              :directive directive))))
 
 ;;; Signal an error if both modifiers have been given for such a directive.
-(defmethod check-directive-syntax progn ((directive at-most-one-modifier-mixin))
+(defmethod check-directive-syntax progn (client (directive at-most-one-modifier-mixin))
+  (declare (ignore client))
   (with-accessors ((colonp colonp)
                    (at-signp at-signp)
                    (control-string control-string)

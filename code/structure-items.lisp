@@ -27,5 +27,5 @@
                     (push (make-group :end item) result))
                    ((structured-separator-p item)
                     (push nil (group-clauses (car result)))))
-             (check-directive-syntax item)
+             (check-directive-syntax client item)
         do (push item (car (group-clauses (car result))))))
