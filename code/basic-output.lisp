@@ -64,29 +64,28 @@
 ;;; 22.3.1.2 ~% Newline.
 
 (define-directive t #\% percent-directive t (named-parameters-directive no-modifiers-mixin)
-    ((how-many :type (integer 0) :default-value 1)))
+    ((how-many :type (integer 0) :default 1)))
 
 (define-format-directive-interpreter percent-directive
   (loop repeat how-many
         do (terpri *destination*)))
 
 (define-format-directive-compiler percent-directive
-  (let ((how-many (compile-time-value directive 'how-many)))
-    (case how-many
-      (0 '())
-      (1 '((terpri *destination*)))
-      (2 '((terpri *destination*)
-           (terpri *destination*)))
-      (otherwise
-        `((loop repeat how-many
-                do (terpri *destination*)))))))
+  (case how-many
+    (0 '())
+    (1 '((terpri *destination*)))
+    (2 '((terpri *destination*)
+         (terpri *destination*)))
+    (otherwise
+     `((loop repeat how-many
+             do (terpri *destination*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.1.3 ~& Fresh line and newlines.
 
 (define-directive t #\& ampersand-directive t (named-parameters-directive no-modifiers-mixin)
-    ((how-many :type (integer 0) :default-value 1)))
+    ((how-many :type (integer 0) :default 1)))
 
 (define-format-directive-interpreter ampersand-directive
   (unless (zerop how-many)
@@ -95,62 +94,59 @@
           do (terpri *destination*))))
 
 (define-format-directive-compiler ampersand-directive
-  (let ((how-many (compile-time-value directive 'how-many)))
-    (case how-many
-      ((:argument-reference :remaining-argument-count)
-       `((unless (zerop how-many)
-           (fresh-line *destination*)
-           (loop repeat (1- how-many)
-                 do (terpri *destination*)))))
-      (0 nil)
-      (1 `((fresh-line *destination*)))
-      (2 `((fresh-line *destination*)
-           (terpri *destination*)))
-      (otherwise
-       `((fresh-line *destination*)
-         (loop repeat ,(1- how-many)
-               do (terpri *destination*)))))))
+  (case how-many
+    ((nil)
+     `((unless (zerop how-many)
+         (fresh-line *destination*)
+         (loop repeat (1- how-many)
+               do (terpri *destination*)))))
+    (0 nil)
+    (1 `((fresh-line *destination*)))
+    (2 `((fresh-line *destination*)
+         (terpri *destination*)))
+    (otherwise
+     `((fresh-line *destination*)
+       (loop repeat (1- how-many)
+             do (terpri *destination*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.1.4 ~| Page separators.
 
 (define-directive t #\| vertical-bar-directive t (named-parameters-directive no-modifiers-mixin)
-    ((how-many :type (integer 0) :default-value 1)))
+    ((how-many :type (integer 0) :default 1)))
 
 (define-format-directive-interpreter vertical-bar-directive
   (loop repeat how-many
         do (write-char #\Page *destination*)))
 
 (define-format-directive-compiler vertical-bar-directive
-  (let ((how-many (compile-time-value directive 'how-many)))
-    (case how-many
-      (0 nil)
-      (1 `((write-char #\Page *destination*)))
-      (2 `((write-char #\Page *destination*)
-           (write-char #\Page *destination*)))
-      (otherwise
-       `((loop repeat how-many
-               do (write-char #\Page *destination*)))))))
+  (case how-many
+    (0 nil)
+    (1 `((write-char #\Page *destination*)))
+    (2 `((write-char #\Page *destination*)
+         (write-char #\Page *destination*)))
+    (otherwise
+     `((loop repeat how-many
+             do (write-char #\Page *destination*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.1.5 ~~ Tildes.
 
 (define-directive t #\~ tilde-directive t (named-parameters-directive no-modifiers-mixin)
-    ((how-many :type (integer 0) :default-value 1)))
+    ((how-many :type (integer 0) :default 1)))
 
 (define-format-directive-interpreter tilde-directive
   (loop repeat how-many
         do (write-char #\~ *destination*)))
 
 (define-format-directive-compiler tilde-directive
-  (let ((how-many (compile-time-value directive 'how-many)))
-    (case how-many
-      (0 nil)
-      (1 `((write-char #\~ *destination*)))
-      (2 `((write-char #\~ *destination*)
-           (write-char #\~ *destination*)))
-      (otherwise
-       `((loop repeat how-many
-               do (write-char #\~ *destination*)))))))
+  (case how-many
+    (0 nil)
+    (1 `((write-char #\~ *destination*)))
+    (2 `((write-char #\~ *destination*)
+         (write-char #\~ *destination*)))
+    (otherwise
+     `((loop repeat how-many
+             do (write-char #\~ *destination*))))))

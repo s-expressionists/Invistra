@@ -9,8 +9,8 @@
 ;;; 22.3.6.1 ~TAB Tabulate
 
 (define-directive t #\t tabulate-directive t (named-parameters-directive)
-    ((colnum :type (integer 0) :default-value 1)
-     (colinc :type (integer 0) :default-value 1)))
+    ((colnum :type (integer 0) :default 1)
+     (colinc :type (integer 0) :default 1)))
 
 (defmethod layout-requirements ((item tabulate-directive))
   (when (colonp item)
@@ -92,10 +92,10 @@
     justification-directive
     end-justification-directive
     (named-parameters-directive structured-directive-mixin)
-    ((mincol :type integer :default-value 0)
-     (colinc :type (integer 0) :default-value 1)
-     (minpad :type integer :default-value 0)
-     (padchar :type character :default-value #\Space)))
+    ((mincol :type integer :default 0)
+     (colinc :type (integer 0) :default 1)
+     (minpad :type integer :default 0)
+     (padchar :type character :default #\Space)))
 
 (defmethod layout-requirements :around ((item justification-directive))
   (merge-layout-requirements (list (if (colonp (aref (aref (clauses item) 0) (1- (length (aref (clauses item) 0)))))

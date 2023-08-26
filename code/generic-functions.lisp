@@ -22,7 +22,7 @@
 (defgeneric parameter-specifications (client directive)
   (:method (client directive)
     (declare (ignore client directive))
-    '((:type (or character integer)))))
+    nil))
 
 ;;; Check the syntax of a directive.
 (defgeneric check-directive-syntax (client directive)

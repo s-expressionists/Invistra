@@ -46,11 +46,11 @@
 ;;; 22.3.2.1 ~r Radix.
 
 (define-directive t #\r r-directive t (named-parameters-directive)
-    ((radix :type (integer 2 36) :default-value nil)
-     (mincol :type integer :default-value 0)
-     (padchar :type character :default-value #\Space)
-     (commachar :type character :default-value #\,)
-     (comma-interval :type (integer 1) :default-value 3)))
+    ((radix :type (or null (integer 2 36)) :default nil)
+     (mincol :type integer :default 0)
+     (padchar :type character :default #\Space)
+     (commachar :type character :default #\,)
+     (comma-interval :type (integer 1) :default 3)))
 
 ;;; Print an integer as roman numerals to the stream.
 ;;; The integer must be strictly greater than zero,
@@ -269,8 +269,6 @@
                                                          *destination*)))))
   (cond ((numberp radix)
          (list print-number-radix))
-        ((null radix)
-         (list print-null-radix))
         (t
          `((if (null radix)
                ,print-null-radix
@@ -281,10 +279,10 @@
 ;;; 22.3.2.2 ~d Decimal.
 
 (define-directive t #\d d-directive t (named-parameters-directive)
-    ((mincol :type integer :default-value 0)
-     (padchar :type character :default-value #\Space)
-     (commachar :type character :default-value #\,)
-     (comma-interval :type (integer 1) :default-value 3)))
+    ((mincol :type integer :default 0)
+     (padchar :type character :default #\Space)
+     (commachar :type character :default #\,)
+     (comma-interval :type (integer 1) :default 3)))
 
 (define-format-directive-interpreter d-directive
   (print-radix-arg client 10 colonp at-signp mincol padchar commachar comma-interval))
@@ -297,10 +295,10 @@
 ;;; 22.3.2.3 ~b Binary.
 
 (define-directive t #\b b-directive t (named-parameters-directive)
-    ((mincol :type integer :default-value 0)
-     (padchar :type character :default-value #\Space)
-     (commachar :type character :default-value #\,)
-     (comma-interval :type (integer 1) :default-value 3)))
+    ((mincol :type integer :default 0)
+     (padchar :type character :default #\Space)
+     (commachar :type character :default #\,)
+     (comma-interval :type (integer 1) :default 3)))
 
 (define-format-directive-interpreter b-directive
   (print-radix-arg client 2 colonp at-signp mincol padchar commachar comma-interval))
@@ -313,10 +311,10 @@
 ;;; 22.3.2.4 ~o Octal.
 
 (define-directive t #\o o-directive t (named-parameters-directive)
-    ((mincol :type integer :default-value 0)
-     (padchar :type character :default-value #\Space)
-     (commachar :type character :default-value #\,)
-     (comma-interval :type (integer 1) :default-value 3)))
+    ((mincol :type integer :default 0)
+     (padchar :type character :default #\Space)
+     (commachar :type character :default #\,)
+     (comma-interval :type (integer 1) :default 3)))
 
 (define-format-directive-interpreter o-directive
   (print-radix-arg client 8 colonp at-signp mincol padchar commachar comma-interval))
@@ -329,10 +327,10 @@
 ;;; 22.3.2.5 ~x Hexadecimal.
 
 (define-directive t #\x x-directive t (named-parameters-directive)
-    ((mincol :type integer :default-value 0)
-     (padchar :type character :default-value #\Space)
-     (commachar :type character :default-value #\,)
-     (comma-interval :type (integer 1) :default-value 3)))
+    ((mincol :type integer :default 0)
+     (padchar :type character :default #\Space)
+     (commachar :type character :default #\,)
+     (comma-interval :type (integer 1) :default 3)))
 
 (define-format-directive-interpreter x-directive
   (print-radix-arg client 16 colonp at-signp mincol padchar commachar comma-interval))

@@ -17,10 +17,10 @@
 ;;; 22.3.4.1 ~a Aesthetic.
 
 (define-directive t #\a a-directive t (named-parameters-directive)
-    ((mincol :type integer :default-value 0)
-     (colinc :type (integer 0) :default-value 1)
-     (minpad :type integer :default-value 0)
-     (padchar :type character :default-value #\Space)))
+    ((mincol :type integer :default 0)
+     (colinc :type (integer 0) :default 1)
+     (minpad :type integer :default 0)
+     (padchar :type character :default #\Space)))
 
 (define-format-directive-interpreter a-directive
   (let ((*print-escape* nil)
@@ -58,10 +58,10 @@
 ;;; 22.3.4.2 ~s Standard.
 
 (define-directive t #\s s-directive t (named-parameters-directive)
-    ((mincol :type integer :default-value 0)
-     (colinc :type (integer 0) :default-value 1)
-     (minpad :type integer :default-value 0)
-     (padchar :type character :default-value #\Space)))
+    ((mincol :type integer :default 0)
+     (colinc :type (integer 0) :default 1)
+     (minpad :type integer :default 0)
+     (padchar :type character :default #\Space)))
 
 (define-format-directive-interpreter s-directive
   (let ((*print-escape* t)

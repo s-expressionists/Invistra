@@ -63,15 +63,15 @@
     t
     (named-parameters-directive)
     ((w :type (or null integer)
-        :default-value nil)
+        :default nil)
      (d :type (or null integer)
-        :defaule-value nil)
+        :default nil)
      (k :type (or null integer)
-        :default-value 0)
+        :default 0)
      (overflowchar :type (or null character)
-                   :default-value nil)
+                   :default nil)
      (padchar :type character
-              :default-value #\Space)))
+              :default #\Space)))
 
 (defun print-fixed-arg (client value digits exponent
                         colonp at-signp w d k overflowchar padchar)
@@ -184,19 +184,19 @@
     t
     (named-parameters-directive)
     ((w :type (or null integer)
-        :default-value nil)
+        :default nil)
      (d :type (or null integer)
         :defaule-value nil)
      (e :type (or null integer)
         :defaule-value nil)
      (k :type (or null integer)
-        :default-value 1)
+        :default 1)
      (overflowchar :type (or null character)
-                   :default-value nil)
+                   :default nil)
      (padchar :type character
-              :default-value #\Space)
+              :default #\Space)
      (exponentchar :type (or null character)
-                   :default-value nil)))
+                   :default nil)))
 
 (defun print-exponent-arg (client value digits exponent colonp at-signp w d e k overflowchar padchar exponentchar)
   (declare (ignore colonp))
@@ -325,19 +325,19 @@
     t
     (named-parameters-directive)
     ((w :type (or null integer)
-        :default-value nil)
+        :default nil)
      (d :type (or null integer)
         :defaule-value nil)
      (e :type (or null integer)
         :defaule-value nil)
      (k :type (or null integer)
-        :default-value 1)
+        :default 1)
      (overflowchar :type (or null character)
-                   :default-value nil)
+                   :default nil)
      (padchar :type character
-              :default-value #\Space)
+              :default #\Space)
      (exponentchar :type (or null character)
-                   :default-value nil)))
+                   :default nil)))
 
 (defun print-general-arg (client value digits exponent
                           colonp at-signp w d e k
@@ -385,13 +385,13 @@
     t
     (named-parameters-directive)
     ((d :type integer
-        :default-value 2)
+        :default 2)
      (n :type integer
-        :default-value 1)
+        :default 1)
      (w :type (or null integer)
-        :default-value nil)
+        :default nil)
      (padchar :type character
-              :default-value #\Space)))
+              :default #\Space)))
 
 (defun print-monetary-arg (client value digits exponent
                            colonp at-signp d n w padchar)

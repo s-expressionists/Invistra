@@ -23,10 +23,12 @@
          (values nil start))
         ((or (eql (char string start) #\v) (eql (char string start) #\V))
          ;; Indicates that the value is to be taken from the arguments.
-         (values :argument-reference (1+ start)))
+         (values (make-instance 'argument-reference-parameter)
+                 (1+ start)))
         ((eql (char string start) #\#)
          ;; Indicates that the value is the remaining number of arguments
-         (values :remaining-argument-count (1+ start)))
+         (values (make-instance 'remaining-argument-count-parameter)
+                 (1+ start)))
         ((eql (char string start) #\')
          (incf start)
          (when (= start end)
@@ -34,7 +36,8 @@
                   :control-string string
                   :tilde-position tilde-position
                   :why "character expected"))
-         (values (char string start) (1+ start)))
+         (values (make-instance 'literal-parameter :value (char string start))
+                 (1+ start)))
         ((find (char string start) "+-0123456789")
          (multiple-value-bind (value position)
              (parse-integer string :start start :junk-allowed t)
@@ -43,7 +46,8 @@
                     :control-string string
                     :tilde-position tilde-position
                     :index start))
-           (values value position)))
+           (values (make-instance 'literal-parameter :value value)
+                   position)))
         (t
          (values nil start)
          #+(or)(error 'expected-parameter-start

@@ -16,8 +16,8 @@
     semicolon-directive
     t
     (named-parameters-directive)
-    ((extra-space :type (or null integer) :default-value nil)
-     (line-length :type (or null integer) :default-value nil)))
+    ((extra-space :type (or null integer) :default nil)
+     (line-length :type (or null integer) :default nil)))
 
 (defmethod structured-separator-p ((directive semicolon-directive))
   t)
@@ -39,9 +39,9 @@
 ;;; 22.3.9.2 ~^ Escape upward
 
 (define-directive t #\^ circumflex-directive t (named-parameters-directive)
-    ((p1 :type (or character integer))
-     (p2 :type (or character integer))
-     (p3 :type (or character integer))))
+    ((p1 :type (or null character integer))
+     (p2 :type (or null character integer))
+     (p3 :type (or null character integer))))
 
 (defmethod check-directive-syntax progn
     (client (directive circumflex-directive))

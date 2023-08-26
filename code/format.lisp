@@ -96,40 +96,6 @@
               (*inner-tag* ',block-name))
          ,@body))))
 
-(defun compute-parameter-value (directive parameter-spec)
-  (let* ((parameter-name (car parameter-spec))
-         (compile-time-value (funcall parameter-name directive)))
-    (cond ((null compile-time-value)
-           ;; The parameter was not given at all in the format control
-           ;; string, neither as a constant value, nor as a value to
-           ;; be acquired at runtime (# or V).  We must use a default
-           ;; value if it has any.
-           (getf (cdr parameter-spec) :default-value))
-          ((eq compile-time-value :argument-reference)
-           ;; The parameter was given the explicit value V in the
-           ;; format control string, meaning we use the next argument
-           ;; to acquire the value of the parameter.  We must test
-           ;; that there are more arguments, consume the next one, and
-           ;; check that the type of the argument acquired is correct.
-           (or (consume-next-argument `(or null
-                                           ,(getf (cdr parameter-spec) :type)))
-               (getf (cdr parameter-spec) :default-value)))
-          ((eq compile-time-value :remaining-argument-count)
-           ;; The parameter was given the explicit value # in the
-           ;; format control string, meaning we use the number of
-           ;; remaining arguments as the value of the parameter.
-           (unless (typep *remaining-argument-count*
-                          (getf (cdr parameter-spec) :type))
-             (error 'argument-type-error
-                    :expected-type (getf (cdr parameter-spec) :type)
-                    :datum *remaining-argument-count*))
-           *remaining-argument-count*)
-          (t
-           ;; The parameter was given an explicit value (number or
-           ;; character) in the format control string, and this is the
-           ;; value we want.
-           compile-time-value))))
-
 ;;; The directive interpreter.
 
 (defmethod interpret-format-directive (client directive)
@@ -148,10 +114,10 @@
                       (end end)
                       (colonp colonp)
                       (at-signp at-signp))
-       directive
-       (let ,(loop for parameter-spec in (parameter-specs class-name)
-                   collect `(,(car parameter-spec)
-                              (compute-parameter-value directive ',parameter-spec)))
+         directive
+       (destructuring-bind ,(mapcar #'car (parameter-specs class-name))
+           (mapcar #'interpret-time-value (given-parameters directive))
+         (declare (ignorable ,@(mapcar #'car (parameter-specs class-name))))
          ,@body))))
 
 (defun consume-next-argument (type)
@@ -219,19 +185,51 @@
                       (suffix-start suffix-start)
                       (end end)
                       (colonp colonp)
-                      (at-signp at-signp)
-                      (given-parameters given-parameters)
-                      ,@(loop for parameter-spec in (parameter-specs class-name)
-                              collect `(,(car parameter-spec) ,(car parameter-spec))))
-       directive
-       ,@body)))
+                      (at-signp at-signp))
+         directive
+       (destructuring-bind ,(mapcar #'car (parameter-specs class-name))
+           (mapcar #'compile-time-value (given-parameters directive))
+         (declare (ignorable ,@(mapcar #'car (parameter-specs class-name))))
+         ,@body))))
 
-(defun compile-time-value (directive slot-name)
-  (or (slot-value directive slot-name)
-      (getf (cdr (find slot-name
-                       (parameter-specs (class-name (class-of directive)))
-                       :key #'car))
-            :default-value)))
+(defmethod interpret-time-value ((parameter argument-reference-parameter))
+  (or (consume-next-argument `(or null ,(parameter-type parameter)))
+      (parameter-default parameter)))
+
+(defmethod run-time-value ((parameter argument-reference-parameter))
+  `(or (consume-next-argument '(or null ,(parameter-type parameter)))
+       ,(parameter-default parameter)))
+
+(defmethod compile-time-value ((parameter argument-reference-parameter))
+  nil)
+
+(defmethod interpret-time-value ((parameter remaining-argument-count-parameter))
+  (if (typep *remaining-argument-count*
+             (parameter-type parameter))
+      *remaining-argument-count*
+      (error 'argument-type-error
+             :expected-type (parameter-type parameter)
+             :datum *remaining-argument-count*)))
+
+(defmethod run-time-value ((parameter remaining-argument-count-parameter))
+  `(if (typep *remaining-argument-count*
+              ',(parameter-type parameter))
+       *remaining-argument-count*
+       (error 'argument-type-error
+              :expected-type ',(parameter-type parameter)
+              :datum *remaining-argument-count*)))
+
+(defmethod compile-time-value ((parameter remaining-argument-count-parameter))
+  nil)
+
+(defmethod interpret-time-value ((parameter literal-parameter))
+  (parameter-value parameter))
+
+(defmethod run-time-value ((parameter literal-parameter))
+  (parameter-value parameter))
+
+(defmethod compile-time-value ((parameter literal-parameter))
+  (parameter-value parameter))
 
 ;;; The reason we define this function is that the ~? directive
 ;;; (recursive processing), when a @ modifier is used, reuses

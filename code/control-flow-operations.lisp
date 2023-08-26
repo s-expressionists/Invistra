@@ -9,7 +9,7 @@
 ;;; 22.3.7.1 ~* Go to
 
 (define-directive t #\* go-to-directive t (named-parameters-directive at-most-one-modifier-mixin)
-    ((param :type (integer 0))))
+    ((param :type (or null (integer 0)) :default nil)))
 
 (define-format-directive-interpreter go-to-directive
   (cond (colonp
@@ -59,7 +59,7 @@
 
 (define-directive t #\[ conditional-directive end-conditional-directive
   (named-parameters-directive structured-directive-mixin at-most-one-modifier-mixin)
-    ((param :type integer))
+    ((param :type (or null integer) :default nil))
   (%last-clause-is-default-p :initform nil :accessor last-clause-is-default-p))
 
 (defmethod check-directive-syntax progn (client (directive conditional-directive))
@@ -170,7 +170,7 @@
 
 (define-directive t #\{ iteration-directive end-iteration-directive
   (named-parameters-directive structured-directive-mixin)
-    ((iteration-limit :type (integer 0))))
+    ((iteration-limit :type (or null (integer 0)) :default nil)))
 
 (define-format-directive-interpreter iteration-directive
   ;; eliminate the end-of-iteration directive from the

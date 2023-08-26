@@ -45,6 +45,31 @@
     (declare (ignore directive))
     nil))
 
+(defgeneric interpret-time-value (parameter))
+
+(defgeneric run-time-value (parameter))
+
+(defgeneric compile-time-value (parameter))
+
+(defclass parameter ()
+  ((%type :accessor parameter-type
+          :initarg :type
+          :initform '(or null character integer))
+   (%default :accessor parameter-default
+             :initarg :default
+             :initform nil)))
+
+(defclass argument-reference-parameter (parameter)
+  ())
+
+(defclass remaining-argument-count-parameter (parameter)
+  ())
+
+(defclass literal-parameter (parameter)
+  ((%value :accessor parameter-value
+           :initarg :value
+           :initform nil)))
+
 ;;; How we represent a directive.  It may seem wasteful to allocate
 ;;; a class instance for each directive, but most format directives
 ;;; are handled at compile time anyway.
@@ -59,7 +84,7 @@
    ;; The directive character used.
    (%directive-character :initarg :directive-character :reader directive-character)
    ;; a list of parameters, each one is either an integer or a character
-   (%given-parameters :initarg :given-parameters :reader given-parameters)
+   (%given-parameters :initarg :given-parameters :accessor given-parameters)
    ;; true if and only if the `:' modifier was given
    (%colonp :initarg :colonp :reader colonp)
    ;; true if and only if the `@' modifier was given
@@ -113,11 +138,14 @@
 ;;; specification is a list where the first element is the name of the
 ;;; parameter, and the remaining elemnts are keyword/value pairs.
 ;;; Currently, the only keywords allowed are :type and
-;;; :default-value.
+;;; :default.
 (defmacro define-directive (client-name character name
                             end-name superclasses parameters
                             &body slots)
   `(progn
+     (defclass ,name ,superclasses
+       ,slots)
+
      (defmethod specialize-directive ((client ,client-name)
                                       (char (eql ,(char-upcase character)))
                                       directive
@@ -137,24 +165,14 @@
      (eval-when (:compile-toplevel :load-toplevel :execute)
        (defmethod parameter-specs ((directive-name (eql ',name)))
          ',(loop for parameter in parameters
-                 collect (if (getf (cdr parameter) :default-value)
+                 collect (if (getf (cdr parameter) :default)
                              parameter
                              (cons (car parameter)
-                                   (list* :default-value nil (cdr parameter))))))
-       (defmethod parameter-specifications ((client ,client-name)
-                                            (directive ,name))
-         ',(mapcar (lambda (spec)
-                     (list* :count 1
-                            (cdr spec)))
-                   parameters)))
+                                   (list* :default nil (cdr parameter)))))))
 
-     (defclass ,name ,superclasses
-       (,@(loop for parameter in parameters
-                collect `(,(car parameter)
-                           :initform nil
-                           :reader
-                           ,(car parameter)))
-          ,@slots))))
+     (defmethod parameter-specifications ((client ,client-name)
+                                          (directive ,name))
+       ',(mapcar #'cdr parameters))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -162,35 +180,29 @@
 
 (defmethod check-directive-syntax progn (client directive)
   (declare (ignore client))
-  (with-accessors ((given-parameters given-parameters))
-    directive
-    (let ((parameter-specs (parameter-specs (class-name (class-of directive)))))
-      ;; When a parameter was explicitly given, check that
-      ;; what was given does not have an incompatible type
-      ;; with respect to the default value of the corresponding
-      ;; slot, and assign the explicitly given value to
-      ;; the slot.
-      (let ((parameter-number 1))
-        (mapc (lambda (parameter-spec parameter-value)
-                (unless (or (eq parameter-value :remaining-argument-count)
-                            (eq parameter-value :argument-reference))
-                  (unless
-                      (or
-                       ;; Either a parameter was not supplied, but it has a
-                       ;; default value
-                       (and (null parameter-value)
-                            (not (null (getf (cdr parameter-spec) :default-value))))
-                       ;; Or else it was supplied, and it is of the right type.
-                       (typep parameter-value (getf (cdr parameter-spec) :type)))
-                    (error 'parameter-type-error
-                           :expected-type
-                           (getf (cdr parameter-spec) :type)
-                           :datum parameter-value)))
-                (setf (slot-value directive (car parameter-spec))
-                      parameter-value)
-                (incf parameter-number))
-        parameter-specs
-        given-parameters)))))
+  (loop for remaining-parameters = (given-parameters directive) then (cdr remaining-parameters)
+        for parameter = (car remaining-parameters)
+        for remaining-specs = (parameter-specs (class-name (class-of directive))) then (cdr remaining-specs)
+        for spec = (car remaining-specs)
+        for parameter-number from 1
+        finally (setf (given-parameters directive) parameters)
+        while (or remaining-parameters remaining-specs)
+        if (and parameter spec)
+          do (apply #'reinitialize-instance parameter (cdr spec))
+        else unless parameter
+          do (setf parameter (apply #'make-instance 'literal-parameter (cdr spec)))
+        collect parameter into parameters
+        when (typep parameter 'literal-parameter)
+          do (with-accessors ((parameter-value parameter-value)
+                              (parameter-type parameter-type)
+                              (parameter-default parameter-default))
+                 parameter
+               (unless parameter-value
+                 (setf parameter-value parameter-default))
+               (unless (typep parameter-value parameter-type)
+                 (error 'parameter-type-error
+                        :expected-type parameter-type
+                        :datum parameter-value)))))
 
 (defmethod check-directive-syntax progn (client (directive named-parameters-directive))
   (declare (ignore client))

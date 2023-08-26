@@ -180,7 +180,7 @@
 ;;; 22.3.5.3 ~i Indent
 
 (define-directive t #\i i-directive t (named-parameters-directive)
-    ((how-many :type integer :default-value 0)))
+    ((how-many :type integer :default 0)))
 
 (defmethod layout-requirements ((item i-directive))
   (list :logical-block))
@@ -270,13 +270,7 @@
                    (given-parameters given-parameters)
                    (function-name function-name))
     directive
-    (let ((param-args
-           (loop for parameter in given-parameters
-                 collect (cond ((eq parameter :remaining-argument-count)
-                                *remaining-argument-count*)
-                               ((eq parameter :argument-reference)
-                                (consume-next-argument t))
-                               (t parameter)))))
+    (let ((param-args (mapcar #'interpret-type-value given-parameters)))
       (apply function-name
              *destination*
              (consume-next-argument t)
@@ -296,15 +290,7 @@
                    (given-parameters given-parameters)
                    (function-name function-name))
       directive
-    `((let ((param-args (list ,@(mapcar (lambda (parameter)
-                                          (case parameter
-                                            (:remaining-argument-count
-                                             '*remaining-argument-count*)
-                                            (:argument-reference
-                                             '(consume-next-argument t))
-                                            (otherwise
-                                             parameter)))
-                                        given-parameters))))
+    `((let ((param-args (list ,@(mapcar #'run-time-value given-parameters))))
         (apply ',function-name
                *destination*
                (consume-next-argument t)
