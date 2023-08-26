@@ -95,7 +95,7 @@
 
 (define-format-directive-compiler ampersand-directive
   (case how-many
-    ((nil)
+    (:run-time-value
      `((unless (zerop how-many)
          (fresh-line *destination*)
          (loop repeat (1- how-many)

@@ -201,7 +201,7 @@
        ,(parameter-default parameter)))
 
 (defmethod compile-time-value ((parameter argument-reference-parameter))
-  nil)
+  :run-time-value)
 
 (defmethod interpret-time-value ((parameter remaining-argument-count-parameter))
   (if (typep *remaining-argument-count*
@@ -220,7 +220,7 @@
               :datum *remaining-argument-count*)))
 
 (defmethod compile-time-value ((parameter remaining-argument-count-parameter))
-  nil)
+  :run-time-value)
 
 (defmethod interpret-time-value ((parameter literal-parameter))
   (parameter-value parameter))

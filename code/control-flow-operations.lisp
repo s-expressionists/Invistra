@@ -66,7 +66,7 @@
   (declare (ignore client))
   ;; Check that, if a parameter is given, then there are
   ;; no modifiers.
-  (when (and (not (null (given-parameters directive)))
+  #+(or)(when (and (not (null (given-parameters directive)))
              (or (colonp directive) (at-signp directive)))
     (error 'modifier-and-parameter
            :directive directive))
