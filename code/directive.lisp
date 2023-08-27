@@ -24,7 +24,7 @@
 
 (defgeneric directive-character (directive))
 
-(defgeneric given-parameters (directive))
+(defgeneric parameters (directive))
 
 (defgeneric colonp (directive))
 
@@ -45,11 +45,11 @@
     (declare (ignore directive))
     nil))
 
-(defgeneric interpret-time-value (parameter))
+(defgeneric interpret-parameter (parameter))
 
-(defgeneric run-time-value (parameter))
+(defgeneric compile-parameter (parameter))
 
-(defgeneric compile-time-value (parameter))
+(defgeneric compile-time-parameter (parameter))
 
 (defclass parameter ()
   ((%type :accessor parameter-type
@@ -84,7 +84,7 @@
    ;; The directive character used.
    (%directive-character :initarg :directive-character :reader directive-character)
    ;; a list of parameters, each one is either an integer or a character
-   (%given-parameters :initarg :given-parameters :accessor given-parameters)
+   (%parameters :initarg :parameters :accessor parameters)
    ;; true if and only if the `:' modifier was given
    (%colonp :initarg :colonp :reader colonp)
    ;; true if and only if the `@' modifier was given
@@ -180,12 +180,12 @@
 
 (defmethod check-directive-syntax progn (client directive)
   (declare (ignore client))
-  (loop for remaining-parameters = (given-parameters directive) then (cdr remaining-parameters)
+  (loop for remaining-parameters = (parameters directive) then (cdr remaining-parameters)
         for parameter = (car remaining-parameters)
         for remaining-specs = (parameter-specs (class-name (class-of directive))) then (cdr remaining-specs)
         for spec = (car remaining-specs)
         for parameter-number from 1
-        finally (setf (given-parameters directive) parameters)
+        finally (setf (parameters directive) parameters)
         while (or remaining-parameters remaining-specs)
         if (and parameter spec)
           do (apply #'reinitialize-instance parameter (cdr spec))
@@ -206,16 +206,16 @@
 
 (defmethod check-directive-syntax progn (client (directive named-parameters-directive))
   (declare (ignore client))
-  (with-accessors ((given-parameters given-parameters))
+  (with-accessors ((parameters parameters))
     directive
     (let ((parameter-specs (parameter-specs (class-name (class-of directive)))))
       ;; Check that the number of parameters given is no more than
       ;; what this type of directive allows.
-      (when (> (length given-parameters) (length parameter-specs))
+      (when (> (length parameters) (length parameter-specs))
         (error 'too-many-parameters
                :directive directive
                :at-most-how-many (length parameter-specs)
-               :how-many-found (length given-parameters))))))
+               :how-many-found (length parameters))))))
 
 ;;; Signal an error if a modifier has been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive no-modifiers-mixin))

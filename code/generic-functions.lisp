@@ -30,10 +30,10 @@
 
 ;;; DIRECTIVE is an instance of a subclass of the DIRECTIVE class
 ;;; describing the directive.
-(defgeneric interpret-format-directive (client directive))
+(defgeneric interpret-item (client directive))
 
 ;;; The directive compiler.
-(defgeneric compile-format-directive (client directive))
+(defgeneric compile-item (client directive))
 
 (defgeneric parse-directive-suffix (directive-character control-string start end)
   (:method (directive-character control-string start end)

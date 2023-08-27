@@ -46,7 +46,7 @@
 (defmethod check-directive-syntax progn
     (client (directive circumflex-directive))
   (declare (ignore client))
-  (let ((parameters (given-parameters directive)))
+  (let ((parameters (parameters directive)))
     (when (and (second parameters) (not (first parameters)))
       (error 'parameter-omitted
              :parameter1 1

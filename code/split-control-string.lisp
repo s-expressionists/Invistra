@@ -38,7 +38,7 @@
                                     :suffix-start suffix-start
                                     :end end-of-directive-position
                                     :directive-character (char-upcase directive-character)
-                                    :given-parameters parameters
+                                    :parameters parameters
                                     :colonp colonp
                                     :at-signp at-signp)
                              (setf start end-of-directive-position))))))))

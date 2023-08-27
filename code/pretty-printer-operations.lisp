@@ -261,39 +261,22 @@
                :directive directive))
       (setf (function-name directive) (intern symbol-name package)))))
 
-(defmethod interpret-format-directive (client (directive call-function-directive))
-  (with-accessors ((control-string control-string)
-                   (start start)
-                   (end end)
-                   (colonp colonp)
-                   (at-signp at-signp)
-                   (given-parameters given-parameters)
-                   (function-name function-name))
-    directive
-    (let ((param-args (mapcar #'interpret-type-value given-parameters)))
-      (apply function-name
+(defmethod interpret-item (client (directive call-function-directive))
+  (declare (ignore client))
+  (let ((parameters (interpret-parameters directive)))
+    (apply (function-name function-name)
+           *destination*
+           (consume-next-argument t)
+           (colonp directive)
+           (at-signp directive)
+           parameters)))
+
+(defmethod compile-item (client (directive call-function-directive))
+  (declare (ignore client))
+  `((let ((parameters ,(compile-parameters directive)))
+      (apply ',(function-name directive)
              *destination*
              (consume-next-argument t)
-             colonp
-             at-signp
-             param-args))))
-
-;;; This is not quite right.  We should probably look up the
-;;; function name at runtime as opposed to compile time.
-(defmethod compile-format-directive (client (directive call-function-directive))
-  (declare (ignorable client))
-  (with-accessors ((control-string control-string)
-                   (start start)
-                   (end end)
-                   (colonp colonp)
-                   (at-signp at-signp)
-                   (given-parameters given-parameters)
-                   (function-name function-name))
-      directive
-    `((let ((param-args (list ,@(mapcar #'run-time-value given-parameters))))
-        (apply ',function-name
-               *destination*
-               (consume-next-argument t)
-               ,colonp
-               ,at-signp
-               param-args)))))
+             ,(colonp directive)
+             ,(at-signp directive)
+             parameters))))
