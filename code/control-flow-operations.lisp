@@ -11,33 +11,37 @@
 (define-directive t #\* go-to-directive t (named-parameters-directive at-most-one-modifier-mixin)
     ((param :type (or null (integer 0)) :default nil)))
 
-(define-format-directive-interpreter go-to-directive
-  (cond (colonp
-         ;; Back up in the list of arguments.
-         ;; The default value for the parameter is 1.
-         (go-to-argument (- (or param 1))))
-        (at-signp
-         ;; Go to an absolute argument number.
-         ;; The default value for the parameter is 0.
-         (go-to-argument (or param 0) t))
-        (t
-         ;; Skip the next arguments.
-         ;; The default value for the parameter is 1.
-         (go-to-argument (or param 1)))))
+(defmethod interpret-item (client (directive go-to-directive) &optional parameters)
+  (declare (ignore client))
+  (let ((param (car parameters)))
+    (cond ((colonp directive)
+           ;; Back up in the list of arguments.
+           ;; The default value for the parameter is 1.
+           (go-to-argument (- (or param 1))))
+          ((at-signp directive)
+           ;; Go to an absolute argument number.
+           ;; The default value for the parameter is 0.
+           (go-to-argument (or param 0) t))
+          (t
+           ;; Skip the next arguments.
+           ;; The default value for the parameter is 1.
+           (go-to-argument (or param 1))))))
 
-(define-format-directive-compiler go-to-directive
-  (cond (colonp
-         ;; Back up in the list of arguments.
-         ;; The default value for the parameter is 1.
-         `((go-to-argument (- (or param 1)))))
-        (at-signp
-         ;; Go to an absolute argument number.
-         ;; The default value for the parameter is 0.
-         `((go-to-argument (or param 0) t)))
-        (t
-         ;; Skip the next arguments.
-         ;; The default value for the parameter is 1.
-         `((go-to-argument (or param 1))))))
+(defmethod compile-item (client (directive go-to-directive) &optional parameters)
+  (declare (ignore client))
+  (let ((param (car parameters)))
+    (cond ((colonp directive)
+           ;; Back up in the list of arguments.
+           ;; The default value for the parameter is 1.
+           `((go-to-argument (- (or ,param 1)))))
+          ((at-signp directive)
+           ;; Go to an absolute argument number.
+           ;; The default value for the parameter is 0.
+           `((go-to-argument (or ,param 0) t)))
+          (t
+           ;; Skip the next arguments.
+           ;; The default value for the parameter is 1.
+           `((go-to-argument (or ,param 1)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -45,13 +49,11 @@
 
 (define-directive t #\] end-conditional-directive t (named-parameters-directive no-modifiers-mixin end-structured-directive-mixin) ())
 
-(define-format-directive-interpreter end-conditional-directive
-    ;; do nothing
-    nil)
+(defmethod interpret-item (client (directive end-conditional-directive) &optional parameters)
+  (declare (ignore client parameters)))
 
-(define-format-directive-compiler end-conditional-directive
-    ;; do nothing
-    nil)
+(defmethod compile-item (client (directive end-conditional-directive) &optional parameters)
+  (declare (ignore client parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -97,58 +99,60 @@
              :directive directive))
     (setf (last-clause-is-default-p directive) (and pos t))))
 
-(define-format-directive-interpreter conditional-directive
-  (cond (at-signp
-         (when (consume-next-argument t)
-           (go-to-argument -1)
-           (interpret-items client (aref (clauses directive) 0))))
-        (colonp
-         (interpret-items client
-                          (aref (clauses directive)
-                                (if (consume-next-argument t) 1 0))))
-        (t
-         ;; If a parameter was given, use it,
-         ;; else use the next argument.
-         (let ((val (or param (consume-next-argument 'integer))))
-           (if (or (minusp val)
-                   (>= val (length (clauses directive))))
-               ;; Then the argument is out of range
-               (when (last-clause-is-default-p directive)
-                 ;; Then execute the default-clause
-                 (interpret-items client
-                                  (aref (clauses directive)
-                                        (1- (length (clauses directive))))))
-               ;; Else, execute the corresponding clause
-               (interpret-items client
-                                (aref (clauses directive) val)))))))
-
-(define-format-directive-compiler conditional-directive
-  (cond (at-signp
-         `((when (consume-next-argument t)
-           (go-to-argument -1)
-           ,@(compile-items client (aref (clauses directive) 0)))))
-        (colonp
-         `((cond ((consume-next-argument t)
-                  ,@(compile-items client (aref (clauses directive) 1)))
-                 (t
-                  ,@(compile-items client (aref (clauses directive) 0))))))
-        (t
-         ;; If a parameter was given, use it,
-         ;; else use the next argument.
-         `((let ((val (or param (consume-next-argument 'integer))))
+(defmethod interpret-item (client (directive conditional-directive) &optional parameters)
+  (let ((param (car parameters)))
+    (cond ((at-signp directive)
+           (when (consume-next-argument t)
+             (go-to-argument -1)
+             (interpret-items client (aref (clauses directive) 0))))
+          ((colonp directive)
+           (interpret-items client
+                            (aref (clauses directive)
+                                  (if (consume-next-argument t) 1 0))))
+          (t
+           ;; If a parameter was given, use it,
+           ;; else use the next argument.
+           (let ((val (or param (consume-next-argument 'integer))))
              (if (or (minusp val)
-                     (>= val ,(length (clauses directive))))
+                     (>= val (length (clauses directive))))
                  ;; Then the argument is out of range
-                 ,(when (last-clause-is-default-p directive)
-                    ;; Then execute the default-clause
-                    `(progn ,@(compile-items client
-                                             (aref (clauses directive)
-                                                   (1- (length (clauses directive)))))))
+                 (when (last-clause-is-default-p directive)
+                   ;; Then execute the default-clause
+                   (interpret-items client
+                                    (aref (clauses directive)
+                                          (1- (length (clauses directive))))))
                  ;; Else, execute the corresponding clause
-                 (case val
-                   ,@(loop for i from 0
-                           for clause across (clauses directive)
-                           collect `(,i ,@(compile-items client clause))))))))))
+                 (interpret-items client
+                                  (aref (clauses directive) val))))))))
+
+(defmethod compile-item (client (directive conditional-directive) &optional parameters)
+  (let ((param (car parameters)))
+    (cond ((at-signp directive)
+           `((when (consume-next-argument t)
+               (go-to-argument -1)
+               ,@(compile-items client (aref (clauses directive) 0)))))
+          ((colonp directive)
+           `((cond ((consume-next-argument t)
+                    ,@(compile-items client (aref (clauses directive) 1)))
+                   (t
+                    ,@(compile-items client (aref (clauses directive) 0))))))
+          (t
+           ;; If a parameter was given, use it,
+           ;; else use the next argument.
+           `((let ((val (or ,param (consume-next-argument 'integer))))
+               (if (or (minusp val)
+                       (>= val ,(length (clauses directive))))
+                   ;; Then the argument is out of range
+                   ,(when (last-clause-is-default-p directive)
+                      ;; Then execute the default-clause
+                      `(progn ,@(compile-items client
+                                               (aref (clauses directive)
+                                                     (1- (length (clauses directive)))))))
+                   ;; Else, execute the corresponding clause
+                   (case val
+                     ,@(loop for i from 0
+                             for clause across (clauses directive)
+                             collect `(,i ,@(compile-items client clause)))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -156,13 +160,11 @@
 
 (define-directive t #\} end-iteration-directive t (named-parameters-directive only-colon-mixin end-structured-directive-mixin) ())
 
-(define-format-directive-interpreter end-iteration-directive
-    ;; do nothing
-    nil)
+(defmethod interpret-item (client (directive end-iteration-directive) &optional parameters)
+  (declare (ignore client parameters)))
 
-(define-format-directive-compiler end-iteration-directive
-    ;; do nothing
-    nil)
+(defmethod compile-item (client (directive end-iteration-directive) &optional parameters)
+  (declare (ignore client parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -172,10 +174,13 @@
   (named-parameters-directive structured-directive-mixin)
     ((iteration-limit :type (or null (integer 0)) :default nil)))
 
-(define-format-directive-interpreter iteration-directive
+(defmethod interpret-item (client (directive iteration-directive) &optional parameters)
   ;; eliminate the end-of-iteration directive from the
   ;; list of items
-  (let* ((items (aref (clauses directive) 0))
+  (let* ((colonp (colonp directive))
+         (at-signp (at-signp directive))
+         (iteration-limit (car parameters))
+         (items (aref (clauses directive) 0))
          (oncep (colonp (aref items (1- (length items))))))
     (if (= (length items) 1)
         (let ((control (consume-next-argument '(or string function))))
@@ -308,16 +313,20 @@
                          do (funcall *inner-exit-if-exhausted*)
                        do (interpret-items client items))))))))
 
-(define-format-directive-compiler iteration-directive
+(defmethod compile-item (client (directive iteration-directive) &optional parameters)
   ;; eliminate the end-of-iteration directive from the
   ;; list of items
-  (let* ((items (aref (clauses directive) 0))
+  (let* ((colonp (colonp directive))
+         (at-signp (at-signp directive))
+         (iteration-limit (car parameters))
+         (items (aref (clauses directive) 0))
          (oncep (colonp (aref items (1- (length items))))))
     (if (= (length items) 1)
         (cond ((and colonp at-signp)
                ;; The remaining arguments should be lists.  Each argument
                ;; is used in a different iteration.
-               `((let ((control (consume-next-argument '(or function string))))
+               `((let ((iteration-limit ,iteration-limit)
+                       (control (consume-next-argument '(or function string))))
                    (catch *inner-tag*
                      (loop for index from 0
                            while (or (null iteration-limit)
@@ -334,7 +343,8 @@
               (colonp
                ;; We use one argument, and that should be a list of sublists.
                ;; Each sublist is used as arguments for one iteration.
-               `((let ((control (consume-next-argument '(or function string))))
+               `((let ((iteration-limit ,iteration-limit)
+                       (control (consume-next-argument '(or function string))))
                    (with-arguments (consume-next-argument 'list)
                      (loop for index from 0
                            while (or (null iteration-limit)
@@ -349,7 +359,8 @@
                                   (format-with-runtime-arguments ,(incless:client-form client)
                                                                  control)))))))
               (at-signp
-               `((let ((control (consume-next-argument '(or function string))))
+               `((let ((iteration-limit ,iteration-limit)
+                       (control (consume-next-argument '(or function string))))
                    (if (functionp control)
                        (loop for args = (consume-remaining-arguments)
                                then (apply control *destination* args)
@@ -373,7 +384,8 @@
                ;; no modifiers
                ;; We use one argument, and that should be a list.
                ;; The elements of that list are used by the iteration.
-               `((let ((control (consume-next-argument '(or function string))))
+               `((let ((iteration-limit ,iteration-limit)
+                       (control (consume-next-argument '(or function string))))
                    (if (functionp control)
                        (loop for args = (consume-next-argument 'list)
                                then (apply control *destination* args)
@@ -396,50 +408,54 @@
           (cond ((and colonp at-signp)
                  ;; The remaining arguments should be lists.  Each argument
                  ;; is used in a different iteration.
-                 `((catch *inner-tag*
-                     (loop for index from 0
-                           while (or (null iteration-limit)
-                                     (< index iteration-limit))
-                           ,@(if oncep
-                                 '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
-                                 '(do (funcall *inner-exit-if-exhausted*)))
-                           do (with-arguments (consume-next-argument 'list)
-                                ,@compiled-items)))))
+                 `((let ((iteration-limit ,iteration-limit))
+                     (catch *inner-tag*
+                       (loop for index from 0
+                             while (or (null iteration-limit)
+                                       (< index iteration-limit))
+                             ,@(if oncep
+                                   '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
+                                   '(do (funcall *inner-exit-if-exhausted*)))
+                             do (with-arguments (consume-next-argument 'list)
+                                  ,@compiled-items))))))
                 (colonp
                  ;; We use one argument, and that should be a list of sublists.
                  ;; Each sublist is used as arguments for one iteration.
-                 `((with-arguments (consume-next-argument 'list)
-                     (loop for index from 0
-                           while (or (null iteration-limit)
-                                     (< index iteration-limit))
-                           ,@(if oncep
-                                 '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
-                                 '(do (funcall *inner-exit-if-exhausted*)))
-                           do (with-arguments (consume-next-argument 'list)
-                                ,@compiled-items)))))
+                 `((let ((iteration-limit ,iteration-limit))
+                     (with-arguments (consume-next-argument 'list)
+                       (loop for index from 0
+                             while (or (null iteration-limit)
+                                       (< index iteration-limit))
+                             ,@(if oncep
+                                   '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
+                                   '(do (funcall *inner-exit-if-exhausted*)))
+                             do (with-arguments (consume-next-argument 'list)
+                                  ,@compiled-items))))))
                 (at-signp
-                 `((catch *inner-tag*
-                     (loop for index from 0
-                           while (or (null iteration-limit)
-                                     (< index iteration-limit))
-                           ,@(if oncep
-                                 '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
-                                 '(do (funcall *inner-exit-if-exhausted*)))
-                           ,@(when compiled-items
-                               (list* 'do compiled-items))))))
+                 `((let ((iteration-limit ,iteration-limit))
+                     (catch *inner-tag*
+                       (loop for index from 0
+                             while (or (null iteration-limit)
+                                       (< index iteration-limit))
+                             ,@(if oncep
+                                   '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
+                                   '(do (funcall *inner-exit-if-exhausted*)))
+                             ,@(when compiled-items
+                                 (list* 'do compiled-items)))))))
                 (t
                  ;; no modifiers
                  ;; We use one argument, and that should be a list.
                  ;; The elements of that list are used by the iteration.
-                 `((with-arguments (consume-next-argument 'list)
-                     (loop for index from 0
-                           while (or (null iteration-limit)
-                                     (< index iteration-limit))
-                           ,@(if oncep
-                                 '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
-                                 '(do (funcall *inner-exit-if-exhausted*)))
-                           ,@(when compiled-items
-                               (list* 'do compiled-items)))))))))))
+                 `((let ((iteration-limit ,iteration-limit))
+                     (with-arguments (consume-next-argument 'list)
+                       (loop for index from 0
+                             while (or (null iteration-limit)
+                                       (< index iteration-limit))
+                             ,@(if oncep
+                                   '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
+                                   '(do (funcall *inner-exit-if-exhausted*)))
+                             ,@(when compiled-items
+                                 (list* 'do compiled-items))))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -447,8 +463,9 @@
 
 (define-directive t #\? recursive-processing-directive t (named-parameters-directive only-at-sign-mixin) ())
 
-(define-format-directive-interpreter recursive-processing-directive
-  (if at-signp
+(defmethod interpret-item (client (directive recursive-processing-directive) &optional parameters)
+  (declare (ignore parameters))
+  (if (at-signp directive)
       ;; reuse the arguments from the parent control-string
       (format-with-runtime-arguments client
                                      (consume-next-argument 'string))
@@ -459,8 +476,9 @@
              (consume-next-argument 'string)
              (consume-next-argument 'list))))
 
-(define-format-directive-compiler recursive-processing-directive
-  (if at-signp
+(defmethod compile-item (client (directive recursive-processing-directive) &optional parameters)
+  (declare (ignore parameters))
+  (if (at-signp directive)
       ;; reuse the arguments from the parent control-string
       `((format-with-runtime-arguments ,(incless:client-form client)
                                        (consume-next-argument 'string)))

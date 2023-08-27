@@ -163,17 +163,22 @@
                    do (write-char overflowchar *destination*))
              t)))))
 
-(define-format-directive-interpreter f-directive
+(defmethod interpret-item (client (directive f-directive) &optional parameters)
   (print-float-arg client
                    (lambda (client value digits exponent)
-                     (print-fixed-arg client value digits exponent
-                                      colonp at-signp w d k overflowchar padchar))))
+                     (apply #'print-fixed-arg
+                            client value digits exponent
+                            (colonp directive) (at-signp directive)
+                            parameters))))
 
-(define-format-directive-compiler f-directive
-  `((print-float-arg ,(incless:client-form client)
-                     (lambda (client value digits exponent)
-                       (print-fixed-arg client value digits exponent
-                                        ,colonp ,at-signp w d k overflowchar padchar)))))
+(defmethod compile-item (client (directive f-directive) &optional parameters)
+  `((let ((parameters (list ,@parameters)))
+      (print-float-arg ,(incless:client-form client)
+                       (lambda (client value digits exponent)
+                         (apply #'print-fixed-arg
+                                client value digits exponent
+                                ,(colonp directive) ,(at-signp directive)
+                                parameters))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -302,19 +307,21 @@
              (loop repeat w
                    do (write-char overflowchar *destination*)))))))
 
-(define-format-directive-interpreter e-directive
+(defmethod interpret-item (client (directive e-directive) &optional parameters)
   (print-float-arg client
                    (lambda (client value digits exponent)
-                     (print-exponent-arg client value digits exponent
-                                         colonp at-signp w d e k
-                                         overflowchar padchar exponentchar))))
+                     (apply #'print-exponent-arg
+                            client value digits exponent
+                            (colonp directive) (at-signp directive)
+                            parameters))))
 
-(define-format-directive-compiler e-directive
-  `((print-float-arg ,(incless:client-form client)
-                     (lambda (client value digits exponent)
-                       (print-exponent-arg client value digits exponent
-                                           ,colonp ,at-signp w d e k
-                                           overflowchar padchar exponentchar)))))
+(defmethod compile-item (client (directive e-directive) &optional parameters)
+  `((let ((parameters (list ,@parameters)))
+      (print-float-arg ,(incless:client-form client)
+                       (lambda (client value digits exponent)
+                         (apply #'print-exponent-arg client value digits exponent
+                                ,(colonp directive) ,(at-signp directive)
+                                parameters))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -362,19 +369,22 @@
                                colonp at-signp w d e k
                                overflowchar padchar exponentchar)))))
 
-(define-format-directive-interpreter g-directive
+(defmethod interpret-item (client (directive g-directive) &optional parameters)
   (print-float-arg client
                    (lambda (client value digits exponent)
-                     (print-general-arg client value digits exponent
-                                        colonp at-signp w d e k
-                                        overflowchar padchar exponentchar))))
+                     (apply #'print-general-arg
+                            client value digits exponent
+                            (colonp directive) (at-signp directive)
+                            parameters))))
 
-(define-format-directive-compiler g-directive
-  `((print-float-arg ,(incless:client-form client)
-                     (lambda (client value digits exponent)
-                       (print-general-arg client value digits exponent
-                                          ,colonp ,at-signp w d e k
-                                          overflowchar padchar exponentchar)))))
+(defmethod compile-item (client (directive g-directive) &optional parameters)
+  `((let ((parameters (list ,@parameters)))
+      (print-float-arg ,(incless:client-form client)
+                       (lambda (client value digits exponent)
+                         (apply #'print-general-arg
+                                client value digits exponent
+                                ,(colonp directive) ,(at-signp directive)
+                                parameters))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -451,14 +461,19 @@
                (write-char sign *destination*))
              (print-decimal decimal))))))
 
-(define-format-directive-interpreter monetary-directive
+(defmethod interpret-item (client (directive monetary-directive) &optional parameters)
   (print-float-arg client
                    (lambda (client value digits exponent)
-                     (print-monetary-arg client value digits exponent
-                                        colonp at-signp d n w padchar))))
+                     (apply #'print-monetary-arg
+                            client value digits exponent
+                            (colonp directive) (at-signp directive)
+                            parameters))))
 
-(define-format-directive-compiler monetary-directive
-  `((print-float-arg ,(incless:client-form client)
-                     (lambda (client value digits exponent)
-                       (print-monetary-arg ,client value digits exponent
-                                           ,colonp ,at-signp d n w padchar)))))
+(defmethod compile-item (client (directive monetary-directive) &optional parameters)
+  `((let ((parameters (list ,@parameters)))
+      (print-float-arg ,(incless:client-form client)
+                       (lambda (client value digits exponent)
+                         (apply #'print-monetary-arg
+                                client value digits exponent
+                                ,(colonp directive) ,(at-signp directive)
+                                parameters))))))

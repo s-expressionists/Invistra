@@ -98,27 +98,12 @@
 
 ;;; The directive interpreter.
 
-(defmethod interpret-item (client directive)
-  (declare (ignore client))
+(defmethod interpret-item (client directive &optional parameters)
+  (declare (ignore client parameters))
   (error 'unknown-format-directive
          :control-string (control-string directive)
          :tilde-position (start directive)
          :index (1- (end directive))))
-
-(defmacro define-format-directive-interpreter (class-name &body body)
-  `(defmethod interpret-item (client (directive ,class-name))
-     (declare (ignorable client))
-     (with-accessors ((control-string control-string)
-                      (start start)
-                      (suffix-start suffix-start)
-                      (end end)
-                      (colonp colonp)
-                      (at-signp at-signp))
-         directive
-       (destructuring-bind ,(mapcar #'car (parameter-specs class-name))
-           (mapcar #'interpret-parameter (parameters directive))
-         (declare (ignorable ,@(mapcar #'car (parameter-specs class-name))))
-         ,@body))))
 
 (defun consume-next-argument (type)
   (unless (< *previous-argument-index* (length *previous-arguments*))
@@ -177,21 +162,6 @@
            (setf *previous-argument-index* new-arg-index)
            (aref *previous-arguments* *previous-argument-index*)))))
 
-(defmacro define-format-directive-compiler (class-name &body body)
-  `(defmethod compile-item (client (directive ,class-name))
-     (declare (ignorable client))
-     (with-accessors ((control-string control-string)
-                      (start start)
-                      (suffix-start suffix-start)
-                      (end end)
-                      (colonp colonp)
-                      (at-signp at-signp))
-         directive
-       (destructuring-bind ,(mapcar #'car (parameter-specs class-name))
-           (mapcar #'compile-time-parameter (parameters directive))
-         (declare (ignorable ,@(mapcar #'car (parameter-specs class-name))))
-         ,@body))))
-
 (defmethod interpret-parameter ((parameter argument-reference-parameter))
   (or (consume-next-argument `(or null ,(parameter-type parameter)))
       (parameter-default parameter)))
@@ -199,9 +169,6 @@
 (defmethod compile-parameter ((parameter argument-reference-parameter))
   `(or (consume-next-argument '(or null ,(parameter-type parameter)))
        ,(parameter-default parameter)))
-
-(defmethod compile-time-parameter ((parameter argument-reference-parameter))
-  :run-time-value)
 
 (defmethod interpret-parameter ((parameter remaining-argument-count-parameter))
   (if (typep *remaining-argument-count*
@@ -219,26 +186,11 @@
               :expected-type ',(parameter-type parameter)
               :datum *remaining-argument-count*)))
 
-(defmethod compile-time-parameter ((parameter remaining-argument-count-parameter))
-  :run-time-value)
-
 (defmethod interpret-parameter ((parameter literal-parameter))
   (parameter-value parameter))
 
 (defmethod compile-parameter ((parameter literal-parameter))
   (parameter-value parameter))
-
-(defmethod compile-time-parameter ((parameter literal-parameter))
-  (parameter-value parameter))
-
-(defun interpret-parameters (directive)
-  (mapcar #'interpret-parameter (parameters directive)))
-
-(defun compile-time-parameters (directive)
-  (mapcar #'compile-time-parameter (parameters directive)))
-
-(defun compile-parameters (directive)
-  `(list ,@(mapcar #'compile-parameter (parameters directive))))
 
 ;;; The reason we define this function is that the ~? directive
 ;;; (recursive processing), when a @ modifier is used, reuses
@@ -271,7 +223,8 @@
         (get-output-stream-string *destination*)
         nil)))
 
-(defmethod interpret-item (client (item string))
+(defmethod interpret-item (client (item string) &optional parameters)
+  (declare (ignore parameters))
   (if *newline-kind*
       (loop with start = 0
             with in-blank-p = nil
@@ -288,16 +241,8 @@
             do (setf in-blank-p blankp))
       (write-string item *destination*)))
 
-(defmethod compile-item :around (client (item directive))
-  (let ((specs (parameter-specs (class-name (class-of item)))))
-    (if specs
-        `((destructuring-bind ,(mapcar #'car specs)
-              (list ,@(mapcar #'compile-parameter (parameters item)))
-            (declare (ignorable ,@(mapcar #'car specs)))
-            ,@(call-next-method)))
-        (call-next-method))))
-
-(defmethod compile-item (client (item string))
+(defmethod compile-item (client (item string) &optional parameters)
+  (declare (ignore parameters))
   (if *newline-kind*
       #+sicl nil #-sicl
       (loop with start = 0
@@ -316,3 +261,13 @@
               do (setf start index)
             do (setf in-blank-p blankp))
       `((write-string ,item *destination*))))
+
+(defmethod interpret-item :around (client (item directive) &optional parameters)
+  (declare (ignore parameters))
+  (call-next-method client item
+                    (mapcar #'interpret-parameter (parameters item))))
+
+(defmethod compile-item :around (client (item directive) &optional parameters)
+  (declare (ignore parameters))
+  (call-next-method client item
+                    (mapcar #'compile-parameter (parameters item))))

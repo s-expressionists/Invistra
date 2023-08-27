@@ -4,7 +4,7 @@
 ;;;
 ;;; 22.3.2 Radix control
 
-(defun print-radix-arg (client radix colonp at-signp mincol padchar commachar comma-interval)
+(defun print-radix-arg (client colonp at-signp radix mincol padchar commachar comma-interval)
   (let ((argument (consume-next-argument t)))
     (if (not (integerp argument))
         (let ((*print-base* radix)
@@ -229,50 +229,54 @@
         (t
          (print-ordinal-non-zero n stream))))
 
-(define-format-directive-interpreter r-directive
-  (cond ((not (null radix))
-         (print-radix-arg client radix colonp at-signp mincol padchar commachar comma-interval))
-        ((and colonp at-signp)
-         (print-as-old-roman (consume-next-argument '(integer 1))
-                             *destination*))
-        (at-signp
-         (print-as-roman (consume-next-argument '(integer 1))
-                         *destination*))
-        (colonp
-         (print-ordinal-number (consume-next-argument
-                                `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
+(defmethod interpret-item (client (directive r-directive) &optional parameters)
+  (let ((radix (car parameters))
+        (colonp (colonp directive))
+        (at-signp (at-signp directive)))
+    (cond (radix
+           (apply #'print-radix-arg client colonp at-signp parameters))
+          ((and colonp at-signp)
+           (print-as-old-roman (consume-next-argument '(integer 1))
                                *destination*))
-        (t
-         (print-cardinal-number (consume-next-argument
-                                 `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
-                                *destination*))))
+          (at-signp
+           (print-as-roman (consume-next-argument '(integer 1))
+                           *destination*))
+          (colonp
+           (print-ordinal-number (consume-next-argument
+                                  `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
+                                 *destination*))
+          (t
+           (print-cardinal-number (consume-next-argument
+                                   `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
+                                  *destination*)))))
 
-(define-format-directive-compiler r-directive
-  (let ((print-number-radix `(print-radix-arg ,(incless:client-form client)
-                                              radix ,colonp ,at-signp mincol
-                                              padchar commachar comma-interval))
-        (print-null-radix (cond ((and colonp at-signp)
-                                 `(print-as-old-roman (consume-next-argument '(integer 1))
-                                                      *destination*))
-                                (at-signp
-                                 `(print-as-roman (consume-next-argument '(integer 1))
+(defmethod compile-item (client (directive r-directive) &optional parameters)
+  (let ((colonp (colonp directive))
+        (at-signp (at-signp directive)))
+    (cond ((numberp (car parameters))
+           `((print-radix-arg ,(incless:client-form client)
+                              ,colonp ,at-signp ,@parameters)))
+          (t
+           `((let ((parameters (list ,@parameters)))
+               (if (car parameters)
+                   (apply #'print-radix-arg ,(incless:client-form client)
+                          ,colonp ,at-signp parameters)
+                   ,(cond ((and colonp at-signp)
+                           '(print-as-old-roman (consume-next-argument '(integer 1))
+                             *destination*))
+                          (at-signp
+                           '(print-as-roman (consume-next-argument '(integer 1))
+                             *destination*))
+                          (colonp
+                           `(print-ordinal-number (consume-next-argument
+                                                   '(integer ,(1+ (- (expt 10 65)))
+                                                     ,(1- (expt 10 65))))
                                                   *destination*))
-                                (colonp
-                                 `(print-ordinal-number (consume-next-argument
-                                                         `(integer ,(1+ (- (expt 10 65)))
-                                                                   ,(1- (expt 10 65))))
-                                                        *destination*))
-                                (t
-                                 `(print-cardinal-number (consume-next-argument
-                                                          `(integer ,(1+ (- (expt 10 65)))
-                                                                    ,(1- (expt 10 65))))
-                                                         *destination*)))))
-  (cond ((numberp radix)
-         (list print-number-radix))
-        (t
-         `((if (null radix)
-               ,print-null-radix
-               ,print-number-radix))))))
+                          (t
+                           `(print-cardinal-number (consume-next-argument
+                                                    '(integer ,(1+ (- (expt 10 65)))
+                                                      ,(1- (expt 10 65))))
+                                                   *destination*))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -284,11 +288,11 @@
      (commachar :type character :default #\,)
      (comma-interval :type (integer 1) :default 3)))
 
-(define-format-directive-interpreter d-directive
-  (print-radix-arg client 10 colonp at-signp mincol padchar commachar comma-interval))
+(defmethod interpret-item (client (directive d-directive) &optional parameters)
+  (apply #'print-radix-arg client (colonp directive) (at-signp directive) 10 parameters))
 
-(define-format-directive-compiler d-directive
-  `((print-radix-arg ,(incless:client-form client) 10 ,colonp ,at-signp mincol padchar commachar comma-interval)))
+(defmethod compile-item (client (directive d-directive) &optional parameters)
+  `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 10 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -300,11 +304,11 @@
      (commachar :type character :default #\,)
      (comma-interval :type (integer 1) :default 3)))
 
-(define-format-directive-interpreter b-directive
-  (print-radix-arg client 2 colonp at-signp mincol padchar commachar comma-interval))
+(defmethod interpret-item (client (directive b-directive) &optional parameters)
+  (apply #'print-radix-arg client (colonp directive) (at-signp directive) 2 parameters))
 
-(define-format-directive-compiler b-directive
-  `((print-radix-arg ,(incless:client-form client) 2 ,colonp ,at-signp mincol padchar commachar comma-interval)))
+(defmethod compile-item (client (directive b-directive) &optional parameters)
+  `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 2 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -316,11 +320,11 @@
      (commachar :type character :default #\,)
      (comma-interval :type (integer 1) :default 3)))
 
-(define-format-directive-interpreter o-directive
-  (print-radix-arg client 8 colonp at-signp mincol padchar commachar comma-interval))
+(defmethod interpret-item (client (directive o-directive) &optional parameters)
+  (apply #'print-radix-arg client (colonp directive) (at-signp directive) 8 parameters))
 
-(define-format-directive-compiler o-directive
-  `((print-radix-arg ,(incless:client-form client) 8 ,colonp ,at-signp mincol padchar commachar comma-interval)))
+(defmethod compile-item (client (directive o-directive) &optional parameters)
+  `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 8 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -332,8 +336,8 @@
      (commachar :type character :default #\,)
      (comma-interval :type (integer 1) :default 3)))
 
-(define-format-directive-interpreter x-directive
-  (print-radix-arg client 16 colonp at-signp mincol padchar commachar comma-interval))
+(defmethod interpret-item (client (directive x-directive) &optional parameters)
+  (apply #'print-radix-arg client (colonp directive) (at-signp directive) 16 parameters))
 
-(define-format-directive-compiler x-directive
-  `((print-radix-arg ,(incless:client-form client) 16 ,colonp ,at-signp mincol padchar commachar comma-interval)))
+(defmethod compile-item (client (directive x-directive) &optional parameters)
+  `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 16 ,@parameters)))

@@ -49,8 +49,6 @@
 
 (defgeneric compile-parameter (parameter))
 
-(defgeneric compile-time-parameter (parameter))
-
 (defclass parameter ()
   ((%type :accessor parameter-type
           :initarg :type
@@ -162,14 +160,6 @@
                   :control-string (control-string directive)
                   :tilde-position (start directive))))
 
-     (eval-when (:compile-toplevel :load-toplevel :execute)
-       (defmethod parameter-specs ((directive-name (eql ',name)))
-         ',(loop for parameter in parameters
-                 collect (if (getf (cdr parameter) :default)
-                             parameter
-                             (cons (car parameter)
-                                   (list* :default nil (cdr parameter)))))))
-
      (defmethod parameter-specifications ((client ,client-name)
                                           (directive ,name))
        ',(mapcar #'cdr parameters))))
@@ -182,15 +172,15 @@
   (declare (ignore client))
   (loop for remaining-parameters = (parameters directive) then (cdr remaining-parameters)
         for parameter = (car remaining-parameters)
-        for remaining-specs = (parameter-specs (class-name (class-of directive))) then (cdr remaining-specs)
+        for remaining-specs = (parameter-specifications client directive) then (cdr remaining-specs)
         for spec = (car remaining-specs)
         for parameter-number from 1
         finally (setf (parameters directive) parameters)
         while (or remaining-parameters remaining-specs)
         if (and parameter spec)
-          do (apply #'reinitialize-instance parameter (cdr spec))
+          do (apply #'reinitialize-instance parameter spec)
         else unless parameter
-          do (setf parameter (apply #'make-instance 'literal-parameter (cdr spec)))
+          do (setf parameter (apply #'make-instance 'literal-parameter spec))
         collect parameter into parameters
         when (typep parameter 'literal-parameter)
           do (with-accessors ((parameter-value parameter-value)
@@ -205,10 +195,9 @@
                         :datum parameter-value)))))
 
 (defmethod check-directive-syntax progn (client (directive named-parameters-directive))
-  (declare (ignore client))
   (with-accessors ((parameters parameters))
     directive
-    (let ((parameter-specs (parameter-specs (class-name (class-of directive)))))
+    (let ((parameter-specs (parameter-specifications client directive)))
       ;; Check that the number of parameters given is no more than
       ;; what this type of directive allows.
       (when (> (length parameters) (length parameter-specs))

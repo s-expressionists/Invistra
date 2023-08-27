@@ -15,13 +15,11 @@
      no-modifiers-mixin end-structured-directive-mixin)
     ())
 
-(define-format-directive-interpreter end-case-conversion-directive
-    ;; do nothing
-    nil)
+(defmethod interpret-item (client (item end-case-conversion-directive) &optional parameters)
+  (declare (ignore client parameters)))
 
-(define-format-directive-compiler end-case-conversion-directive
-    ;; do nothing
-    nil)
+(defmethod compile-item (client (item end-case-conversion-directive) &optional parameters)
+  (declare (ignore client parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -33,27 +31,33 @@
     (named-parameters-directive structured-directive-mixin)
     ())
 
-(define-format-directive-interpreter case-conversion-directive
-  (let ((*destination* (cond ((and colonp at-signp)
-                              (make-instance 'upcase-stream :target *destination*))
-                             (colonp
-                              (make-instance 'capitalize-stream :target *destination*))
-                             (at-signp
-                              (make-instance 'first-capitalize-stream :target *destination*))
-                             (t
-                              (make-instance 'downcase-stream :target *destination*)))))
-    (interpret-items client (aref (clauses directive) 0))))
+(defmethod interpret-item (client (item case-conversion-directive) &optional parameters)
+  (declare (ignore parameters))
+  (let* ((colonp (colonp item))
+         (at-signp (at-signp item))
+         (*destination* (cond ((and colonp at-signp)
+                               (make-instance 'upcase-stream :target *destination*))
+                              (colonp
+                               (make-instance 'capitalize-stream :target *destination*))
+                              (at-signp
+                               (make-instance 'first-capitalize-stream :target *destination*))
+                              (t
+                               (make-instance 'downcase-stream :target *destination*)))))
+    (interpret-items client (aref (clauses item) 0))))
 
-(define-format-directive-compiler case-conversion-directive
-  `((let ((*destination* ,(cond ((and colonp at-signp)
-                                 '(make-instance 'upcase-stream :target *destination*))
-                                (colonp
-                                 '(make-instance 'capitalize-stream :target *destination*))
-                                (at-signp
-                                 '(make-instance 'first-capitalize-stream :target *destination*))
-                                (t
-                                 '(make-instance 'downcase-stream :target *destination*)))))
-      ,@(compile-items client (aref (clauses directive) 0)))))
+(defmethod compile-item (client (item case-conversion-directive) &optional parameters)
+  (declare (ignore parameters))
+  (let ((colonp (colonp item))
+        (at-signp (at-signp item)))
+    `((let ((*destination* ,(cond ((and colonp at-signp)
+                                   '(make-instance 'upcase-stream :target *destination*))
+                                  (colonp
+                                   '(make-instance 'capitalize-stream :target *destination*))
+                                  (at-signp
+                                   '(make-instance 'first-capitalize-stream :target *destination*))
+                                  (t
+                                   '(make-instance 'downcase-stream :target *destination*)))))
+        ,@(compile-items client (aref (clauses item) 0))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -61,10 +65,11 @@
 
 (define-directive t #\p plural-directive t (named-parameters-directive) ())
 
-(define-format-directive-interpreter plural-directive
-  (when colonp
+(defmethod interpret-item (client (item plural-directive) &optional parameters)
+  (declare (ignore parameters))
+  (when (colonp item)
     (go-to-argument -1))
-  (if at-signp
+  (if (at-signp item)
       (write-string (if (eql (consume-next-argument t) 1)
                         "y"
                         "ies")
@@ -72,10 +77,11 @@
       (unless (eql (consume-next-argument t) 1)
         (write-char #\s *destination*))))
 
-(define-format-directive-compiler plural-directive
-  `(,@(when colonp
+(defmethod compile-item (client (item plural-directive) &optional parameters)
+  (declare (ignore parameters))
+  `(,@(when (colonp item)
         `((go-to-argument -1)))
-    ,(if at-signp
+    ,(if (at-signp item)
          `(write-string (if (eql (consume-next-argument t) 1)
                             "y"
                             "ies")
