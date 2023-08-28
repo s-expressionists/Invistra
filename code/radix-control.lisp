@@ -4,6 +4,16 @@
 ;;;
 ;;; 22.3.2 Radix control
 
+(defclass base-radix-directive (directive)
+  ())
+
+(defmethod parameter-specifications (client (directive base-radix-directive))
+  (declare (ignore client))
+  '((:type integer :default 0)
+    (:type character :default #\Space)
+    (:type character :default #\,)
+    (:type (integer 1) :default 3)))
+
 (defun print-radix-arg (client colon-p at-sign-p radix mincol padchar commachar comma-interval)
   (let ((argument (consume-next-argument t)))
     (if (not (integerp argument))
@@ -45,18 +55,15 @@
 ;;;
 ;;; 22.3.2.1 ~r Radix.
 
-(defclass radix-directive (directive) nil)
+(defclass radix-directive (base-radix-directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\R)) directive (end-directive t))
   (change-class directive 'radix-directive))
 
 (defmethod parameter-specifications ((client t) (directive radix-directive))
-  '((:type (or null (integer 2 36)) :default nil)
-    (:type integer :default 0)
-    (:type character :default #\Space)
-    (:type character :default #\,)
-    (:type (integer 1) :default 3)))
+  (list* '(:type (or null (integer 2 36)) :default nil)
+         (call-next-method)))
 
 ;;; Print an integer as roman numerals to the stream.
 ;;; The integer must be strictly greater than zero,
@@ -83,7 +90,7 @@
 
 ;;; Print an integer as old roman numerals to the stream.
 ;;; The integer must be strictly greater than zero,
-;;; and strictly less than 4000.
+;;; and strictly less than 5000.
 (defun print-as-old-roman (integer stream)
   (declare (type (integer 1) integer))
   (multiple-value-bind (thousands rest) (floor integer 1000)
@@ -288,17 +295,7 @@
 ;;;
 ;;; 22.3.2.2 ~d Decimal.
 
-(defclass specific-radix-directive (directive)
-  ())
-
-(defmethod parameter-specifications (client (directive specific-radix-directive))
-  (declare (ignore client))
-  '((:type integer :default 0)
-    (:type character :default #\Space)
-    (:type character :default #\,)
-    (:type (integer 1) :default 3)))
-
-(defclass decimal-radix-directive (specific-radix-directive)
+(defclass decimal-radix-directive (base-radix-directive)
   ())
 
 (defmethod specialize-directive
@@ -315,7 +312,7 @@
 ;;;
 ;;; 22.3.2.3 ~b Binary.
 
-(defclass binary-radix-directive (specific-radix-directive)
+(defclass binary-radix-directive (base-radix-directive)
   ())
 
 (defmethod specialize-directive
@@ -332,7 +329,7 @@
 ;;;
 ;;; 22.3.2.4 ~o Octal.
 
-(defclass octal-radix-directive (specific-radix-directive)
+(defclass octal-radix-directive (base-radix-directive)
   ())
 
 (defmethod specialize-directive
@@ -349,7 +346,7 @@
 ;;;
 ;;; 22.3.2.5 ~x Hexadecimal.
 
-(defclass hexadecimal-radix-directive (specific-radix-directive)
+(defclass hexadecimal-radix-directive (base-radix-directive)
   ())
 
 (defmethod specialize-directive
