@@ -38,13 +38,13 @@
 
 (defmethod interpret-item (client (item case-conversion-directive) &optional parameters)
   (declare (ignore parameters))
-  (let* ((colonp (colonp item))
-         (at-signp (at-signp item))
-         (*destination* (cond ((and colonp at-signp)
+  (let* ((colon-p (colon-p item))
+         (at-sign-p (at-sign-p item))
+         (*destination* (cond ((and colon-p at-sign-p)
                                (make-instance 'upcase-stream :target *destination*))
-                              (colonp
+                              (colon-p
                                (make-instance 'capitalize-stream :target *destination*))
-                              (at-signp
+                              (at-sign-p
                                (make-instance 'first-capitalize-stream :target *destination*))
                               (t
                                (make-instance 'downcase-stream :target *destination*)))))
@@ -52,13 +52,13 @@
 
 (defmethod compile-item (client (item case-conversion-directive) &optional parameters)
   (declare (ignore parameters))
-  (let ((colonp (colonp item))
-        (at-signp (at-signp item)))
-    `((let ((*destination* ,(cond ((and colonp at-signp)
+  (let ((colon-p (colon-p item))
+        (at-sign-p (at-sign-p item)))
+    `((let ((*destination* ,(cond ((and colon-p at-sign-p)
                                    '(make-instance 'upcase-stream :target *destination*))
-                                  (colonp
+                                  (colon-p
                                    '(make-instance 'capitalize-stream :target *destination*))
-                                  (at-signp
+                                  (at-sign-p
                                    '(make-instance 'first-capitalize-stream :target *destination*))
                                   (t
                                    '(make-instance 'downcase-stream :target *destination*)))))
@@ -76,9 +76,9 @@
 
 (defmethod interpret-item (client (item plural-directive) &optional parameters)
   (declare (ignore parameters))
-  (when (colonp item)
+  (when (colon-p item)
     (go-to-argument -1))
-  (if (at-signp item)
+  (if (at-sign-p item)
       (write-string (if (eql (consume-next-argument t) 1)
                         "y"
                         "ies")
@@ -88,9 +88,9 @@
 
 (defmethod compile-item (client (item plural-directive) &optional parameters)
   (declare (ignore parameters))
-  `(,@(when (colonp item)
+  `(,@(when (colon-p item)
         `((go-to-argument -1)))
-    ,(if (at-signp item)
+    ,(if (at-sign-p item)
          `(write-string (if (eql (consume-next-argument t) 1)
                             "y"
                             "ies")

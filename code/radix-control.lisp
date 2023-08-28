@@ -4,7 +4,7 @@
 ;;;
 ;;; 22.3.2 Radix control
 
-(defun print-radix-arg (client colonp at-signp radix mincol padchar commachar comma-interval)
+(defun print-radix-arg (client colon-p at-sign-p radix mincol padchar commachar comma-interval)
   (let ((argument (consume-next-argument t)))
     (if (not (integerp argument))
         (let ((*print-base* radix)
@@ -17,10 +17,10 @@
                              (*print-readably* nil))
                          (with-output-to-string (stream)
                            (incless:write-object client (abs argument) stream))))
-               (comma-length (if colonp
+               (comma-length (if colon-p
                                  (max 0 (floor (1- (length string)) comma-interval))
                                  0))
-               (sign-length (if (or at-signp (minusp argument)) 1 0))
+               (sign-length (if (or at-sign-p (minusp argument)) 1 0))
                (total-length (+ (length string) comma-length sign-length))
                (pad-length (max 0 (- mincol total-length))))
           ;; Print the padding.
@@ -29,14 +29,14 @@
           ;; Possibliy print a sign.
           (cond ((minusp argument)
                  (write-char #\- *destination*))
-                (at-signp
+                (at-sign-p
                  (write-char #\+ *destination*))
                 (t nil))
           ;; Print the string in reverse order
           (loop for index downfrom (1- (length string)) to 0
                 for c across string
                 do (write-char c *destination*)
-                do (when (and colonp
+                do (when (and colon-p
                               (plusp index)
                               (zerop (mod index comma-interval)))
                      (write-char commachar *destination*)))))))
@@ -237,17 +237,17 @@
 
 (defmethod interpret-item (client (directive radix-directive) &optional parameters)
   (let ((radix (car parameters))
-        (colonp (colonp directive))
-        (at-signp (at-signp directive)))
+        (colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
     (cond (radix
-           (apply #'print-radix-arg client colonp at-signp parameters))
-          ((and colonp at-signp)
+           (apply #'print-radix-arg client colon-p at-sign-p parameters))
+          ((and colon-p at-sign-p)
            (print-as-old-roman (consume-next-argument '(integer 1))
                                *destination*))
-          (at-signp
+          (at-sign-p
            (print-as-roman (consume-next-argument '(integer 1))
                            *destination*))
-          (colonp
+          (colon-p
            (print-ordinal-number (consume-next-argument
                                   `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
                                  *destination*))
@@ -257,23 +257,23 @@
                                   *destination*)))))
 
 (defmethod compile-item (client (directive radix-directive) &optional parameters)
-  (let ((colonp (colonp directive))
-        (at-signp (at-signp directive)))
+  (let ((colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
     (cond ((numberp (car parameters))
            `((print-radix-arg ,(incless:client-form client)
-                              ,colonp ,at-signp ,@parameters)))
+                              ,colon-p ,at-sign-p ,@parameters)))
           (t
            `((let ((parameters (list ,@parameters)))
                (if (car parameters)
                    (apply #'print-radix-arg ,(incless:client-form client)
-                          ,colonp ,at-signp parameters)
-                   ,(cond ((and colonp at-signp)
+                          ,colon-p ,at-sign-p parameters)
+                   ,(cond ((and colon-p at-sign-p)
                            '(print-as-old-roman (consume-next-argument '(integer 1))
                              *destination*))
-                          (at-signp
+                          (at-sign-p
                            '(print-as-roman (consume-next-argument '(integer 1))
                              *destination*))
-                          (colonp
+                          (colon-p
                            `(print-ordinal-number (consume-next-argument
                                                    '(integer ,(1+ (- (expt 10 65)))
                                                      ,(1- (expt 10 65))))
@@ -306,10 +306,10 @@
   (change-class directive 'decimal-radix-directive))
 
 (defmethod interpret-item (client (directive decimal-radix-directive) &optional parameters)
-  (apply #'print-radix-arg client (colonp directive) (at-signp directive) 10 parameters))
+  (apply #'print-radix-arg client (colon-p directive) (at-sign-p directive) 10 parameters))
 
 (defmethod compile-item (client (directive decimal-radix-directive) &optional parameters)
-  `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 10 ,@parameters)))
+  `((print-radix-arg ,(incless:client-form client) ,(colon-p directive) ,(at-sign-p directive) 10 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -323,10 +323,10 @@
   (change-class directive 'binary-radix-directive))
 
 (defmethod interpret-item (client (directive binary-radix-directive) &optional parameters)
-  (apply #'print-radix-arg client (colonp directive) (at-signp directive) 2 parameters))
+  (apply #'print-radix-arg client (colon-p directive) (at-sign-p directive) 2 parameters))
 
 (defmethod compile-item (client (directive binary-radix-directive) &optional parameters)
-  `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 2 ,@parameters)))
+  `((print-radix-arg ,(incless:client-form client) ,(colon-p directive) ,(at-sign-p directive) 2 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -340,10 +340,10 @@
   (change-class directive 'octal-radix-directive))
 
 (defmethod interpret-item (client (directive octal-radix-directive) &optional parameters)
-  (apply #'print-radix-arg client (colonp directive) (at-signp directive) 8 parameters))
+  (apply #'print-radix-arg client (colon-p directive) (at-sign-p directive) 8 parameters))
 
 (defmethod compile-item (client (directive octal-radix-directive) &optional parameters)
-  `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 8 ,@parameters)))
+  `((print-radix-arg ,(incless:client-form client) ,(colon-p directive) ,(at-sign-p directive) 8 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -358,8 +358,8 @@
 
 (defmethod interpret-item
     (client (directive hexadecimal-radix-directive) &optional parameters)
-  (apply #'print-radix-arg client (colonp directive) (at-signp directive) 16 parameters))
+  (apply #'print-radix-arg client (colon-p directive) (at-sign-p directive) 16 parameters))
 
 (defmethod compile-item
     (client (directive hexadecimal-radix-directive) &optional parameters)
-  `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 16 ,@parameters)))
+  `((print-radix-arg ,(incless:client-form client) ,(colon-p directive) ,(at-sign-p directive) 16 ,@parameters)))

@@ -21,24 +21,24 @@
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
-  (let ((colonp (colonp directive))
-        (at-signp (at-signp directive)))
+  (let ((colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
     (inravina:pprint-newline client *destination*
-                             (cond ((and colonp at-signp) :mandatory)
-                                   (colonp :fill)
-                                   (at-signp :miser)
+                             (cond ((and colon-p at-sign-p) :mandatory)
+                                   (colon-p :fill)
+                                   (at-sign-p :miser)
                                    (t :linear)))))
 
 (defmethod compile-item (client (directive underscore-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
-  (let ((colonp (colonp directive))
-        (at-signp (at-signp directive)))
+  (let ((colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
     `((inravina:pprint-newline ,(incless:client-form client) *destination*
-                               ,(cond ((and colonp at-signp) :mandatory)
-                                      (colonp :fill)
-                                      (at-signp :miser)
+                               ,(cond ((and colon-p at-sign-p) :mandatory)
+                                      (colon-p :fill)
+                                      (at-sign-p :miser)
                                       (t :linear))))))
 
 (defclass end-logical-block-directive
@@ -89,16 +89,16 @@
            (ignorable client))
   #-sicl
   (let* ((last-clause (aref (clauses directive) (1- (length (clauses directive)))))
-         (colonp (colonp directive))
-         (at-signp (at-signp directive))
-         (*newline-kind* (if (at-signp (aref last-clause (1- (length last-clause))))
+         (colon-p (colon-p directive))
+         (at-sign-p (at-sign-p directive))
+         (*newline-kind* (if (at-sign-p (aref last-clause (1- (length last-clause))))
                              :fill
                              nil))
          (prefix (cond ((> (length (clauses directive)) 1)
                         (if (> (length (aref (clauses directive) 0)) 1)
                             (aref (aref (clauses directive) 0) 0)
                             ""))
-                       (colonp
+                       (colon-p
                         "(")
                        (t
                         "")))
@@ -106,16 +106,16 @@
                         (if (> (length (aref (clauses directive) 2)) 1)
                             (aref (aref (clauses directive) 2) 0)
                             ""))
-                       (colonp
+                       (colon-p
                         ")")
                        (t
                         "")))
          (per-line-prefix-p (and (> (length (clauses directive)) 1)
-                                 (at-signp (aref (aref (clauses directive) 0)
+                                 (at-sign-p (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0)))))))
-         (object (unless at-signp (consume-next-argument t))))
+         (object (unless at-sign-p (consume-next-argument t))))
     (flet ((interpret-body (*destination* escape-hook pop-argument-hook)
-             (if at-signp
+             (if at-sign-p
                  (interpret-items client (aref (clauses directive)
                                                (if (= (length (clauses directive)) 1)
                                                    0
@@ -141,16 +141,16 @@
            (ignorable client))
   #-sicl
   (let* ((last-clause (aref (clauses directive) (1- (length (clauses directive)))))
-         (colonp (colonp directive))
-         (at-signp (at-signp directive))
-         (*newline-kind* (if (at-signp (aref last-clause (1- (length last-clause))))
+         (colon-p (colon-p directive))
+         (at-sign-p (at-sign-p directive))
+         (*newline-kind* (if (at-sign-p (aref last-clause (1- (length last-clause))))
                              :fill
                              nil))
          (prefix (cond ((> (length (clauses directive)) 1)
                         (if (> (length (aref (clauses directive) 0)) 1)
                             (aref (aref (clauses directive) 0) 0)
                             ""))
-                       (colonp
+                       (colon-p
                         "(")
                        (t
                         "")))
@@ -158,14 +158,14 @@
                         (if (> (length (aref (clauses directive) 2)) 1)
                             (aref (aref (clauses directive) 2) 0)
                             ""))
-                       (colonp
+                       (colon-p
                         ")")
                        (t
                         "")))
          (per-line-prefix-p (and (> (length (clauses directive)) 1)
-                                 (at-signp (aref (aref (clauses directive) 0)
+                                 (at-sign-p (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0))))))))
-    (if at-signp
+    (if at-sign-p
         `((inravina:execute-logical-block ,(incless:client-form client) *destination*
                                           nil
                                           (lambda (*destination* escape-hook pop-argument-hook)
@@ -213,14 +213,14 @@
   (declare (ignorable client parameters))
   #-sicl
   (inravina:pprint-indent client *destination*
-                          (if (colonp directive) :current :block)
+                          (if (colon-p directive) :current :block)
                           (car parameters)))
 
 (defmethod compile-item (client (directive i-directive) &optional parameters)
   (declare (ignorable client parameters))
   #-sicl
   `((inravina:pprint-indent ,(incless:client-form client) *destination*
-                            ,(if (colonp directive) :current :block)
+                            ,(if (colon-p directive) :current :block)
                             ,(car parameters))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -262,7 +262,7 @@
                    (start start)
                    (suffix-start suffix-start)
                    (end end)
-                   (colonp colonp))
+                   (colon-p colon-p))
       directive
     ;; The HyperSpec says that all the characters of the function
     ;; name are treated as if they were upper-case.
@@ -296,8 +296,8 @@
   (apply (function-name function-name)
          *destination*
          (consume-next-argument t)
-         (colonp directive)
-         (at-signp directive)
+         (colon-p directive)
+         (at-sign-p directive)
          parameters))
 
 (defmethod compile-item (client (directive call-function-directive) &optional parameters)
@@ -306,6 +306,6 @@
       (apply ',(function-name directive)
              *destination*
              (consume-next-argument t)
-             ,(colonp directive)
-             ,(at-signp directive)
+             ,(colon-p directive)
+             ,(at-sign-p directive)
              parameters))))

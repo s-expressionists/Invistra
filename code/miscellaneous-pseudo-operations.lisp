@@ -81,9 +81,9 @@
   (let ((p1 (car parameters))
         (p2 (cadr parameters))
         (p3 (caddr parameters))
-        (colonp (colonp directive)))
+        (colon-p (colon-p directive)))
     (cond ((and (null p1) (null p2) (null p3))
-           (funcall (if colonp *outer-exit-if-exhausted* *inner-exit-if-exhausted*)))
+           (funcall (if colon-p *outer-exit-if-exhausted* *inner-exit-if-exhausted*)))
           ((or (and (eql p1 0) (null p2) (null p3))
                (and (null p1) (eql p2 0) (null p3))
                (and (null p1) (null p2) (eql p3 0))
@@ -91,36 +91,36 @@
                (and (null p2) p1 p3 (eql p1 p3))
                (and (null p3) p1 p2 (eql p1 p2))
                (and p1 p2 p3 (<= p1 p2 p3)))
-           (funcall (if colonp *outer-exit* *inner-exit*) nil)))))
+           (funcall (if colon-p *outer-exit* *inner-exit*) nil)))))
 
 (defmethod compile-item (client (directive circumflex-directive) &optional parameters)
   (let ((p1 (car parameters))
         (p2 (cadr parameters))
         (p3 (caddr parameters))
-        (colonp (colonp directive)))
+        (colon-p (colon-p directive)))
     (cond ((null p1)
-           `((funcall ,(if colonp '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*))))
+           `((funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*))))
           ((null p2)
            `((let ((p1 ,p1))
                (cond ((null p1)
-                      (funcall ,(if colonp '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
+                      (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
                      ((eql 0 p1)
-                      (funcall ,(if colonp '*outer-exit* '*inner-exit*) nil))))))
+                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*) nil))))))
           ((null p3)
            `((let ((p1 ,p1)
                    (p2 ,p2))
                (cond ((and (null p1) (null p2))
-                      (funcall ,(if colonp '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
+                      (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
                      ((or (and (null p1) (eql 0 p2))
                           (and (eql 0 p1) (null p2))
                           (and p1 p2 (eql p1 p2)))
-                      (funcall ,(if colonp '*outer-exit* '*inner-exit*) nil))))))
+                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*) nil))))))
           (t
            `((let ((p1 ,p1)
                    (p2 ,p2)
                    (p3 ,p3))
                (cond ((and (null p1) (null p2) (null p3))
-                      (funcall ,(if colonp '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
+                      (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
                      ((or (and (null p1) (null p2) (eql 0 p3))
                           (and (null p1) (eql 0 p2) (null p3))
                           (and (eql 0 p1) (null p2) (null p3))
@@ -128,7 +128,7 @@
                           (and (null p2) p1 p3 (eql p1 p3))
                           (and (null p3) p1 p2 (eql p1 p2))
                           (and p1 p2 p3 (<= p1 p2 p3)))
-                      (funcall ,(if colonp '*outer-exit* '*inner-exit*) nil)))))))))
+                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*) nil)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -149,10 +149,10 @@
 
 (defmethod interpret-item (client (directive newline-directive) &optional parameters)
   (declare (ignore parameters))
-  (cond ((colonp directive)
+  (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
          (write-string (subseq (control-string directive) (suffix-start directive) (end directive)) *destination*))
-        ((at-signp directive)
+        ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
          (write-char #\Newline *destination*))
         (t
@@ -161,10 +161,10 @@
 
 (defmethod compile-item (client (directive newline-directive) &optional parameters)
   (declare (ignore parameters))
-  (cond ((colonp directive)
+  (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
          `((write-string ,(subseq (control-string directive) (suffix-start directive) (end directive)) *destination*)))
-        ((at-signp directive)
+        ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
          `((write-char #\Newline *destination*)))
         (t

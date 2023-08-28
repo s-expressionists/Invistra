@@ -26,9 +26,9 @@
 
 (defgeneric parameters (directive))
 
-(defgeneric colonp (directive))
+(defgeneric colon-p (directive))
 
-(defgeneric at-signp (directive))
+(defgeneric at-sign-p (directive))
 
 (defgeneric structured-end-p (directive)
   (:method (directive)
@@ -84,9 +84,9 @@
    ;; a list of parameters, each one is either an integer or a character
    (%parameters :initarg :parameters :accessor parameters)
    ;; true if and only if the `:' modifier was given
-   (%colonp :initarg :colonp :reader colonp)
+   (%colon-p :initarg :colon-p :reader colon-p)
    ;; true if and only if the `@' modifier was given
-   (%at-signp :initarg :at-signp :reader at-signp)))
+   (%at-sign-p :initarg :at-sign-p :reader at-sign-p)))
 
 ;;; Mixin class for directives that take no modifiers
 (defclass no-modifiers-mixin () ())
@@ -171,45 +171,27 @@
 ;;; Signal an error if a modifier has been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive no-modifiers-mixin))
   (declare (ignore client))
-  (with-accessors ((colonp colonp)
-                   (at-signp at-signp)
-                   (control-string control-string)
-                   (end end))
-    directive
-    (when (or colonp at-signp)
-      (error 'directive-takes-no-modifiers
-             :directive directive))))
+  (when (or (colon-p directive) (at-sign-p directive))
+    (error 'directive-takes-no-modifiers
+           :directive directive)))
 
 ;;; Signal an error if an at-sign has been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive only-colon-mixin))
   (declare (ignore client))
-  (with-accessors ((at-signp at-signp)
-                   (control-string control-string)
-                   (end end))
-    directive
-    (when at-signp
-      (error 'directive-takes-only-colon
-             :directive directive))))
+  (when (at-sign-p directive)
+    (error 'directive-takes-only-colon
+           :directive directive)))
 
 ;;; Signal an error if a colon has been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive only-at-sign-mixin))
   (declare (ignore client))
-  (with-accessors ((colonp colonp)
-                   (control-string control-string)
-                   (end end))
-    directive
-    (when colonp
-      (error 'directive-takes-only-at-sign
-             :directive directive))))
+  (when (colon-p directive)
+    (error 'directive-takes-only-at-sign
+           :directive directive)))
 
 ;;; Signal an error if both modifiers have been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive at-most-one-modifier-mixin))
   (declare (ignore client))
-  (with-accessors ((colonp colonp)
-                   (at-signp at-signp)
-                   (control-string control-string)
-                   (end end))
-    directive
-    (when (and colonp at-signp)
-      (error 'directive-takes-at-most-one-modifier
-             :directive directive))))
+  (when (and (colon-p directive) (at-sign-p directive))
+    (error 'directive-takes-at-most-one-modifier
+           :directive directive)))

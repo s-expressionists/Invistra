@@ -116,7 +116,7 @@
   (let ((end (length string)))
     (multiple-value-bind (parameters position1)
         (parse-parameters string start end)
-      (multiple-value-bind (colonp at-signp position2)
+      (multiple-value-bind (colon-p at-sign-p position2)
           (parse-modifiers string position1 end start)
         (when (= position2 end)
           (error 'end-of-control-string-error
@@ -129,4 +129,4 @@
         (let ((directive-character (char string position2))
               (suffix-start (incf position2)))
           (setf position2 (parse-directive-suffix directive-character string suffix-start end))
-          (values directive-character parameters colonp at-signp suffix-start position2))))))
+          (values directive-character parameters colon-p at-sign-p suffix-start position2))))))

@@ -20,7 +20,7 @@
     (:type (integer 0) :default 1)))
 
 (defmethod layout-requirements ((item tabulate-directive))
-  (when (colonp item)
+  (when (colon-p item)
     (list :logical-block)))
 
 (defun format-relative-tab (client colnum colinc)
@@ -45,28 +45,28 @@
                                                         *destination*))))))
 
 (defmethod interpret-item (client (directive tabulate-directive) &optional parameters)
-  (let ((colonp (colonp directive))
-        (at-signp (at-signp directive)))
-    (cond (colonp
+  (let ((colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
+    (cond (colon-p
            #-sicl
            (apply #'inravina:pprint-tab
                   client *destination*
-                  (if at-signp :section-relative :section)
+                  (if at-sign-p :section-relative :section)
                   parameters))
-          (at-signp
+          (at-sign-p
            (apply #'format-relative-tab client parameters))
           (t
            (apply #'format-absolute-tab client parameters)))))
 
 (defmethod compile-item (client (directive tabulate-directive) &optional parameters)
-  (let ((colonp (colonp directive))
-        (at-signp (at-signp directive)))
-    (cond (colonp
+  (let ((colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
+    (cond (colon-p
            #-sicl
            `((inravina:pprint-tab ,(incless:client-form client) *destination*
-                                  ,(if at-signp :section-relative :section)
+                                  ,(if at-sign-p :section-relative :section)
                                   ,@parameters)))
-          (at-signp
+          (at-sign-p
            `((format-relative-tab ,(incless:client-form client) ,@parameters)))
           (t
            `((format-absolute-tab ,(incless:client-form client) ,@parameters))))))
@@ -80,7 +80,7 @@
 
 (defmethod specialize-directive
     ((client t) (char (eql #\>)) directive (end-directive t))
-  (if (colonp directive)
+  (if (colon-p directive)
       (change-class directive 'end-logical-block-directive)
       (change-class directive 'end-justification-directive)))
 
@@ -111,7 +111,7 @@
     (:type character :default #\Space)))
 
 (defmethod layout-requirements :around ((item justification-directive))
-  (merge-layout-requirements (list (if (colonp (aref (aref (clauses item) 0) (1- (length (aref (clauses item) 0)))))
+  (merge-layout-requirements (list (if (colon-p (aref (aref (clauses item) 0) (1- (length (aref (clauses item) 0)))))
                                        :justify-dynamic
                                        :justify))
                              (call-next-method)
@@ -176,13 +176,13 @@
                           (interpret-items client clause)))
         for index from 0
         finally (apply #'print-justification client
-                       (colonp directive) (at-signp directive)
+                       (colon-p directive) (at-sign-p directive)
                        *extra-space* *line-length*
                        newline-segment segments
                        parameters)
         while segment
         if (and (zerop index)
-                (colonp (aref clause (1- (length clause)))))
+                (colon-p (aref clause (1- (length clause)))))
           do (setf newline-segment segment)
         else
           collect segment into segments))
@@ -198,7 +198,7 @@
                for index from 0
                while segment
                if (and (zerop index)
-                       (colonp (aref clause (1- (length clause)))))
+                       (colon-p (aref clause (1- (length clause)))))
                  collect `(let ((segment ,segment))
                             (if segment
                                 (setf newline-segment segment)
@@ -210,7 +210,7 @@
                                 (go end))))
      end
        (apply #'print-justification ,(incless:client-form client)
-              ,(colonp directive) ,(at-signp directive)
+              ,(colon-p directive) ,(at-sign-p directive)
               *extra-space* *line-length*
               newline-segment (nreverse segments)
               parameters))))

@@ -21,11 +21,11 @@
 (defmethod interpret-item (client (directive go-to-directive) &optional parameters)
   (declare (ignore client))
   (let ((param (car parameters)))
-    (cond ((colonp directive)
+    (cond ((colon-p directive)
            ;; Back up in the list of arguments.
            ;; The default value for the parameter is 1.
            (go-to-argument (- (or param 1))))
-          ((at-signp directive)
+          ((at-sign-p directive)
            ;; Go to an absolute argument number.
            ;; The default value for the parameter is 0.
            (go-to-argument (or param 0) t))
@@ -37,11 +37,11 @@
 (defmethod compile-item (client (directive go-to-directive) &optional parameters)
   (declare (ignore client))
   (let ((param (car parameters)))
-    (cond ((colonp directive)
+    (cond ((colon-p directive)
            ;; Back up in the list of arguments.
            ;; The default value for the parameter is 1.
            `((go-to-argument (- (or ,param 1)))))
-          ((at-signp directive)
+          ((at-sign-p directive)
            ;; Go to an absolute argument number.
            ;; The default value for the parameter is 0.
            `((go-to-argument (or ,param 0) t)))
@@ -94,27 +94,27 @@
   ;; Check that, if a parameter is given, then there are
   ;; no modifiers.
   #+(or)(when (and (not (null (parameters directive)))
-             (or (colonp directive) (at-signp directive)))
+             (or (colon-p directive) (at-sign-p directive)))
     (error 'modifier-and-parameter
            :directive directive))
   ;; Check that, if a colon modifier was given, then
   ;; there should be a single clause separator (two clauses).
-  (when (and (colonp directive)
+  (when (and (colon-p directive)
              (/= (length (clauses directive)) 2))
     (error 'colon-modifier-requires-two-clauses))
   ;; Check that, if an at-sign modifier was given, then
   ;; there should be a no clause separators (a single clause).
-  (when (and (at-signp directive)
+  (when (and (at-sign-p directive)
              (/= (length (clauses directive)) 1))
     (error 'at-sign-modifier-requires-one-clause))
   (let ((pos (position-if (lambda (items)
                             (let ((last (aref items (1- (length items)))))
                               (and (structured-separator-p last)
-                                   (colonp last))))
+                                   (colon-p last))))
                           (clauses directive))))
     ;; Check that, if a modifier is given, then there should
     ;; be no clause separator with colon modifier.
-    (when (and (or (colonp directive) (at-signp directive))
+    (when (and (or (colon-p directive) (at-sign-p directive))
                pos)
       (error 'clause-separator-with-colon-modifier-not-allowed
              :directive directive))
@@ -126,11 +126,11 @@
 
 (defmethod interpret-item (client (directive conditional-directive) &optional parameters)
   (let ((param (car parameters)))
-    (cond ((at-signp directive)
+    (cond ((at-sign-p directive)
            (when (consume-next-argument t)
              (go-to-argument -1)
              (interpret-items client (aref (clauses directive) 0))))
-          ((colonp directive)
+          ((colon-p directive)
            (interpret-items client
                             (aref (clauses directive)
                                   (if (consume-next-argument t) 1 0))))
@@ -152,11 +152,11 @@
 
 (defmethod compile-item (client (directive conditional-directive) &optional parameters)
   (let ((param (car parameters)))
-    (cond ((at-signp directive)
+    (cond ((at-sign-p directive)
            `((when (consume-next-argument t)
                (go-to-argument -1)
                ,@(compile-items client (aref (clauses directive) 0)))))
-          ((colonp directive)
+          ((colon-p directive)
            `((cond ((consume-next-argument t)
                     ,@(compile-items client (aref (clauses directive) 1)))
                    (t
@@ -217,14 +217,14 @@
 (defmethod interpret-item (client (directive iteration-directive) &optional parameters)
   ;; eliminate the end-of-iteration directive from the
   ;; list of items
-  (let* ((colonp (colonp directive))
-         (at-signp (at-signp directive))
+  (let* ((colon-p (colon-p directive))
+         (at-sign-p (at-sign-p directive))
          (iteration-limit (car parameters))
          (items (aref (clauses directive) 0))
-         (oncep (colonp (aref items (1- (length items))))))
+         (oncep (colon-p (aref items (1- (length items))))))
     (if (= (length items) 1)
         (let ((control (consume-next-argument '(or string function))))
-          (cond ((and colonp at-signp)
+          (cond ((and colon-p at-sign-p)
                  ;; The remaining arguments should be lists.  Each argument
                  ;; is used in a different iteration.
                  (if (functionp control)
@@ -250,7 +250,7 @@
                                   (let ((*inner-tag* catch-tag))
                                     (catch *inner-tag*
                                       (format-with-runtime-arguments client control))))))))
-                (colonp
+                (colon-p
                  ;; We use one argument, and that should be a list of sublists.
                  ;; Each sublist is used as arguments for one iteration.
                  (if (functionp control)
@@ -276,7 +276,7 @@
                              (loop for args in arg ; a bit unusual naming perhaps
                                    repeat iteration-limit
                                    do (one-iteration args)))))))
-                (at-signp
+                (at-sign-p
                  (if (functionp control)
                      (loop for args = (consume-remaining-arguments)
                              then (apply control *destination* args)
@@ -311,7 +311,7 @@
                                when (or (not oncep) (plusp index))
                                  do (funcall *inner-exit-if-exhausted*)
                                do (format-with-runtime-arguments client control))))))))
-        (cond ((and colonp at-signp)
+        (cond ((and colon-p at-sign-p)
                ;; The remaining arguments should be lists.  Each argument
                ;; is used in a different iteration.
                (catch *inner-tag*
@@ -322,7 +322,7 @@
                          do (funcall *inner-exit-if-exhausted*)
                        do (with-arguments (consume-next-argument 'list)
                             (interpret-items client items)))))
-              (colonp
+              (colon-p
                ;; We use one argument, and that should be a list of sublists.
                ;; Each sublist is used as arguments for one iteration.
                (with-arguments (consume-next-argument 'list)
@@ -333,7 +333,7 @@
                          do (funcall *inner-exit-if-exhausted*)
                        do (with-arguments (consume-next-argument 'list)
                             (interpret-items client items)))))
-              (at-signp
+              (at-sign-p
                (catch *inner-tag*
                  (loop for index from 0
                        while (or (null iteration-limit)
@@ -356,13 +356,13 @@
 (defmethod compile-item (client (directive iteration-directive) &optional parameters)
   ;; eliminate the end-of-iteration directive from the
   ;; list of items
-  (let* ((colonp (colonp directive))
-         (at-signp (at-signp directive))
+  (let* ((colon-p (colon-p directive))
+         (at-sign-p (at-sign-p directive))
          (iteration-limit (car parameters))
          (items (aref (clauses directive) 0))
-         (oncep (colonp (aref items (1- (length items))))))
+         (oncep (colon-p (aref items (1- (length items))))))
     (if (= (length items) 1)
-        (cond ((and colonp at-signp)
+        (cond ((and colon-p at-sign-p)
                ;; The remaining arguments should be lists.  Each argument
                ;; is used in a different iteration.
                `((let ((iteration-limit ,iteration-limit)
@@ -380,7 +380,7 @@
                              do (with-arguments (consume-next-argument 'list)
                                   (format-with-runtime-arguments ,(incless:client-form client)
                                                                  control)))))))
-              (colonp
+              (colon-p
                ;; We use one argument, and that should be a list of sublists.
                ;; Each sublist is used as arguments for one iteration.
                `((let ((iteration-limit ,iteration-limit)
@@ -398,7 +398,7 @@
                              do (with-arguments (consume-next-argument 'list)
                                   (format-with-runtime-arguments ,(incless:client-form client)
                                                                  control)))))))
-              (at-signp
+              (at-sign-p
                `((let ((iteration-limit ,iteration-limit)
                        (control (consume-next-argument '(or function string))))
                    (if (functionp control)
@@ -445,7 +445,7 @@
                                do (format-with-runtime-arguments ,(incless:client-form client)
                                                                  control))))))))
         (let ((compiled-items (compile-items client items)))
-          (cond ((and colonp at-signp)
+          (cond ((and colon-p at-sign-p)
                  ;; The remaining arguments should be lists.  Each argument
                  ;; is used in a different iteration.
                  `((let ((iteration-limit ,iteration-limit))
@@ -458,7 +458,7 @@
                                    '(do (funcall *inner-exit-if-exhausted*)))
                              do (with-arguments (consume-next-argument 'list)
                                   ,@compiled-items))))))
-                (colonp
+                (colon-p
                  ;; We use one argument, and that should be a list of sublists.
                  ;; Each sublist is used as arguments for one iteration.
                  `((let ((iteration-limit ,iteration-limit))
@@ -471,7 +471,7 @@
                                    '(do (funcall *inner-exit-if-exhausted*)))
                              do (with-arguments (consume-next-argument 'list)
                                   ,@compiled-items))))))
-                (at-signp
+                (at-sign-p
                  `((let ((iteration-limit ,iteration-limit))
                      (catch *inner-tag*
                        (loop for index from 0
@@ -511,7 +511,7 @@
 
 (defmethod interpret-item (client (directive recursive-processing-directive) &optional parameters)
   (declare (ignore parameters))
-  (if (at-signp directive)
+  (if (at-sign-p directive)
       ;; reuse the arguments from the parent control-string
       (format-with-runtime-arguments client
                                      (consume-next-argument 'string))
@@ -524,7 +524,7 @@
 
 (defmethod compile-item (client (directive recursive-processing-directive) &optional parameters)
   (declare (ignore parameters))
-  (if (at-signp directive)
+  (if (at-sign-p directive)
       ;; reuse the arguments from the parent control-string
       `((format-with-runtime-arguments ,(incless:client-form client)
                                        (consume-next-argument 'string)))

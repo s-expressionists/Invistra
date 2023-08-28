@@ -19,13 +19,13 @@
 (defmethod interpret-item (client (directive c-directive) &optional parameters)
   (declare (ignore parameters))
   (let ((char (consume-next-argument 'character))
-        (colonp (colonp directive))
-        (at-signp (at-signp directive)))
-    (cond ((and (not colonp) (not at-signp))
+        (colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
+    (cond ((and (not colon-p) (not at-sign-p))
            ;; Neither colon nor at-sign.
            ;; The HyperSpec says to do what WRITE-CHAR does.
            (write-char char *destination*))
-          ((not at-signp)
+          ((not at-sign-p)
            ;; We have only a colon modifier.
            ;; The HyperSpec says to do what WRITE-CHAR does for
            ;; printing characters, and what char-name does otherwise.
@@ -34,7 +34,7 @@
            (if (and (graphic-char-p char) (not (eql char #\Space)))
                (write-char char *destination*)
                (write-string (char-name char) *destination*)))
-          ((not colonp)
+          ((not colon-p)
            ;; We have only an at-sign modifier.
            ;; The HyperSpec says to print it the way the Lisp
            ;; reader can understand, which I take to mean "use PRIN1".
@@ -54,16 +54,16 @@
 
 (defmethod compile-item (client (directive c-directive) &optional parameters)
   (declare (ignore parameters))
-  (let ((colonp (colonp directive))
-        (at-signp (at-signp directive)))
+  (let ((colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
     `((let ((char (consume-next-argument 'character)))
-        ,(cond ((and (not colonp) (not at-signp))
+        ,(cond ((and (not colon-p) (not at-sign-p))
                 `(write-char char *destination*))
-               ((not at-signp)
+               ((not at-sign-p)
                 `(if (and (graphic-char-p char) (not (eql char #\Space)))
                      (write-char char *destination*)
                      (write-string (char-name char) *destination*)))
-               ((not colonp)
+               ((not colon-p)
                 `(let ((*print-escape* t))
                    (incless:write-object ,(incless:client-form client) char *destination*)))
                (t
