@@ -8,7 +8,7 @@
 ;;;
 ;;; 22.3.6.1 ~TAB Tabulate
 
-(defclass tabulate-directive (named-parameters-directive) ())
+(defclass tabulate-directive (directive) ())
 
 (defmethod specialize-directive
     ((client t) (char (eql #\T)) directive (end-directive t))
@@ -76,7 +76,7 @@
 ;;; 22.3.6.3 ~> End of justification or of logical block
 
 (defclass end-justification-directive
-    (named-parameters-directive end-structured-directive-mixin no-modifiers-mixin) nil)
+    (directive end-structured-directive-mixin no-modifiers-mixin) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\>)) directive (end-directive t))
@@ -89,7 +89,7 @@
 ;;; 22.3.6.2 ~< Justification
 
 (defclass justification-directive
-    (named-parameters-directive structured-directive-mixin) nil)
+    (directive structured-directive-mixin) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\<)) directive

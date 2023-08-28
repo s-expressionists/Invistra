@@ -9,7 +9,7 @@
 ;;; 22.3.7.1 ~* Go to
 
 (defclass go-to-directive
-    (named-parameters-directive at-most-one-modifier-mixin) nil)
+    (directive at-most-one-modifier-mixin) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\*)) directive (end-directive t))
@@ -55,7 +55,7 @@
 ;;; 22.3.7.3 ~] End of conditional expression
 
 (defclass end-conditional-directive
-    (named-parameters-directive no-modifiers-mixin
+    (directive no-modifiers-mixin
      end-structured-directive-mixin)
   nil)
 
@@ -68,7 +68,7 @@
 ;;; 22.3.7.2 ~[ Conditional expression
 
 (defclass conditional-directive
-    (named-parameters-directive structured-directive-mixin
+    (directive structured-directive-mixin
      at-most-one-modifier-mixin)
   ((%last-clause-is-default-p :initform nil
                               :accessor last-clause-is-default-p)))
@@ -184,7 +184,7 @@
 ;;; 22.3.7.5 ~} End of iteration
 
 (defclass end-iteration-directive
-    (named-parameters-directive only-colon-mixin
+    (directive only-colon-mixin
      end-structured-directive-mixin)
   ())
 
@@ -197,7 +197,7 @@
 ;;; 22.3.7.4 ~{ Iteration
 
 (defclass iteration-directive
-    (named-parameters-directive structured-directive-mixin)
+    (directive structured-directive-mixin)
   ())
 
 (defmethod specialize-directive
@@ -502,7 +502,7 @@
 ;;; 22.3.7.6 ~? Recursive processing
 
 (defclass recursive-processing-directive
-    (named-parameters-directive only-at-sign-mixin)
+    (directive only-at-sign-mixin)
   ())
 
 (defmethod specialize-directive

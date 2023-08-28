@@ -59,7 +59,7 @@
 ;;;
 ;;; 22.3.3.1 ~f Fixed-format floating point.
 
-(defclass f-directive (named-parameters-directive) nil)
+(defclass f-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\F)) directive (end-directive t))
@@ -183,7 +183,7 @@
 ;;;
 ;;; 22.3.3.2 ~e Exponential floating point.
 
-(defclass e-directive (named-parameters-directive) ())
+(defclass e-directive (directive) ())
 
 (defmethod specialize-directive
     ((client t) (char (eql #\E)) directive (end-directive t))
@@ -322,7 +322,7 @@
 ;;;
 ;;; 22.3.3.3 ~g General floating point.
 
-(defclass g-directive (named-parameters-directive) ())
+(defclass g-directive (directive) ())
 
 (defmethod specialize-directive
     ((client t) (char (eql #\G)) directive (end-directive t))
@@ -381,7 +381,7 @@
 ;;;
 ;;; 22.3.3.4 ~$ Monetary floating point.
 
-(defclass monetary-directive (named-parameters-directive) nil)
+(defclass monetary-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\$)) directive (end-directive t))

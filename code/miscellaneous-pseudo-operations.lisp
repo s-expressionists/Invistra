@@ -12,7 +12,7 @@
 ;;;
 ;;; 22.3.9.1 ~; Clause separator
 
-(defclass semicolon-directive (named-parameters-directive) nil)
+(defclass semicolon-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\;)) directive (end-directive t))
@@ -52,7 +52,7 @@
 ;;;
 ;;; 22.3.9.2 ~^ Escape upward
 
-(defclass circumflex-directive (named-parameters-directive) nil)
+(defclass circumflex-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\^)) directive (end-directive t))
@@ -135,7 +135,7 @@
 ;;; 22.3.9.3 ~Newline Igored newline
 
 (defclass newline-directive
-    (named-parameters-directive at-most-one-modifier-mixin) nil)
+    (directive at-most-one-modifier-mixin) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\Newline)) directive (end-directive t))

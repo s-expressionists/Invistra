@@ -8,7 +8,7 @@
 ;;;
 ;;; 22.3.1.1 ~c Character
 
-(defclass c-directive (named-parameters-directive)
+(defclass c-directive (directive)
   ())
 
 (defmethod specialize-directive
@@ -75,7 +75,7 @@
 ;;;
 ;;; 22.3.1.2 ~% Newline.
 
-(defclass percent-directive (named-parameters-directive no-modifiers-mixin)
+(defclass percent-directive (directive no-modifiers-mixin)
   ())
 
 (defmethod specialize-directive
@@ -105,7 +105,7 @@
 ;;;
 ;;; 22.3.1.3 ~& Fresh line and newlines.
 
-(defclass ampersand-directive (named-parameters-directive no-modifiers-mixin)
+(defclass ampersand-directive (directive no-modifiers-mixin)
   ())
 
 (defmethod specialize-directive
@@ -147,7 +147,7 @@
 ;;;
 ;;; 22.3.1.4 ~| Page separators.
 
-(defclass vertical-bar-directive (named-parameters-directive no-modifiers-mixin)
+(defclass vertical-bar-directive (directive no-modifiers-mixin)
   ())
 
 (defmethod specialize-directive
@@ -179,7 +179,7 @@
 ;;;
 ;;; 22.3.1.5 ~~ Tildes.
 
-(defclass tilde-directive (named-parameters-directive no-modifiers-mixin)
+(defclass tilde-directive (directive no-modifiers-mixin)
   ())
 
 (defmethod specialize-directive

@@ -9,7 +9,7 @@
 ;;; 22.3.8.2 ~) End of case conversion
 
 (defclass end-case-conversion-directive
-    (named-parameters-directive no-modifiers-mixin
+    (directive no-modifiers-mixin
      end-structured-directive-mixin)
   nil)
 
@@ -22,7 +22,7 @@
 ;;; 22.3.8.1 ~( Case conversion
 
 (defclass case-conversion-directive
-    (named-parameters-directive structured-directive-mixin) nil)
+    (directive structured-directive-mixin) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\()) directive
@@ -68,7 +68,7 @@
 ;;;
 ;;; 22.3.8.3 ~p Plural
 
-(defclass plural-directive (named-parameters-directive) nil)
+(defclass plural-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\P)) directive (end-directive t))

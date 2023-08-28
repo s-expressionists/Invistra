@@ -45,7 +45,7 @@
 ;;;
 ;;; 22.3.2.1 ~r Radix.
 
-(defclass radix-directive (named-parameters-directive) nil)
+(defclass radix-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\R)) directive (end-directive t))
@@ -288,7 +288,7 @@
 ;;;
 ;;; 22.3.2.2 ~d Decimal.
 
-(defclass specific-radix-directive (named-parameters-directive)
+(defclass specific-radix-directive (directive)
   ())
 
 (defmethod parameter-specifications (client (directive specific-radix-directive))

@@ -8,7 +8,7 @@
 ;;;
 ;;; 22.3.5.1 ~_ Conditional newline
 
-(defclass underscore-directive (named-parameters-directive) nil)
+(defclass underscore-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\_)) directive (end-directive t))
@@ -42,14 +42,14 @@
                                       (t :linear))))))
 
 (defclass end-logical-block-directive
-    (named-parameters-directive end-structured-directive-mixin) nil)
+    (directive end-structured-directive-mixin) nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.5.2 ~< Logical block
 
 (defclass logical-block-directive
-    (named-parameters-directive structured-directive-mixin) nil)
+    (directive structured-directive-mixin) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\<)) directive
@@ -197,7 +197,7 @@
 ;;;
 ;;; 22.3.5.3 ~i Indent
 
-(defclass i-directive (named-parameters-directive) nil)
+(defclass i-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\I)) directive (end-directive t))
@@ -239,6 +239,10 @@
 (defmethod specialize-directive
     ((client t) (char (eql #\/)) directive (end-directive t))
   (change-class directive 'call-function-directive))
+
+(defmethod parameter-specifications (client (directive call-function-directive))
+  (declare (ignore client))
+  '((:type (or null character integer) :default nil :rest t)))
 
 (defmethod parse-directive-suffix ((directive-character (eql #\/)) control-string start end)
   (let ((position-of-trailing-slash

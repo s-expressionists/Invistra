@@ -16,7 +16,7 @@
 ;;;
 ;;; 22.3.4.1 ~a Aesthetic.
 
-(defclass a-directive (named-parameters-directive) nil)
+(defclass a-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\A)) directive (end-directive t))
@@ -58,7 +58,7 @@
 ;;;
 ;;; 22.3.4.2 ~s Standard.
 
-(defclass s-directive (named-parameters-directive) nil)
+(defclass s-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\S)) directive (end-directive t))
@@ -98,7 +98,7 @@
 ;;;
 ;;; 22.3.4.3 ~w Write.
 
-(defclass w-directive (named-parameters-directive) nil)
+(defclass w-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\W)) directive (end-directive t))

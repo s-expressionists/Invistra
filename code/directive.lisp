@@ -88,11 +88,6 @@
    ;; true if and only if the `@' modifier was given
    (%at-signp :initarg :at-signp :reader at-signp)))
 
-;;; The base class of all directives that take a maximum number of
-;;; named parameters.  Those are all the directives except the
-;;; call-function directive.
-(defclass named-parameters-directive (directive) ())
-
 ;;; Mixin class for directives that take no modifiers
 (defclass no-modifiers-mixin () ())
 
@@ -138,15 +133,28 @@
   (declare (ignore client))
   (loop for remaining-parameters = (parameters directive) then (cdr remaining-parameters)
         for parameter = (car remaining-parameters)
-        for remaining-specs = (parameter-specifications client directive) then (cdr remaining-specs)
+        for remaining-specs = (parameter-specifications client directive)
+          then (if (getf (car remaining-specs) :rest)
+                   remaining-specs
+                   (cdr remaining-specs))
         for spec = (car remaining-specs)
-        for parameter-number from 1
+        for count from 0
         finally (setf (parameters directive) parameters)
-        while (or remaining-parameters remaining-specs)
         if (and parameter spec)
-          do (apply #'reinitialize-instance parameter spec)
-        else unless parameter
-          do (setf parameter (apply #'make-instance 'literal-parameter spec))
+          do (apply #'reinitialize-instance parameter
+                    :allow-other-keys t spec)
+        else if (and (null parameter)
+                     (or (null spec)
+                         (getf spec :rest)))
+               do (loop-finish)
+        else if (null spec)
+          do (error 'too-many-parameters
+                    :directive directive
+                    :at-most-how-many (1+ count)
+                    :how-many-found (+ count (length remaining-parameters)))
+        else
+          do (setf parameter (apply #'make-instance 'literal-parameter
+                                    :allow-other-keys t spec))
         collect parameter into parameters
         when (typep parameter 'literal-parameter)
           do (with-accessors ((parameter-value parameter-value)
@@ -159,18 +167,6 @@
                  (error 'parameter-type-error
                         :expected-type parameter-type
                         :datum parameter-value)))))
-
-(defmethod check-directive-syntax progn (client (directive named-parameters-directive))
-  (with-accessors ((parameters parameters))
-    directive
-    (let ((parameter-specs (parameter-specifications client directive)))
-      ;; Check that the number of parameters given is no more than
-      ;; what this type of directive allows.
-      (when (> (length parameters) (length parameter-specs))
-        (error 'too-many-parameters
-               :directive directive
-               :at-most-how-many (length parameter-specs)
-               :how-many-found (length parameters))))))
 
 ;;; Signal an error if a modifier has been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive no-modifiers-mixin))
