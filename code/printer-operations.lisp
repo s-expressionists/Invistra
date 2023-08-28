@@ -16,11 +16,17 @@
 ;;;
 ;;; 22.3.4.1 ~a Aesthetic.
 
-(define-directive t #\a a-directive t (named-parameters-directive)
-    ((mincol :type integer :default 0)
-     (colinc :type (integer 0) :default 1)
-     (minpad :type integer :default 0)
-     (padchar :type character :default #\Space)))
+(defclass a-directive (named-parameters-directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\A)) directive (end-directive t))
+  (change-class directive 'a-directive))
+
+(defmethod parameter-specifications ((client t) (directive a-directive))
+  '((:type integer :default 0)
+    (:type (integer 0) :default 1)
+    (:type integer :default 0)
+    (:type character :default #\Space)))
 
 (defmethod interpret-item (client (directive a-directive) &optional parameters)
   (let ((*print-escape* nil)
@@ -52,11 +58,17 @@
 ;;;
 ;;; 22.3.4.2 ~s Standard.
 
-(define-directive t #\s s-directive t (named-parameters-directive)
-    ((mincol :type integer :default 0)
-     (colinc :type (integer 0) :default 1)
-     (minpad :type integer :default 0)
-     (padchar :type character :default #\Space)))
+(defclass s-directive (named-parameters-directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\S)) directive (end-directive t))
+  (change-class directive 's-directive))
+
+(defmethod parameter-specifications ((client t) (directive s-directive))
+  '((:type integer :default 0)
+    (:type (integer 0) :default 1)
+    (:type integer :default 0)
+    (:type character :default #\Space)))
 
 (defmethod interpret-item (client (directive s-directive) &optional parameters)
   (let ((*print-escape* t)
@@ -86,7 +98,11 @@
 ;;;
 ;;; 22.3.4.3 ~w Write.
 
-(define-directive t #\w w-directive t (named-parameters-directive) ())
+(defclass w-directive (named-parameters-directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\W)) directive (end-directive t))
+  (change-class directive 'w-directive))
 
 (defmethod layout-requirements ((item w-directive))
   (list :logical-block))

@@ -98,13 +98,6 @@
 
 ;;; The directive interpreter.
 
-(defmethod interpret-item (client directive &optional parameters)
-  (declare (ignore client parameters))
-  (error 'unknown-format-directive
-         :control-string (control-string directive)
-         :tilde-position (start directive)
-         :index (1- (end directive))))
-
 (defun consume-next-argument (type)
   (unless (< *previous-argument-index* (length *previous-arguments*))
     (let (exited)

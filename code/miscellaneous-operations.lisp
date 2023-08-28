@@ -8,28 +8,33 @@
 ;;;
 ;;; 22.3.8.2 ~) End of case conversion
 
-(define-directive t #\)
-    end-case-conversion-directive
-    t
-    (named-parameters-directive
-     no-modifiers-mixin end-structured-directive-mixin)
-    ())
+(defclass end-case-conversion-directive
+    (named-parameters-directive no-modifiers-mixin
+     end-structured-directive-mixin)
+  nil)
 
-(defmethod interpret-item (client (item end-case-conversion-directive) &optional parameters)
-  (declare (ignore client parameters)))
-
-(defmethod compile-item (client (item end-case-conversion-directive) &optional parameters)
-  (declare (ignore client parameters)))
+(defmethod specialize-directive
+    ((client t) (char (eql #\))) directive (end-directive t))
+  (change-class directive 'end-case-conversion-directive))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.8.1 ~( Case conversion
 
-(define-directive t #\(
-    case-conversion-directive
-    end-case-conversion-directive
-    (named-parameters-directive structured-directive-mixin)
-    ())
+(defclass case-conversion-directive
+    (named-parameters-directive structured-directive-mixin) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\()) directive
+     (end-directive end-case-conversion-directive))
+  (change-class directive 'case-conversion-directive))
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\()) directive (end-directive t))
+  (error 'unmatched-directive
+         :directive directive
+         :control-string (control-string directive)
+         :tilde-position (start directive)))
 
 (defmethod interpret-item (client (item case-conversion-directive) &optional parameters)
   (declare (ignore parameters))
@@ -63,7 +68,11 @@
 ;;;
 ;;; 22.3.8.3 ~p Plural
 
-(define-directive t #\p plural-directive t (named-parameters-directive) ())
+(defclass plural-directive (named-parameters-directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\P)) directive (end-directive t))
+  (change-class directive 'plural-directive))
 
 (defmethod interpret-item (client (item plural-directive) &optional parameters)
   (declare (ignore parameters))

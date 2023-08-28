@@ -130,40 +130,6 @@
                                                      requirements
                                                      nil)))))
 
-;;; A macro that helps us define directives. It takes a directive
-;;; character, a directive name (to be used for the class) and a body
-;;; in the form of a list of parameter specifications.  Each parameter
-;;; specification is a list where the first element is the name of the
-;;; parameter, and the remaining elemnts are keyword/value pairs.
-;;; Currently, the only keywords allowed are :type and
-;;; :default.
-(defmacro define-directive (client-name character name
-                            end-name superclasses parameters
-                            &body slots)
-  `(progn
-     (defclass ,name ,superclasses
-       ,slots)
-
-     (defmethod specialize-directive ((client ,client-name)
-                                      (char (eql ,(char-upcase character)))
-                                      directive
-                                      (end-directive ,end-name))
-       (change-class directive ',name))
-
-     ,(unless (eq end-name t)
-        `(defmethod specialize-directive ((client ,client-name)
-                                          (char (eql ,(char-upcase character)))
-                                          directive
-                                          (end-directive t))
-           (error 'unmatched-directive
-                  :directive directive
-                  :control-string (control-string directive)
-                  :tilde-position (start directive))))
-
-     (defmethod parameter-specifications ((client ,client-name)
-                                          (directive ,name))
-       ',(mapcar #'cdr parameters))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; Checking syntax, interpreting, and compiling directives.

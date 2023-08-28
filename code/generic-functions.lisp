@@ -20,9 +20,13 @@
 (defgeneric check-directive-syntax (client directive)
   (:method-combination progn :most-specific-last))
 
-(defgeneric interpret-item (client item &optional parameters))
+(defgeneric interpret-item (client item &optional parameters)
+  (:method (client item &optional parameters)
+    (declare (ignore client item parameters))))
 
-(defgeneric compile-item (client item &optional parameters))
+(defgeneric compile-item (client item &optional parameters)
+  (:method (client item &optional parameters)
+    (declare (ignore client item parameters))))
 
 (defgeneric parse-directive-suffix (directive-character control-string start end)
   (:method (directive-character control-string start end)

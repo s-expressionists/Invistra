@@ -12,12 +12,16 @@
 ;;;
 ;;; 22.3.9.1 ~; Clause separator
 
-(define-directive t #\;
-    semicolon-directive
-    t
-    (named-parameters-directive)
-    ((extra-space :type (or null integer) :default nil)
-     (line-length :type (or null integer) :default nil)))
+(defclass semicolon-directive (named-parameters-directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\;)) directive (end-directive t))
+  (change-class directive 'semicolon-directive))
+
+(defmethod parameter-specifications
+    ((client t) (directive semicolon-directive))
+  '((:type (or null integer) :default nil)
+    (:type (or null integer) :default nil)))
 
 (defmethod structured-separator-p ((directive semicolon-directive))
   t)
@@ -48,10 +52,17 @@
 ;;;
 ;;; 22.3.9.2 ~^ Escape upward
 
-(define-directive t #\^ circumflex-directive t (named-parameters-directive)
-    ((p1 :type (or null character integer))
-     (p2 :type (or null character integer))
-     (p3 :type (or null character integer))))
+(defclass circumflex-directive (named-parameters-directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\^)) directive (end-directive t))
+  (change-class directive 'circumflex-directive))
+
+(defmethod parameter-specifications
+    ((client t) (directive circumflex-directive))
+  '((:type (or null character integer))
+    (:type (or null character integer))
+    (:type (or null character integer))))
 
 (defmethod check-directive-syntax progn
     (client (directive circumflex-directive))
@@ -123,7 +134,12 @@
 ;;;
 ;;; 22.3.9.3 ~Newline Igored newline
 
-(define-directive t #\Newline newline-directive t (named-parameters-directive at-most-one-modifier-mixin) ())
+(defclass newline-directive
+    (named-parameters-directive at-most-one-modifier-mixin) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\Newline)) directive (end-directive t))
+  (change-class directive 'newline-directive))
 
 (defmethod parse-directive-suffix ((directive-character (eql #\Newline)) control-string start end)
   (or (position-if (lambda (char)

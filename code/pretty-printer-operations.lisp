@@ -8,7 +8,11 @@
 ;;;
 ;;; 22.3.5.1 ~_ Conditional newline
 
-(define-directive t #\_ underscore-directive t (named-parameters-directive) ())
+(defclass underscore-directive (named-parameters-directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\_)) directive (end-directive t))
+  (change-class directive 'underscore-directive))
 
 (defmethod layout-requirements ((item underscore-directive))
   (list :logical-block))
@@ -37,27 +41,27 @@
                                       (at-signp :miser)
                                       (t :linear))))))
 
-(define-directive t #\>
-    end-logical-block-directive
-    t
-    (named-parameters-directive end-structured-directive-mixin)
-    ())
-
-(defmethod interpret-item (client (directive end-logical-block-directive) &optional parameters)
-  (declare (ignore client parameters)))
-
-(defmethod compile-item (client (directive end-logical-block-directive) &optional parameters)
-  (declare (ignore client parameters)))
+(defclass end-logical-block-directive
+    (named-parameters-directive end-structured-directive-mixin) nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.5.2 ~< Logical block
 
-(define-directive t #\<
-    logical-block-directive
-    end-logical-block-directive
-    (named-parameters-directive structured-directive-mixin)
-    ())
+(defclass logical-block-directive
+    (named-parameters-directive structured-directive-mixin) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\<)) directive
+     (end-directive end-logical-block-directive))
+  (change-class directive 'logical-block-directive))
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\<)) directive (end-directive t))
+  (error 'unmatched-directive
+         :directive directive
+         :control-string (control-string directive)
+         :tilde-position (start directive)))
 
 (defmethod layout-requirements :around ((item logical-block-directive))
   (merge-layout-requirements (list :logical-block)
@@ -193,8 +197,14 @@
 ;;;
 ;;; 22.3.5.3 ~i Indent
 
-(define-directive t #\i i-directive t (named-parameters-directive)
-    ((how-many :type integer :default 0)))
+(defclass i-directive (named-parameters-directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\I)) directive (end-directive t))
+  (change-class directive 'i-directive))
+
+(defmethod parameter-specifications ((client t) (directive i-directive))
+  '((:type integer :default 0)))
 
 (defmethod layout-requirements ((item i-directive))
   (list :logical-block))
@@ -223,9 +233,12 @@
 ;;; which means the standard mechanism of parsing it cannot be used.
 ;;; Second, this directive takes an arbitrary number of parameters.
 
-(define-directive t #\/ call-function-directive t (directive)
-    ()
-  (%function-name :accessor function-name))
+(defclass call-function-directive (directive)
+  ((%function-name :accessor function-name)))
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\/)) directive (end-directive t))
+  (change-class directive 'call-function-directive))
 
 (defmethod parse-directive-suffix ((directive-character (eql #\/)) control-string start end)
   (let ((position-of-trailing-slash

@@ -45,12 +45,18 @@
 ;;;
 ;;; 22.3.2.1 ~r Radix.
 
-(define-directive t #\r r-directive t (named-parameters-directive)
-    ((radix :type (or null (integer 2 36)) :default nil)
-     (mincol :type integer :default 0)
-     (padchar :type character :default #\Space)
-     (commachar :type character :default #\,)
-     (comma-interval :type (integer 1) :default 3)))
+(defclass radix-directive (named-parameters-directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\R)) directive (end-directive t))
+  (change-class directive 'radix-directive))
+
+(defmethod parameter-specifications ((client t) (directive radix-directive))
+  '((:type (or null (integer 2 36)) :default nil)
+    (:type integer :default 0)
+    (:type character :default #\Space)
+    (:type character :default #\,)
+    (:type (integer 1) :default 3)))
 
 ;;; Print an integer as roman numerals to the stream.
 ;;; The integer must be strictly greater than zero,
@@ -229,7 +235,7 @@
         (t
          (print-ordinal-non-zero n stream))))
 
-(defmethod interpret-item (client (directive r-directive) &optional parameters)
+(defmethod interpret-item (client (directive radix-directive) &optional parameters)
   (let ((radix (car parameters))
         (colonp (colonp directive))
         (at-signp (at-signp directive)))
@@ -250,7 +256,7 @@
                                    `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
                                   *destination*)))))
 
-(defmethod compile-item (client (directive r-directive) &optional parameters)
+(defmethod compile-item (client (directive radix-directive) &optional parameters)
   (let ((colonp (colonp directive))
         (at-signp (at-signp directive)))
     (cond ((numberp (car parameters))
@@ -282,62 +288,78 @@
 ;;;
 ;;; 22.3.2.2 ~d Decimal.
 
-(define-directive t #\d d-directive t (named-parameters-directive)
-    ((mincol :type integer :default 0)
-     (padchar :type character :default #\Space)
-     (commachar :type character :default #\,)
-     (comma-interval :type (integer 1) :default 3)))
+(defclass specific-radix-directive (named-parameters-directive)
+  ())
 
-(defmethod interpret-item (client (directive d-directive) &optional parameters)
+(defmethod parameter-specifications (client (directive specific-radix-directive))
+  (declare (ignore client))
+  '((:type integer :default 0)
+    (:type character :default #\Space)
+    (:type character :default #\,)
+    (:type (integer 1) :default 3)))
+
+(defclass decimal-radix-directive (specific-radix-directive)
+  ())
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\D)) directive (end-directive t))
+  (change-class directive 'decimal-radix-directive))
+
+(defmethod interpret-item (client (directive decimal-radix-directive) &optional parameters)
   (apply #'print-radix-arg client (colonp directive) (at-signp directive) 10 parameters))
 
-(defmethod compile-item (client (directive d-directive) &optional parameters)
+(defmethod compile-item (client (directive decimal-radix-directive) &optional parameters)
   `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 10 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.2.3 ~b Binary.
 
-(define-directive t #\b b-directive t (named-parameters-directive)
-    ((mincol :type integer :default 0)
-     (padchar :type character :default #\Space)
-     (commachar :type character :default #\,)
-     (comma-interval :type (integer 1) :default 3)))
+(defclass binary-radix-directive (specific-radix-directive)
+  ())
 
-(defmethod interpret-item (client (directive b-directive) &optional parameters)
+(defmethod specialize-directive
+    ((client t) (char (eql #\B)) directive (end-directive t))
+  (change-class directive 'binary-radix-directive))
+
+(defmethod interpret-item (client (directive binary-radix-directive) &optional parameters)
   (apply #'print-radix-arg client (colonp directive) (at-signp directive) 2 parameters))
 
-(defmethod compile-item (client (directive b-directive) &optional parameters)
+(defmethod compile-item (client (directive binary-radix-directive) &optional parameters)
   `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 2 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.2.4 ~o Octal.
 
-(define-directive t #\o o-directive t (named-parameters-directive)
-    ((mincol :type integer :default 0)
-     (padchar :type character :default #\Space)
-     (commachar :type character :default #\,)
-     (comma-interval :type (integer 1) :default 3)))
+(defclass octal-radix-directive (specific-radix-directive)
+  ())
 
-(defmethod interpret-item (client (directive o-directive) &optional parameters)
+(defmethod specialize-directive
+    ((client t) (char (eql #\O)) directive (end-directive t))
+  (change-class directive 'octal-radix-directive))
+
+(defmethod interpret-item (client (directive octal-radix-directive) &optional parameters)
   (apply #'print-radix-arg client (colonp directive) (at-signp directive) 8 parameters))
 
-(defmethod compile-item (client (directive o-directive) &optional parameters)
+(defmethod compile-item (client (directive octal-radix-directive) &optional parameters)
   `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 8 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.2.5 ~x Hexadecimal.
 
-(define-directive t #\x x-directive t (named-parameters-directive)
-    ((mincol :type integer :default 0)
-     (padchar :type character :default #\Space)
-     (commachar :type character :default #\,)
-     (comma-interval :type (integer 1) :default 3)))
+(defclass hexadecimal-radix-directive (specific-radix-directive)
+  ())
 
-(defmethod interpret-item (client (directive x-directive) &optional parameters)
+(defmethod specialize-directive
+    ((client t) (char (eql #\X)) directive (end-directive t))
+  (change-class directive 'hexadecimal-radix-directive))
+
+(defmethod interpret-item
+    (client (directive hexadecimal-radix-directive) &optional parameters)
   (apply #'print-radix-arg client (colonp directive) (at-signp directive) 16 parameters))
 
-(defmethod compile-item (client (directive x-directive) &optional parameters)
+(defmethod compile-item
+    (client (directive hexadecimal-radix-directive) &optional parameters)
   `((print-radix-arg ,(incless:client-form client) ,(colonp directive) ,(at-signp directive) 16 ,@parameters)))

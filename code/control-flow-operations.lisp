@@ -8,8 +8,15 @@
 ;;;
 ;;; 22.3.7.1 ~* Go to
 
-(define-directive t #\* go-to-directive t (named-parameters-directive at-most-one-modifier-mixin)
-    ((param :type (or null (integer 0)) :default nil)))
+(defclass go-to-directive
+    (named-parameters-directive at-most-one-modifier-mixin) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\*)) directive (end-directive t))
+  (change-class directive 'go-to-directive))
+
+(defmethod parameter-specifications ((client t) (directive go-to-directive))
+  '((:type (or null (integer 0)) :default nil)))
 
 (defmethod interpret-item (client (directive go-to-directive) &optional parameters)
   (declare (ignore client))
@@ -47,22 +54,40 @@
 ;;;
 ;;; 22.3.7.3 ~] End of conditional expression
 
-(define-directive t #\] end-conditional-directive t (named-parameters-directive no-modifiers-mixin end-structured-directive-mixin) ())
+(defclass end-conditional-directive
+    (named-parameters-directive no-modifiers-mixin
+     end-structured-directive-mixin)
+  nil)
 
-(defmethod interpret-item (client (directive end-conditional-directive) &optional parameters)
-  (declare (ignore client parameters)))
-
-(defmethod compile-item (client (directive end-conditional-directive) &optional parameters)
-  (declare (ignore client parameters)))
+(defmethod specialize-directive
+    ((client t) (char (eql #\])) directive (end-directive t))
+  (change-class directive 'end-conditional-directive))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.7.2 ~[ Conditional expression
 
-(define-directive t #\[ conditional-directive end-conditional-directive
-  (named-parameters-directive structured-directive-mixin at-most-one-modifier-mixin)
-    ((param :type (or null integer) :default nil))
-  (%last-clause-is-default-p :initform nil :accessor last-clause-is-default-p))
+(defclass conditional-directive
+    (named-parameters-directive structured-directive-mixin
+     at-most-one-modifier-mixin)
+  ((%last-clause-is-default-p :initform nil
+                              :accessor last-clause-is-default-p)))
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\[)) directive
+     (end-directive end-conditional-directive))
+  (change-class directive 'conditional-directive))
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\[)) directive (end-directive t))
+  (error 'unmatched-directive
+         :directive directive
+         :control-string (control-string directive)
+         :tilde-position (start directive)))
+
+(defmethod parameter-specifications
+    ((client t) (directive conditional-directive))
+  '((:type (or null integer) :default nil)))
 
 (defmethod check-directive-syntax progn (client (directive conditional-directive))
   (declare (ignore client))
@@ -158,21 +183,36 @@
 ;;;
 ;;; 22.3.7.5 ~} End of iteration
 
-(define-directive t #\} end-iteration-directive t (named-parameters-directive only-colon-mixin end-structured-directive-mixin) ())
+(defclass end-iteration-directive
+    (named-parameters-directive only-colon-mixin
+     end-structured-directive-mixin)
+  ())
 
-(defmethod interpret-item (client (directive end-iteration-directive) &optional parameters)
-  (declare (ignore client parameters)))
-
-(defmethod compile-item (client (directive end-iteration-directive) &optional parameters)
-  (declare (ignore client parameters)))
+(defmethod specialize-directive
+    ((client t) (char (eql #\})) directive (end-directive t))
+  (change-class directive 'end-iteration-directive))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.7.4 ~{ Iteration
 
-(define-directive t #\{ iteration-directive end-iteration-directive
-  (named-parameters-directive structured-directive-mixin)
-    ((iteration-limit :type (or null (integer 0)) :default nil)))
+(defclass iteration-directive
+    (named-parameters-directive structured-directive-mixin)
+  ())
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\{)) directive
+     (end-directive end-iteration-directive))
+  (change-class directive 'iteration-directive))
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\{)) directive (end-directive t))
+  (error 'unmatched-directive :directive directive :control-string
+         (control-string directive) :tilde-position (start directive)))
+
+(defmethod parameter-specifications
+            ((client t) (directive iteration-directive))
+   '((:type (or null (integer 0)) :default nil)))
 
 (defmethod interpret-item (client (directive iteration-directive) &optional parameters)
   ;; eliminate the end-of-iteration directive from the
@@ -461,7 +501,13 @@
 ;;;
 ;;; 22.3.7.6 ~? Recursive processing
 
-(define-directive t #\? recursive-processing-directive t (named-parameters-directive only-at-sign-mixin) ())
+(defclass recursive-processing-directive
+    (named-parameters-directive only-at-sign-mixin)
+  ())
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\?)) directive (end-directive t))
+  (change-class directive 'recursive-processing-directive))
 
 (defmethod interpret-item (client (directive recursive-processing-directive) &optional parameters)
   (declare (ignore parameters))

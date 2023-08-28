@@ -58,20 +58,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.3.1 ~f Fixed-format floating point.
-(define-directive t #\f
-    f-directive
-    t
-    (named-parameters-directive)
-    ((w :type (or null integer)
-        :default nil)
-     (d :type (or null integer)
-        :default nil)
-     (k :type (or null integer)
-        :default 0)
-     (overflowchar :type (or null character)
-                   :default nil)
-     (padchar :type character
-              :default #\Space)))
+
+(defclass f-directive (named-parameters-directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\F)) directive (end-directive t))
+  (change-class directive 'f-directive))
+
+(defmethod parameter-specifications ((client t) (directive f-directive))
+  '((:type (or null integer) :default nil)
+    (:type (or null integer) :default nil)
+    (:type (or null integer) :default 0)
+    (:type (or null character) :default nil)
+    (:type character :default #\Space)))
 
 (defun print-fixed-arg (client value digits exponent
                         colonp at-signp w d k overflowchar padchar)
@@ -184,24 +183,20 @@
 ;;;
 ;;; 22.3.3.2 ~e Exponential floating point.
 
-(define-directive t #\e
-    e-directive
-    t
-    (named-parameters-directive)
-    ((w :type (or null integer)
-        :default nil)
-     (d :type (or null integer)
-        :default nil)
-     (e :type (or null integer)
-        :default nil)
-     (k :type (or null integer)
-        :default 1)
-     (overflowchar :type (or null character)
-                   :default nil)
-     (padchar :type character
-              :default #\Space)
-     (exponentchar :type (or null character)
-                   :default nil)))
+(defclass e-directive (named-parameters-directive) ())
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\E)) directive (end-directive t))
+  (change-class directive 'e-directive))
+
+(defmethod parameter-specifications ((client t) (directive e-directive))
+  '((:type (or null integer) :default nil)
+    (:type (or null integer) :default nil)
+    (:type (or null integer) :default nil)
+    (:type (or null integer) :default 1)
+    (:type (or null character) :default nil)
+    (:type character :default #\Space)
+    (:type (or null character) :default nil)))
 
 (defun print-exponent-arg (client value digits exponent colonp at-signp w d e k overflowchar padchar exponentchar)
   (declare (ignore colonp))
@@ -327,24 +322,20 @@
 ;;;
 ;;; 22.3.3.3 ~g General floating point.
 
-(define-directive t #\g
-    g-directive
-    t
-    (named-parameters-directive)
-    ((w :type (or null integer)
-        :default nil)
-     (d :type (or null integer)
-        :default nil)
-     (e :type (or null integer)
-        :default nil)
-     (k :type (or null integer)
-        :default 1)
-     (overflowchar :type (or null character)
-                   :default nil)
-     (padchar :type character
-              :default #\Space)
-     (exponentchar :type (or null character)
-                   :default nil)))
+(defclass g-directive (named-parameters-directive) ())
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\G)) directive (end-directive t))
+  (change-class directive 'g-directive))
+
+(defmethod parameter-specifications ((client t) (directive g-directive))
+  '((:type (or null integer) :default nil)
+    (:type (or null integer) :default nil)
+    (:type (or null integer) :default nil)
+    (:type (or null integer) :default 1)
+    (:type (or null character) :default nil)
+    (:type character :default #\Space)
+    (:type (or null character) :default nil)))
 
 (defun print-general-arg (client value digits exponent
                           colonp at-signp w d e k
@@ -390,18 +381,18 @@
 ;;;
 ;;; 22.3.3.4 ~$ Monetary floating point.
 
-(define-directive t #\$
-    monetary-directive
-    t
-    (named-parameters-directive)
-    ((d :type integer
-        :default 2)
-     (n :type integer
-        :default 1)
-     (w :type (or null integer)
-        :default nil)
-     (padchar :type character
-              :default #\Space)))
+(defclass monetary-directive (named-parameters-directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\$)) directive (end-directive t))
+  (change-class directive 'monetary-directive))
+
+(defmethod parameter-specifications
+    ((client t) (directive monetary-directive))
+  '((:type integer :default 2)
+    (:type integer :default 1)
+    (:type (or null integer) :default nil)
+    (:type character :default #\Space)))
 
 (defun print-monetary-arg (client value digits exponent
                            colonp at-signp d n w padchar)

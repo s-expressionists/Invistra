@@ -8,7 +8,13 @@
 ;;;
 ;;; 22.3.1.1 ~c Character
 
-(define-directive t #\c c-directive t (named-parameters-directive) ())
+(defclass c-directive (named-parameters-directive)
+  ())
+
+(defmethod specialize-directive
+    (client (char (eql #\C)) directive end-directive)
+  (declare (ignore client end-directive))
+  (change-class directive 'c-directive))
 
 (defmethod interpret-item (client (directive c-directive) &optional parameters)
   (declare (ignore parameters))
@@ -69,8 +75,17 @@
 ;;;
 ;;; 22.3.1.2 ~% Newline.
 
-(define-directive t #\% percent-directive t (named-parameters-directive no-modifiers-mixin)
-    ((how-many :type (integer 0) :default 1)))
+(defclass percent-directive (named-parameters-directive no-modifiers-mixin)
+  ())
+
+(defmethod specialize-directive
+    (client (char (eql #\%)) directive end-directive)
+  (declare (ignore client end-directive))
+  (change-class directive 'percent-directive))
+
+(defmethod parameter-specifications (client (directive percent-directive))
+  (declare (ignore client))
+  '((:type (integer 0) :default 1)))
 
 (defmethod interpret-item (client (directive percent-directive) &optional parameters)
   (loop repeat (car parameters)
@@ -90,8 +105,18 @@
 ;;;
 ;;; 22.3.1.3 ~& Fresh line and newlines.
 
-(define-directive t #\& ampersand-directive t (named-parameters-directive no-modifiers-mixin)
-    ((how-many :type (integer 0) :default 1)))
+(defclass ampersand-directive (named-parameters-directive no-modifiers-mixin)
+  ())
+
+(defmethod specialize-directive
+    (client (char (eql #\&)) directive end-directive)
+  (declare (ignore client end-directive))
+  (change-class directive 'ampersand-directive))
+
+(defmethod parameter-specifications
+    (client (directive ampersand-directive))
+  (declare (ignore client))
+  '((:type (integer 0) :default 1)))
 
 (defmethod interpret-item (client (item ampersand-directive) &optional parameters)
   (let ((how-many (car parameters)))
@@ -122,8 +147,18 @@
 ;;;
 ;;; 22.3.1.4 ~| Page separators.
 
-(define-directive t #\| vertical-bar-directive t (named-parameters-directive no-modifiers-mixin)
-    ((how-many :type (integer 0) :default 1)))
+(defclass vertical-bar-directive (named-parameters-directive no-modifiers-mixin)
+  ())
+
+(defmethod specialize-directive
+    (client (char (eql #\|)) directive end-directive)
+  (declare (ignore client end-directive))
+  (change-class directive 'vertical-bar-directive))
+
+(defmethod parameter-specifications
+    (client (directive vertical-bar-directive))
+  (declare (ignore client))
+  '((:type (integer 0) :default 1)))
 
 (defmethod interpret-item (client (directive vertical-bar-directive) &optional parameters)
   (loop repeat (car parameters)
@@ -144,8 +179,17 @@
 ;;;
 ;;; 22.3.1.5 ~~ Tildes.
 
-(define-directive t #\~ tilde-directive t (named-parameters-directive no-modifiers-mixin)
-    ((how-many :type (integer 0) :default 1)))
+(defclass tilde-directive (named-parameters-directive no-modifiers-mixin)
+  ())
+
+(defmethod specialize-directive
+    (client (char (eql #\~)) directive end-directive)
+  (declare (ignore client end-directive))
+  (change-class directive 'tilde-directive))
+
+(defmethod parameter-specifications (client (directive tilde-directive))
+  (declare (ignore client))
+  '((:type (integer 0) :default 1)))
 
 (defmethod interpret-item (client (directive tilde-directive) &optional parameters)
   (loop repeat (car parameters)

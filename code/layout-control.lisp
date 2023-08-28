@@ -8,9 +8,16 @@
 ;;;
 ;;; 22.3.6.1 ~TAB Tabulate
 
-(define-directive t #\t tabulate-directive t (named-parameters-directive)
-    ((colnum :type (integer 0) :default 1)
-     (colinc :type (integer 0) :default 1)))
+(defclass tabulate-directive (named-parameters-directive) ())
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\T)) directive (end-directive t))
+  (change-class directive 'tabulate-directive))
+
+(defmethod parameter-specifications
+    ((client t) (directive tabulate-directive))
+  '((:type (integer 0) :default 1)
+    (:type (integer 0) :default 1)))
 
 (defmethod layout-requirements ((item tabulate-directive))
   (when (colonp item)
@@ -68,37 +75,40 @@
 ;;;
 ;;; 22.3.6.3 ~> End of justification or of logical block
 
-(define-directive t #\>
-    end-justification-directive
-    t
-    (named-parameters-directive end-structured-directive-mixin)
-    ())
+(defclass end-justification-directive
+    (named-parameters-directive end-structured-directive-mixin no-modifiers-mixin) nil)
 
-(defmethod check-directive-syntax progn (client (directive end-justification-directive))
-  (declare (ignore client))
-  (cond ((colonp directive)
-         (change-class directive 'end-logical-block-directive))
-        ((at-signp directive)
-         (error "wibble"))))
-
-(defmethod interpret-item (client (directive end-justification-directive) &optional parameters)
-  (declare (ignore client parameters)))
-
-(defmethod compile-item (client (directive end-justification-directive) &optional parameters)
-  (declare (ignore client parameters)))
+(defmethod specialize-directive
+    ((client t) (char (eql #\>)) directive (end-directive t))
+  (if (colonp directive)
+      (change-class directive 'end-logical-block-directive)
+      (change-class directive 'end-justification-directive)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.6.2 ~< Justification
 
-(define-directive t #\<
-    justification-directive
-    end-justification-directive
-    (named-parameters-directive structured-directive-mixin)
-    ((mincol :type integer :default 0)
-     (colinc :type (integer 0) :default 1)
-     (minpad :type integer :default 0)
-     (padchar :type character :default #\Space)))
+(defclass justification-directive
+    (named-parameters-directive structured-directive-mixin) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\<)) directive
+     (end-directive end-justification-directive))
+  (change-class directive 'justification-directive))
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\<)) directive (end-directive t))
+  (error 'unmatched-directive
+         :directive directive
+         :control-string (control-string directive)
+         :tilde-position (start directive)))
+
+(defmethod parameter-specifications
+    ((client t) (directive justification-directive))
+  '((:type integer :default 0)
+    (:type (integer 0) :default 1)
+    (:type integer :default 0)
+    (:type character :default #\Space)))
 
 (defmethod layout-requirements :around ((item justification-directive))
   (merge-layout-requirements (list (if (colonp (aref (aref (clauses item) 0) (1- (length (aref (clauses item) 0)))))
