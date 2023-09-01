@@ -4,6 +4,15 @@
            #:formatter)
   #+sicl
   (:local-nicknames (:trivial-gray-streams :cyclosis))
-  (:export #:format
+  (:export #:at-sign-p
+           #:check-directive-syntax
+           #:colon-p
+           #:compile-item
+           #:directive
+           #:format
+           #:format-compiler-macro
            #:formatter
-           #:format-compiler-macro))
+           #:interpret-item
+           #:parameter-specifications
+           #:parse-directive-suffix
+           #:specialize-directive))
