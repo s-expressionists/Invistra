@@ -53,7 +53,7 @@
                   (write-char #\. *destination*))
         when (= pos d-pos)
           do (write-char #\. *destination*)
-        do (write-char (aref *digits* digit) *destination*)))
+        do (write-char (char incless:*digit-chars* digit) *destination*)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
