@@ -3,8 +3,9 @@
 (defsystem "invistra-shim"
   :description "System for loading Invistra as a shim into an implementation."
   :license "BSD"
-  :author "Robert Strandh"
-  :maintainer "Robert Strandh"
+  :author ("Robert Strandh"
+           "Tarn W. Burton")
+  :maintainer "Tarn W. Burton"
   :version (:read-file-form "version.sexp")
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
@@ -22,7 +23,8 @@
 (defsystem "invistra-shim/test"
   :description "ANSI Test system for Invistra"
   :license "MIT"
-  :author "Tarn W. Burton"
+  :author ("Robert Strandh"
+           "Tarn W. Burton")
   :maintainer "Tarn W. Burton"
   :depends-on ("alexandria" "invistra-shim")
   :perform (test-op (op c)
