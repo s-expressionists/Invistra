@@ -65,51 +65,99 @@
   (list* '(:type (or null (integer 2 36)) :default nil)
          (call-next-method)))
 
-;;; Print an integer as roman numerals to the stream.
-;;; The integer must be strictly greater than zero,
-;;; and strictly less than 4000.
-(defun print-as-roman (integer stream)
-  (declare (type (integer 1) integer))
-  (multiple-value-bind (thousands rest) (floor integer 1000)
-    (loop repeat thousands
-          do (write-char #\M stream))
-    (multiple-value-bind (hundreds rest) (floor rest 100)
-      (write-string (case hundreds
-                      (0 "") (1 "C") (2 "CC") (3 "CCC") (4 "CD")
-                      (5 "D" ) (6 "DC") (7 "DCC") (8 "DCCC") (9 "CM"))
-                    stream)
-      (multiple-value-bind (tenths rest) (floor rest 10)
-        (write-string (case tenths
-                        (0 "") (1 "X") (2 "XX") (3 "XXX") (4 "XL")
-                        (5 "L" ) (6 "LX") (7 "LXX") (8 "LXXX") (9 "XC"))
-                      stream)
-        (write-string (case rest
-                        (0 "") (1 "I") (2 "II") (3 "III") (4 "IV")
-                        (5 "V" ) (6 "VI") (7 "VII") (8 "VIII") (9 "IX"))
-                      stream)))))
+(defparameter *roman-digits*
+  '("I" "V" "X" "L" "C" "D" "M"))
 
-;;; Print an integer as old roman numerals to the stream.
-;;; The integer must be strictly greater than zero,
-;;; and strictly less than 5000.
-(defun print-as-old-roman (integer stream)
-  (declare (type (integer 1) integer))
-  (multiple-value-bind (thousands rest) (floor integer 1000)
-    (loop repeat thousands
-          do (write-char #\M stream))
-    (multiple-value-bind (hundreds rest) (floor rest 100)
-      (write-string (case hundreds
-                      (0 "") (1 "C") (2 "CC") (3 "CCC") (4 "CCCC")
-                      (5 "D" ) (6 "DC") (7 "DCC") (8 "DCCC") (9 "DCCCC"))
-                    stream)
-      (multiple-value-bind (tenths rest) (floor rest 10)
-        (write-string (case tenths
-                        (0 "") (1 "X") (2 "XX") (3 "XXX") (4 "XXXX")
-                        (5 "L" ) (6 "LX") (7 "LXX") (8 "LXXX") (9 "LXXXX"))
-                      stream)
-        (write-string (case rest
-                        (0 "") (1 "I") (2 "II") (3 "III") (4 "IIII")
-                        (5 "V" ) (6 "VI") (7 "VII") (8 "VIII") (9 "VIIII"))
-                      stream)))))
+(defun print-roman-arg ()
+  (labels ((write-digit (value digits)
+             (multiple-value-bind (q r)
+                 (floor value 10)
+               (unless (zerop q)
+                 (write-digit q (cddr digits)))
+               (case r
+                 (9
+                  (write-string (car digits) *destination*)
+                  (write-string (caddr digits) *destination*))
+                 (4
+                  (write-string (car digits) *destination*)
+                  (write-string (cadr digits) *destination*))
+                 (otherwise
+                  (multiple-value-bind (q1 r1)
+                      (floor r 5)
+                    (unless (zerop q1)
+                      (write-string (cadr digits) *destination*))
+                    (loop repeat r1
+                          do (write-string (car digits) *destination*))))))))
+    (let ((digit-count (list-length *roman-digits*)))
+      (write-digit (consume-next-argument
+                    (if digit-count
+                        (multiple-value-bind (q r)
+                            (floor digit-count 2)
+                          `(integer 1
+                                    ,(1- (if (zerop r)
+                                             (* (expt 10 (1- q)) 9)
+                                             (* (expt 10 q) 4)))))
+                        '(integer 1)))
+                   *roman-digits*))))
+
+(defun print-old-roman-arg ()
+  (labels ((write-digit (value digits)
+             (multiple-value-bind (q r)
+                 (floor value 10)
+               (unless (zerop q)
+                 (write-digit q (cddr digits)))
+               (multiple-value-bind (q1 r1)
+                   (floor r 5)
+                 (unless (zerop q1)
+                   (write-string (cadr digits) *destination*))
+                 (loop repeat r1
+                       do (write-string (car digits) *destination*))))))
+    (let ((digit-count (list-length *roman-digits*)))
+      (write-digit (consume-next-argument
+                    (if digit-count
+                        (multiple-value-bind (q r)
+                            (floor digit-count 2)
+                          `(integer 1
+                                    ,(1- (* (expt 10 q)
+                                            (if (zerop r) 1 5)))))
+                        '(integer 1)))
+                   *roman-digits*))))
+
+#+(or)(defun print-roman-arg (old-roman-p)
+  (labels ((write-digit (value digits)
+             (multiple-value-bind (q r)
+                 (floor value 10)
+               (unless (zerop q)
+                 (write-digit q (cddr digits)))
+               (cond ((and (not old-roman-p) (= r 9))
+                      (write-string (car digits) *destination*)
+                      (write-string (caddr digits) *destination*))
+                     ((and (not old-roman-p) (= r 4))
+                      (write-string (car digits) *destination*)
+                      (write-string (cadr digits) *destination*))
+                     (t
+                      (multiple-value-bind (q1 r1)
+                          (floor r 5)
+                        (unless (zerop q1)
+                          (write-string (cadr digits) *destination*))
+                        (loop repeat r1
+                              do (write-string (car digits) *destination*))))))))
+    (let ((digit-count (list-length *roman-digits*)))
+      (write-digit (consume-next-argument
+                    (if digit-count
+                        (multiple-value-bind (q r)
+                            (floor digit-count 2)
+                          `(integer 1
+                                    ,(1- (cond ((and (zerop r) old-roman-p)
+                                                (expt 10 q))
+                                               ((zerop r)
+                                                (* (expt 10 (1- q)) 9))
+                                               (old-roman-p
+                                                (* (expt 10 q) 5))
+                                               (t
+                                                (* (expt 10 q) 4))))))
+                        '(integer 1)))
+                   *roman-digits*))))
 
 (defparameter *cardinal-ones*
   #(nil "one" "two" "three" "four" "five" "six" "seven" "eight" "nine"))
@@ -130,52 +178,53 @@
     "septendecillion" "octodecillion" "novemdecillion" "vigintillion"))
 
 ;;; Print a cardinal number between 1 and 99.
-(defun print-cardinal-tenths (n stream)
+(defun print-cardinal-tenths (n)
   (cond ((< n 10)
-         (write-string (aref *cardinal-ones* n) stream))
+         (write-string (aref *cardinal-ones* n) *destination*))
         ((< n 20)
-         (write-string (aref *cardinal-teens* (- n 10)) stream))
+         (write-string (aref *cardinal-teens* (- n 10)) *destination*))
         (t
          (multiple-value-bind (tens ones) (floor n 10)
-           (write-string (aref *cardinal-tens* tens) stream)
+           (write-string (aref *cardinal-tens* tens) *destination*)
            (unless (zerop ones)
-             (write-char #\- stream)
-             (write-string (aref *cardinal-ones* ones) stream))))))
+             (write-char #\- *destination*)
+             (write-string (aref *cardinal-ones* ones) *destination*))))))
 
 ;;; Print a cardinal number between 1 and 999.
-(defun print-cardinal-hundreds (n stream)
+(defun print-cardinal-hundreds (n)
   (cond ((< n 100)
-         (print-cardinal-tenths n stream))
+         (print-cardinal-tenths n))
         (t
          (multiple-value-bind (hundreds rest) (floor n 100)
-           (write-string (aref *cardinal-ones* hundreds) stream)
-           (write-string " hundred" stream)
+           (write-string (aref *cardinal-ones* hundreds) *destination*)
+           (write-string " hundred" *destination*)
            (unless (zerop rest)
-             (write-char #\Space stream)
-             (print-cardinal-tenths rest stream))))))
+             (write-char #\Space *destination*)
+             (print-cardinal-tenths rest))))))
 
 ;;; Print a cardinal number n such that 0 < n < 10^65.
-(defun print-cardinal-non-zero (n stream magnitude)
+(defun print-cardinal-non-zero (n magnitude)
   (multiple-value-bind (thousands rest) (floor n 1000)
     (unless (zerop thousands)
-      (print-cardinal-non-zero thousands stream (1+ magnitude)))
+      (print-cardinal-non-zero thousands (1+ magnitude)))
     (unless (or (zerop thousands) (zerop rest))
-      (write-char #\Space stream))
+      (write-char #\Space *destination*))
     (unless (zerop rest)
-      (print-cardinal-hundreds rest stream)
+      (print-cardinal-hundreds rest)
       (unless (zerop magnitude)
-        (write-char #\Space stream)
-        (write-string (aref *groups-of-three* magnitude) stream)))))
+        (write-char #\Space *destination*)
+        (write-string (aref *groups-of-three* magnitude) *destination*)))))
 
 ;;; Print a cardinal number n such that - 10^65 < n < 10^65.
-(defun print-cardinal-number (n stream)
-  (cond ((minusp n)
-         (write-string "negative " stream)
-         (print-cardinal-non-zero (- n) stream 0))
-        ((zerop n)
-         (write-string "zero" stream))
-        (t
-         (print-cardinal-non-zero n stream 0))))
+(defun print-cardinal-arg ()
+  (let ((n (consume-next-argument `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))))
+    (cond ((minusp n)
+           (write-string "negative " *destination*)
+           (print-cardinal-non-zero (- n) 0))
+          ((zerop n)
+           (write-string "zero" *destination*))
+          (t
+           (print-cardinal-non-zero n 0)))))
 
 (defparameter *ordinal-ones*
   #(nil "first" "second" "third" "fourth" "fifth" "sixth" "seventh" "eighth" "ninth"))
@@ -189,58 +238,57 @@
     "fiftieth" "sixtieth" "seventieth" "eightieth" "ninetieth"))
 
 ;;; Print an ordinal number between 1 and 99.
-(defun print-ordinal-tenths (n stream)
+(defun print-ordinal-tenths (n)
   (cond ((< n 10)
-         (write-string (aref *ordinal-ones* n) stream))
+         (write-string (aref *ordinal-ones* n) *destination*))
         ((< n 20)
-         (write-string (aref *ordinal-teens* (- n 10)) stream))
+         (write-string (aref *ordinal-teens* (- n 10)) *destination*))
         (t
          (multiple-value-bind (tens ones) (floor n 10)
-           (cond ((zerop ones)
-                  (write-string (aref *ordinal-tens* tens) stream))
-                 (t
-                  (write-string (aref *cardinal-tens* tens) stream)
-                  (write-char #\- stream)
-                  (write-string (aref *ordinal-ones* ones) stream)))))))
+           (write-string (aref *ordinal-tens* tens) *destination*)
+           (unless (zerop ones)
+             (write-char #\- *destination*)
+             (write-string (aref *ordinal-ones* ones) *destination*))))))
 
 ;;; Print an ordinal number n such that 0 < n < 1000.
-(defun print-ordinal-hundreds (n stream)
+(defun print-ordinal-hundreds (n)
   (cond ((< n 100)
-         (print-ordinal-tenths n stream))
+         (print-ordinal-tenths n))
         (t
          (multiple-value-bind (hundreds rest) (floor n 100)
-           (write-string (aref *cardinal-ones* hundreds) stream)
-           (write-string " hundred" stream)
+           (write-string (aref *cardinal-ones* hundreds) *destination*)
+           (write-string " hundred" *destination*)
            (cond ((zerop rest)
-                  (write-string "th" stream))
+                  (write-string "th" *destination*))
                  (t
-                  (write-char #\Space stream)
-                  (print-ordinal-tenths rest stream)))))))
+                  (write-char #\Space *destination*)
+                  (print-ordinal-tenths rest)))))))
 
 ;;; Print an ordinal number n such that 0 < n < 10^65.
-(defun print-ordinal-non-zero (n stream)
+(defun print-ordinal-non-zero (n)
   (multiple-value-bind (hundreds rest) (floor n 100)
     (cond ((zerop rest)
            ;; Hudreds is nonzero.
-           (print-cardinal-non-zero n stream 0)
-           (write-string "th" stream))
+           (print-cardinal-non-zero n 0)
+           (write-string "th" *destination*))
           ((zerop hundreds)
-           (print-ordinal-hundreds rest stream))
+           (print-ordinal-hundreds rest))
           (t
            ;; They are both nonzero.
-           (print-cardinal-non-zero (* 100 hundreds) stream 0)
-           (write-char #\Space stream)
-           (print-ordinal-tenths rest stream)))))
+           (print-cardinal-non-zero (* 100 hundreds) 0)
+           (write-char #\Space *destination*)
+           (print-ordinal-tenths rest)))))
 
 ;;; Print an ordinal number n such that - 10^65 < n < 10^65.
-(defun print-ordinal-number (n stream)
-  (cond ((minusp n)
-         (write-string "negative " stream)
-         (print-ordinal-non-zero (- n) stream))
-        ((zerop n)
-         (write-string "zeroth" stream))
-        (t
-         (print-ordinal-non-zero n stream))))
+(defun print-ordinal-arg ()
+  (let ((n (consume-next-argument `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))))
+    (cond ((minusp n)
+           (write-string "negative " *destination*)
+           (print-ordinal-non-zero (- n)))
+          ((zerop n)
+           (write-string "zeroth" *destination*))
+          (t
+           (print-ordinal-non-zero n)))))
 
 (defmethod interpret-item (client (directive radix-directive) &optional parameters)
   (let ((radix (car parameters))
@@ -248,20 +296,14 @@
         (at-sign-p (at-sign-p directive)))
     (cond (radix
            (apply #'print-radix-arg client colon-p at-sign-p parameters))
-          ((and colon-p at-sign-p)
-           (print-as-old-roman (consume-next-argument '(integer 1))
-                               *destination*))
+          ((and at-sign-p colon-p)
+           (print-old-roman-arg))
           (at-sign-p
-           (print-as-roman (consume-next-argument '(integer 1))
-                           *destination*))
+           (print-roman-arg))
           (colon-p
-           (print-ordinal-number (consume-next-argument
-                                  `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
-                                 *destination*))
+           (print-ordinal-arg))
           (t
-           (print-cardinal-number (consume-next-argument
-                                   `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
-                                  *destination*)))))
+           (print-cardinal-arg)))))
 
 (defmethod compile-item (client (directive radix-directive) &optional parameters)
   (let ((colon-p (colon-p directive))
@@ -269,27 +311,28 @@
     (cond ((numberp (car parameters))
            `((print-radix-arg ,(incless:client-form client)
                               ,colon-p ,at-sign-p ,@parameters)))
+          ((null (car parameters))
+           (cond ((and at-sign-p colon-p)
+                  `((print-old-roman-arg)))
+                 (at-sign-p
+                  `((print-roman-arg)))
+                 (colon-p
+                  `((print-ordinal-arg)))
+                 (t
+                  `((print-cardinal-arg)))))
           (t
            `((let ((parameters (list ,@parameters)))
                (if (car parameters)
                    (apply #'print-radix-arg ,(incless:client-form client)
                           ,colon-p ,at-sign-p parameters)
-                   ,(cond ((and colon-p at-sign-p)
-                           '(print-as-old-roman (consume-next-argument '(integer 1))
-                             *destination*))
+                   ,(cond ((and at-sign-p colon-p)
+                           `(print-old-roman-arg))
                           (at-sign-p
-                           '(print-as-roman (consume-next-argument '(integer 1))
-                             *destination*))
+                           `(print-roman-arg))
                           (colon-p
-                           `(print-ordinal-number (consume-next-argument
-                                                   '(integer ,(1+ (- (expt 10 65)))
-                                                     ,(1- (expt 10 65))))
-                                                  *destination*))
+                           `(print-ordinal-arg))
                           (t
-                           `(print-cardinal-number (consume-next-argument
-                                                    '(integer ,(1+ (- (expt 10 65)))
-                                                      ,(1- (expt 10 65))))
-                                                   *destination*))))))))))
+                           `(print-cardinal-arg))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
