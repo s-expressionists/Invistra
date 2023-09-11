@@ -23,22 +23,22 @@ jobs:
       image: ghcr.io/yitzchak/archlinux-cl:latest
     steps:
     - name: Checkout trivial-stream-column
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: yitzchak/trivial-stream-column
         path: trivial-stream-column
     - name: Checkout Incless
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: s-expressionists/Incless
         path: incless
     - name: Checkout Inravina
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: s-expressionists/Inravina
         path: inravina
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: invistra
     - name: Setup Lisp Environment
