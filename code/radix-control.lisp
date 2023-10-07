@@ -245,10 +245,12 @@
          (write-string (aref *ordinal-teens* (- n 10)) *destination*))
         (t
          (multiple-value-bind (tens ones) (floor n 10)
-           (write-string (aref *ordinal-tens* tens) *destination*)
-           (unless (zerop ones)
-             (write-char #\- *destination*)
-             (write-string (aref *ordinal-ones* ones) *destination*))))))
+           (cond ((zerop ones)
+                  (write-string (aref *ordinal-tens* tens) *destination*))
+                 (t
+                  (write-string (aref *cardinal-tens* tens) *destination*)
+                  (write-char #\- *destination*)
+                  (write-string (aref *ordinal-ones* ones) *destination*)))))))
 
 ;;; Print an ordinal number n such that 0 < n < 1000.
 (defun print-ordinal-hundreds (n)
