@@ -12,40 +12,62 @@
 ;;;
 ;;; 22.3.9.1 ~; Clause separator
 
-(define-directive #\;
-    semicolon-directive
-    nil
-    (named-parameters-directive)
-    ((extra-space :type (or null integer) :default-value nil)
-     (line-length :type (or null integer) :default-value nil)))
+(defclass semicolon-directive (directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\;)) directive (end-directive t))
+  (change-class directive 'semicolon-directive))
+
+(defmethod parameter-specifications
+    ((client t) (directive semicolon-directive))
+  '((:type (or null integer) :default nil)
+    (:type (or null integer) :default nil)))
 
 (defmethod structured-separator-p ((directive semicolon-directive))
   t)
 
-(define-format-directive-interpreter semicolon-directive
-  (when extra-space
-    (setf *extra-space* extra-space))
-  (when line-length
-    (setf *line-length* line-length)))
-
-(define-format-directive-compiler semicolon-directive
-  `((when extra-space
+(defmethod interpret-item (client (directive semicolon-directive) &optional parameters)
+  (let ((extra-space (car parameters))
+        (line-length (cadr parameters)))
+    (when extra-space
       (setf *extra-space* extra-space))
     (when line-length
       (setf *line-length* line-length))))
+
+(defmethod compile-item (client (directive semicolon-directive) &optional parameters)
+  (let ((extra-space (car parameters))
+        (line-length (cadr parameters)))
+    `(,@(cond ((numberp extra-space)
+               `((setf *extra-space* ,extra-space)))
+              (extra-space
+               `((setf *extra-space* (or ,extra-space
+                                         *extra-space*)))))
+      ,@(cond ((numberp line-length)
+               `((setf *line-length* ,line-length)))
+              (line-length
+               `((setf *line-length* (or ,line-length
+                                         *line-length*))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.9.2 ~^ Escape upward
 
-(define-directive #\^ circumflex-directive nil (named-parameters-directive)
-    ((p1 :type (or character integer))
-     (p2 :type (or character integer))
-     (p3 :type (or character integer))))
+(defclass circumflex-directive (directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\^)) directive (end-directive t))
+  (change-class directive 'circumflex-directive))
+
+(defmethod parameter-specifications
+    ((client t) (directive circumflex-directive))
+  '((:type (or null character integer))
+    (:type (or null character integer))
+    (:type (or null character integer))))
 
 (defmethod check-directive-syntax progn
-  ((directive circumflex-directive))
-  (let ((parameters (given-parameters directive)))
+    (client (directive circumflex-directive))
+  (declare (ignore client))
+  (let ((parameters (parameters directive)))
     (when (and (second parameters) (not (first parameters)))
       (error 'parameter-omitted
              :parameter1 1
@@ -55,50 +77,69 @@
              :parameter2 2
              :parameter3 3))))
 
-(define-format-directive-interpreter circumflex-directive
-  (cond ((and (null p1) (null p2) (null p3))
-         (funcall (if colonp *outer-exit-if-exhausted* *inner-exit-if-exhausted*)))
-        ((or (and (eql p1 0) (null p2) (null p3))
-             (and (null p1) (eql p2 0) (null p3))
-             (and (null p1) (null p2) (eql p3 0))
-             (and (null p1) p2 p3 (eql p2 p3))
-             (and (null p2) p1 p3 (eql p1 p3))
-             (and (null p3) p1 p2 (eql p1 p2))
-             (and p1 p2 p3 (<= p1 p2 p3)))
-         (funcall (if colonp *outer-exit* *inner-exit*) nil))))
+(defmethod interpret-item (client (directive circumflex-directive) &optional parameters)
+  (let ((p1 (car parameters))
+        (p2 (cadr parameters))
+        (p3 (caddr parameters))
+        (colon-p (colon-p directive)))
+    (cond ((and (null p1) (null p2) (null p3))
+           (funcall (if colon-p *outer-exit-if-exhausted* *inner-exit-if-exhausted*)))
+          ((or (and (eql p1 0) (null p2) (null p3))
+               (and (null p1) (eql p2 0) (null p3))
+               (and (null p1) (null p2) (eql p3 0))
+               (and (null p1) p2 p3 (eql p2 p3))
+               (and (null p2) p1 p3 (eql p1 p3))
+               (and (null p3) p1 p2 (eql p1 p2))
+               (and p1 p2 p3 (<= p1 p2 p3)))
+           (funcall (if colon-p *outer-exit* *inner-exit*) nil)))))
 
-(define-format-directive-compiler circumflex-directive
-  (cond ((null p1)
-         `((funcall ,(if colonp '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*))))
-        ((null p2)
-         `((cond ((null p1)
-                  (funcall ,(if colonp '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
-                 ((eql 0 p1)
-                  (funcall ,(if colonp '*outer-exit* '*inner-exit*) nil)))))
-        ((null p3)
-         `((cond ((and (null p1) (null p2))
-                  (funcall ,(if colonp '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
-                 ((or (and (null p1) (eql 0 p2))
-                      (and (eql 0 p1) (null p2))
-                      (and p1 p2 (eql p1 p2)))
-                  (funcall ,(if colonp '*outer-exit* '*inner-exit*) nil)))))
-        (t
-         `((cond ((and (null p1) (null p2) (null p3))
-                  (funcall ,(if colonp '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
-                 ((or (and (null p1) (null p2) (eql 0 p3))
-                      (and (null p1) (eql 0 p2) (null p3))
-                      (and (eql 0 p1) (null p2) (null p3))
-                      (and (null p1) p2 p3 (eql p2 p3))
-                      (and (null p2) p1 p3 (eql p1 p3))
-                      (and (null p3) p1 p2 (eql p1 p2))
-                      (and p1 p2 p3 (<= p1 p2 p3)))
-                  (funcall ,(if colonp '*outer-exit* '*inner-exit*) nil)))))))
+(defmethod compile-item (client (directive circumflex-directive) &optional parameters)
+  (let ((p1 (car parameters))
+        (p2 (cadr parameters))
+        (p3 (caddr parameters))
+        (colon-p (colon-p directive)))
+    (cond ((null p1)
+           `((funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*))))
+          ((null p2)
+           `((let ((p1 ,p1))
+               (cond ((null p1)
+                      (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
+                     ((eql 0 p1)
+                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*) nil))))))
+          ((null p3)
+           `((let ((p1 ,p1)
+                   (p2 ,p2))
+               (cond ((and (null p1) (null p2))
+                      (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
+                     ((or (and (null p1) (eql 0 p2))
+                          (and (eql 0 p1) (null p2))
+                          (and p1 p2 (eql p1 p2)))
+                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*) nil))))))
+          (t
+           `((let ((p1 ,p1)
+                   (p2 ,p2)
+                   (p3 ,p3))
+               (cond ((and (null p1) (null p2) (null p3))
+                      (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
+                     ((or (and (null p1) (null p2) (eql 0 p3))
+                          (and (null p1) (eql 0 p2) (null p3))
+                          (and (eql 0 p1) (null p2) (null p3))
+                          (and (null p1) p2 p3 (eql p2 p3))
+                          (and (null p2) p1 p3 (eql p1 p3))
+                          (and (null p3) p1 p2 (eql p1 p2))
+                          (and p1 p2 p3 (<= p1 p2 p3)))
+                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*) nil)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.9.3 ~Newline Igored newline
 
-(define-directive #\Newline newline-directive nil (named-parameters-directive at-most-one-modifier-mixin) ())
+(defclass newline-directive
+    (directive at-most-one-modifier-mixin) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\Newline)) directive (end-directive t))
+  (change-class directive 'newline-directive))
 
 (defmethod parse-directive-suffix ((directive-character (eql #\Newline)) control-string start end)
   (or (position-if (lambda (char)
@@ -106,22 +147,24 @@
                    control-string :start start :end end)
       end))
 
-(define-format-directive-interpreter newline-directive
-  (cond (colonp
+(defmethod interpret-item (client (directive newline-directive) &optional parameters)
+  (declare (ignore parameters))
+  (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
-         (write-string (subseq control-string suffix-start end) *destination*))
-        (at-signp
+         (write-string (subseq (control-string directive) (suffix-start directive) (end directive)) *destination*))
+        ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
          (write-char #\Newline *destination*))
         (t
          ;; Ignore both the newline and the following whitespace.
          nil)))
 
-(define-format-directive-compiler newline-directive
-  (cond (colonp
+(defmethod compile-item (client (directive newline-directive) &optional parameters)
+  (declare (ignore parameters))
+  (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
-         `((write-string ,(subseq control-string suffix-start end) *destination*)))
-        (at-signp
+         `((write-string ,(subseq (control-string directive) (suffix-start directive) (end directive)) *destination*)))
+        ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
          `((write-char #\Newline *destination*)))
         (t

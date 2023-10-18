@@ -8,12 +8,19 @@
 ;;;
 ;;; 22.3.6.1 ~TAB Tabulate
 
-(define-directive #\t tabulate-directive nil (named-parameters-directive)
-    ((colnum :type (integer 0) :default-value 1)
-     (colinc :type (integer 0) :default-value 1)))
+(defclass tabulate-directive (directive) ())
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\T)) directive (end-directive t))
+  (change-class directive 'tabulate-directive))
+
+(defmethod parameter-specifications
+    ((client t) (directive tabulate-directive))
+  '((:type (integer 0) :default 1)
+    (:type (integer 0) :default 1)))
 
 (defmethod layout-requirements ((item tabulate-directive))
-  (when (colonp item)
+  (when (colon-p item)
     (list :logical-block)))
 
 (defun format-relative-tab (client colnum colinc)
@@ -37,67 +44,74 @@
                (trivial-stream-column:advance-to-column (+ cur (- colinc (rem (- cur colnum) colinc)))
                                                         *destination*))))))
 
-(define-format-directive-interpreter tabulate-directive
-  (cond (colonp
-         #-sicl
-         (inravina:pprint-tab client *destination*
-                              (if at-signp :section-relative :section)
-                              colnum colinc))
-        (at-signp
-         (format-relative-tab client colnum colinc))
-        (t
-         (format-absolute-tab client colnum colinc))))
+(defmethod interpret-item (client (directive tabulate-directive) &optional parameters)
+  (let ((colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
+    (cond (colon-p
+           #-sicl
+           (apply #'inravina:pprint-tab
+                  client *destination*
+                  (if at-sign-p :section-relative :section)
+                  parameters))
+          (at-sign-p
+           (apply #'format-relative-tab client parameters))
+          (t
+           (apply #'format-absolute-tab client parameters)))))
 
-(define-format-directive-compiler tabulate-directive
-  (cond (colonp
-         #-sicl
-         `((inravina:pprint-tab ,(incless:client-form client) *destination*
-                                ,(if at-signp :section-relative :section)
-                                colnum colinc)))
-        (at-signp
-         `((format-relative-tab ,(incless:client-form client) colnum colinc)))
-        (t
-         `((format-absolute-tab ,(incless:client-form client) colnum colinc)))))
+(defmethod compile-item (client (directive tabulate-directive) &optional parameters)
+  (let ((colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
+    (cond (colon-p
+           #-sicl
+           `((inravina:pprint-tab ,(incless:client-form client) *destination*
+                                  ,(if at-sign-p :section-relative :section)
+                                  ,@parameters)))
+          (at-sign-p
+           `((format-relative-tab ,(incless:client-form client) ,@parameters)))
+          (t
+           `((format-absolute-tab ,(incless:client-form client) ,@parameters))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.6.3 ~> End of justification or of logical block
 
-(define-directive #\>
-    end-justification-directive
-    nil
-    (named-parameters-directive end-structured-directive-mixin)
-    ())
+(defclass end-justification-directive
+    (directive end-structured-directive-mixin no-modifiers-mixin) nil)
 
-(defmethod check-directive-syntax progn ((directive end-justification-directive))
-  (cond ((colonp directive)
-         (change-class directive 'end-logical-block-directive))
-        ((at-signp directive)
-         (error "wibble"))))
-
-(define-format-directive-interpreter end-justification-directive
-    ;; do nothing
-    nil)
-
-(define-format-directive-compiler end-justification-directive
-    ;; do nothing
-    nil)
+(defmethod specialize-directive
+    ((client t) (char (eql #\>)) directive (end-directive t))
+  (if (colon-p directive)
+      (change-class directive 'end-logical-block-directive)
+      (change-class directive 'end-justification-directive)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.6.2 ~< Justification
 
-(define-directive #\<
-    justification-directive
-    end-justification-directive
-    (named-parameters-directive structured-directive-mixin)
-    ((mincol :type integer :default-value 0)
-     (colinc :type (integer 0) :default-value 1)
-     (minpad :type integer :default-value 0)
-     (padchar :type character :default-value #\Space)))
+(defclass justification-directive
+    (directive structured-directive-mixin) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\<)) directive
+     (end-directive end-justification-directive))
+  (change-class directive 'justification-directive))
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\<)) directive (end-directive t))
+  (error 'unmatched-directive
+         :directive directive
+         :control-string (control-string directive)
+         :tilde-position (start directive)))
+
+(defmethod parameter-specifications
+    ((client t) (directive justification-directive))
+  '((:type integer :default 0)
+    (:type (integer 0) :default 1)
+    (:type integer :default 0)
+    (:type character :default #\Space)))
 
 (defmethod layout-requirements :around ((item justification-directive))
-  (merge-layout-requirements (list (if (colonp (aref (aref (clauses item) 0) (1- (length (aref (clauses item) 0)))))
+  (merge-layout-requirements (list (if (colon-p (aref (aref (clauses item) 0) (1- (length (aref (clauses item) 0)))))
                                        :justify-dynamic
                                        :justify))
                              (call-next-method)
@@ -109,8 +123,8 @@
       100))
 
 (defun print-justification (client pad-left pad-right extra-space line-len
-                            mincol colinc minpad padchar
-                            newline-segment segments)
+                            newline-segment segments
+                            mincol colinc minpad padchar)
   (declare (ignore client))
   (when (and (not pad-left) (not pad-right) (null (cdr segments)))
     (setf pad-left t))
@@ -152,7 +166,7 @@
       (when pad-right
         (write-padding nil)))))
 
-(define-format-directive-interpreter justification-directive
+(defmethod interpret-item (client (directive justification-directive) &optional parameters)
   (loop with newline-segment = nil
         with *extra-space* = nil
         with *line-length* = nil
@@ -161,20 +175,22 @@
                         (with-output-to-string (*destination*)
                           (interpret-items client clause)))
         for index from 0
-        finally (print-justification client
-                                     colonp at-signp *extra-space* *line-length*
-                                     mincol colinc minpad padchar
-                                     newline-segment segments)
+        finally (apply #'print-justification client
+                       (colon-p directive) (at-sign-p directive)
+                       *extra-space* *line-length*
+                       newline-segment segments
+                       parameters)
         while segment
         if (and (zerop index)
-                (colonp (aref clause (1- (length clause)))))
+                (colon-p (aref clause (1- (length clause)))))
           do (setf newline-segment segment)
         else
           collect segment into segments))
 
-(define-format-directive-compiler justification-directive
+(defmethod compile-item (client (directive justification-directive) &optional parameters)
   `((prog (newline-segment segments
-           *extra-space* *line-length*)
+           *extra-space* *line-length*
+           (parameters (list ,@parameters)))
        ,@(loop for clause across (clauses directive)
                for segment = `(catch *inner-tag*
                                 (with-output-to-string (*destination*)
@@ -182,7 +198,7 @@
                for index from 0
                while segment
                if (and (zerop index)
-                       (colonp (aref clause (1- (length clause)))))
+                       (colon-p (aref clause (1- (length clause)))))
                  collect `(let ((segment ,segment))
                             (if segment
                                 (setf newline-segment segment)
@@ -193,7 +209,8 @@
                                 (push segment segments)
                                 (go end))))
      end
-       (print-justification ,(incless:client-form client)
-                            ,colonp ,at-signp *extra-space* *line-length*
-                            mincol colinc minpad padchar
-                            newline-segment (nreverse segments)))))
+       (apply #'print-justification ,(incless:client-form client)
+              ,(colon-p directive) ,(at-sign-p directive)
+              *extra-space* *line-length*
+              newline-segment (nreverse segments)
+              parameters))))

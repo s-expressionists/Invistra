@@ -8,63 +8,77 @@
 ;;;
 ;;; 22.3.8.2 ~) End of case conversion
 
-(define-directive #\)
-    end-case-conversion-directive
-    nil
-    (named-parameters-directive
-     no-modifiers-mixin end-structured-directive-mixin)
-    ())
+(defclass end-case-conversion-directive
+    (directive no-modifiers-mixin
+     end-structured-directive-mixin)
+  nil)
 
-(define-format-directive-interpreter end-case-conversion-directive
-    ;; do nothing
-    nil)
-
-(define-format-directive-compiler end-case-conversion-directive
-    ;; do nothing
-    nil)
+(defmethod specialize-directive
+    ((client t) (char (eql #\))) directive (end-directive t))
+  (change-class directive 'end-case-conversion-directive))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.8.1 ~( Case conversion
 
-(define-directive #\(
-    case-conversion-directive
-    end-case-conversion-directive
-    (named-parameters-directive structured-directive-mixin)
-    ())
+(defclass case-conversion-directive
+    (directive structured-directive-mixin) nil)
 
-(define-format-directive-interpreter case-conversion-directive
-  (let ((*destination* (cond ((and colonp at-signp)
-                              (make-instance 'upcase-stream :target *destination*))
-                             (colonp
-                              (make-instance 'capitalize-stream :target *destination*))
-                             (at-signp
-                              (make-instance 'first-capitalize-stream :target *destination*))
-                             (t
-                              (make-instance 'downcase-stream :target *destination*)))))
-    (interpret-items client (aref (clauses directive) 0))))
+(defmethod specialize-directive
+    ((client t) (char (eql #\()) directive
+     (end-directive end-case-conversion-directive))
+  (change-class directive 'case-conversion-directive))
 
-(define-format-directive-compiler case-conversion-directive
-  `((let ((*destination* ,(cond ((and colonp at-signp)
-                                 '(make-instance 'upcase-stream :target *destination*))
-                                (colonp
-                                 '(make-instance 'capitalize-stream :target *destination*))
-                                (at-signp
-                                 '(make-instance 'first-capitalize-stream :target *destination*))
-                                (t
-                                 '(make-instance 'downcase-stream :target *destination*)))))
-      ,@(compile-items client (aref (clauses directive) 0)))))
+(defmethod specialize-directive
+    ((client t) (char (eql #\()) directive (end-directive t))
+  (error 'unmatched-directive
+         :directive directive
+         :control-string (control-string directive)
+         :tilde-position (start directive)))
+
+(defmethod interpret-item (client (item case-conversion-directive) &optional parameters)
+  (declare (ignore parameters))
+  (let* ((colon-p (colon-p item))
+         (at-sign-p (at-sign-p item))
+         (*destination* (cond ((and colon-p at-sign-p)
+                               (make-instance 'upcase-stream :target *destination*))
+                              (colon-p
+                               (make-instance 'capitalize-stream :target *destination*))
+                              (at-sign-p
+                               (make-instance 'first-capitalize-stream :target *destination*))
+                              (t
+                               (make-instance 'downcase-stream :target *destination*)))))
+    (interpret-items client (aref (clauses item) 0))))
+
+(defmethod compile-item (client (item case-conversion-directive) &optional parameters)
+  (declare (ignore parameters))
+  (let ((colon-p (colon-p item))
+        (at-sign-p (at-sign-p item)))
+    `((let ((*destination* ,(cond ((and colon-p at-sign-p)
+                                   '(make-instance 'upcase-stream :target *destination*))
+                                  (colon-p
+                                   '(make-instance 'capitalize-stream :target *destination*))
+                                  (at-sign-p
+                                   '(make-instance 'first-capitalize-stream :target *destination*))
+                                  (t
+                                   '(make-instance 'downcase-stream :target *destination*)))))
+        ,@(compile-items client (aref (clauses item) 0))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.8.3 ~p Plural
 
-(define-directive #\p plural-directive nil (named-parameters-directive) ())
+(defclass plural-directive (directive) nil)
 
-(define-format-directive-interpreter plural-directive
-  (when colonp
+(defmethod specialize-directive
+    ((client t) (char (eql #\P)) directive (end-directive t))
+  (change-class directive 'plural-directive))
+
+(defmethod interpret-item (client (item plural-directive) &optional parameters)
+  (declare (ignore parameters))
+  (when (colon-p item)
     (go-to-argument -1))
-  (if at-signp
+  (if (at-sign-p item)
       (write-string (if (eql (consume-next-argument t) 1)
                         "y"
                         "ies")
@@ -72,10 +86,11 @@
       (unless (eql (consume-next-argument t) 1)
         (write-char #\s *destination*))))
 
-(define-format-directive-compiler plural-directive
-  `(,@(when colonp
+(defmethod compile-item (client (item plural-directive) &optional parameters)
+  (declare (ignore parameters))
+  `(,@(when (colon-p item)
         `((go-to-argument -1)))
-    ,(if at-signp
+    ,(if (at-sign-p item)
          `(write-string (if (eql (consume-next-argument t) 1)
                             "y"
                             "ies")

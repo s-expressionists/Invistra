@@ -27,8 +27,8 @@
                          ;; a directive.
                          (multiple-value-bind (directive-character
                                                parameters
-                                               colonp
-                                               at-signp
+                                               colon-p
+                                               at-sign-p
                                                suffix-start
                                                end-of-directive-position)
                              (parse-format-directive control-string tilde-position)
@@ -38,7 +38,7 @@
                                     :suffix-start suffix-start
                                     :end end-of-directive-position
                                     :directive-character (char-upcase directive-character)
-                                    :given-parameters parameters
-                                    :colonp colonp
-                                    :at-signp at-signp)
+                                    :parameters parameters
+                                    :colon-p colon-p
+                                    :at-sign-p at-sign-p)
                              (setf start end-of-directive-position))))))))

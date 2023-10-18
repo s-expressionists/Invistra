@@ -8,57 +8,68 @@
 ;;;
 ;;; 22.3.5.1 ~_ Conditional newline
 
-(define-directive #\_ underscore-directive nil (named-parameters-directive) ())
+(defclass underscore-directive (directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\_)) directive (end-directive t))
+  (change-class directive 'underscore-directive))
 
 (defmethod layout-requirements ((item underscore-directive))
   (list :logical-block))
 
-(define-format-directive-interpreter underscore-directive
+(defmethod interpret-item (client (directive underscore-directive) &optional parameters)
+  (declare (ignore parameters)
+           (ignorable client))
   #-sicl
-  (inravina:pprint-newline client *destination*
-                           (cond ((and colonp at-signp) :mandatory)
-                                 (colonp :fill)
-                                 (at-signp :miser)
-                                 (t :linear))))
+  (let ((colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
+    (inravina:pprint-newline client *destination*
+                             (cond ((and colon-p at-sign-p) :mandatory)
+                                   (colon-p :fill)
+                                   (at-sign-p :miser)
+                                   (t :linear)))))
 
-(define-format-directive-compiler underscore-directive
+(defmethod compile-item (client (directive underscore-directive) &optional parameters)
+  (declare (ignore parameters)
+           (ignorable client))
   #-sicl
-  `((inravina:pprint-newline ,(incless:client-form client) *destination*
-                             ,(cond ((and colonp at-signp) :mandatory)
-                                    (colonp :fill)
-                                    (at-signp :miser)
-                                    (t :linear)))))
+  (let ((colon-p (colon-p directive))
+        (at-sign-p (at-sign-p directive)))
+    `((inravina:pprint-newline ,(incless:client-form client) *destination*
+                               ,(cond ((and colon-p at-sign-p) :mandatory)
+                                      (colon-p :fill)
+                                      (at-sign-p :miser)
+                                      (t :linear))))))
 
-(define-directive #\>
-    end-logical-block-directive
-    nil
-    (named-parameters-directive end-structured-directive-mixin)
-    ())
-
-(define-format-directive-interpreter end-logical-block-directive
-  ;; do nothing
-  nil)
-
-(define-format-directive-compiler end-logical-block-directive
-    ;; do nothing
-  nil)
+(defclass end-logical-block-directive
+    (directive end-structured-directive-mixin) nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.5.2 ~< Logical block
 
-(define-directive #\<
-    logical-block-directive
-    end-logical-block-directive
-    (named-parameters-directive structured-directive-mixin)
-    ())
+(defclass logical-block-directive
+    (directive structured-directive-mixin) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\<)) directive
+     (end-directive end-logical-block-directive))
+  (change-class directive 'logical-block-directive))
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\<)) directive (end-directive t))
+  (error 'unmatched-directive
+         :directive directive
+         :control-string (control-string directive)
+         :tilde-position (start directive)))
 
 (defmethod layout-requirements :around ((item logical-block-directive))
   (merge-layout-requirements (list :logical-block)
                              (call-next-method)
                              t))
 
-(defmethod check-directive-syntax progn ((directive logical-block-directive))
+(defmethod check-directive-syntax progn (client (directive logical-block-directive))
+  (declare (ignore client))
   (flet ((check-fix (items)
            (when (notevery (lambda (item)
                              (or (stringp item)
@@ -73,17 +84,21 @@
     (when (= (length (clauses directive)) 3)
       (check-fix (aref (clauses directive) 2)))))
 
-(define-format-directive-interpreter logical-block-directive
+(defmethod interpret-item (client (directive logical-block-directive) &optional parameters)
+  (declare (ignore parameters)
+           (ignorable client))
   #-sicl
   (let* ((last-clause (aref (clauses directive) (1- (length (clauses directive)))))
-         (*newline-kind* (if (at-signp (aref last-clause (1- (length last-clause))))
+         (colon-p (colon-p directive))
+         (at-sign-p (at-sign-p directive))
+         (*newline-kind* (if (at-sign-p (aref last-clause (1- (length last-clause))))
                              :fill
                              nil))
          (prefix (cond ((> (length (clauses directive)) 1)
                         (if (> (length (aref (clauses directive) 0)) 1)
                             (aref (aref (clauses directive) 0) 0)
                             ""))
-                       (colonp
+                       (colon-p
                         "(")
                        (t
                         "")))
@@ -91,16 +106,16 @@
                         (if (> (length (aref (clauses directive) 2)) 1)
                             (aref (aref (clauses directive) 2) 0)
                             ""))
-                       (colonp
+                       (colon-p
                         ")")
                        (t
                         "")))
          (per-line-prefix-p (and (> (length (clauses directive)) 1)
-                                 (at-signp (aref (aref (clauses directive) 0)
+                                 (at-sign-p (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0)))))))
-         (object (unless at-signp (consume-next-argument t))))
+         (object (unless at-sign-p (consume-next-argument t))))
     (flet ((interpret-body (*destination* escape-hook pop-argument-hook)
-             (if at-signp
+             (if at-sign-p
                  (interpret-items client (aref (clauses directive)
                                                (if (= (length (clauses directive)) 1)
                                                    0
@@ -121,17 +136,21 @@
                                       :per-line-prefix-p per-line-prefix-p
                                       :suffix suffix))))
 
-(define-format-directive-compiler logical-block-directive
+(defmethod compile-item (client (directive logical-block-directive) &optional parameters)
+  (declare (ignore parameters)
+           (ignorable client))
   #-sicl
   (let* ((last-clause (aref (clauses directive) (1- (length (clauses directive)))))
-         (*newline-kind* (if (at-signp (aref last-clause (1- (length last-clause))))
+         (colon-p (colon-p directive))
+         (at-sign-p (at-sign-p directive))
+         (*newline-kind* (if (at-sign-p (aref last-clause (1- (length last-clause))))
                              :fill
                              nil))
          (prefix (cond ((> (length (clauses directive)) 1)
                         (if (> (length (aref (clauses directive) 0)) 1)
                             (aref (aref (clauses directive) 0) 0)
                             ""))
-                       (colonp
+                       (colon-p
                         "(")
                        (t
                         "")))
@@ -139,14 +158,14 @@
                         (if (> (length (aref (clauses directive) 2)) 1)
                             (aref (aref (clauses directive) 2) 0)
                             ""))
-                       (colonp
+                       (colon-p
                         ")")
                        (t
                         "")))
          (per-line-prefix-p (and (> (length (clauses directive)) 1)
-                                 (at-signp (aref (aref (clauses directive) 0)
+                                 (at-sign-p (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0))))))))
-    (if at-signp
+    (if at-sign-p
         `((inravina:execute-logical-block ,(incless:client-form client) *destination*
                                           nil
                                           (lambda (*destination* escape-hook pop-argument-hook)
@@ -178,23 +197,31 @@
 ;;;
 ;;; 22.3.5.3 ~i Indent
 
-(define-directive #\i i-directive nil (named-parameters-directive)
-    ((how-many :type integer :default-value 0)))
+(defclass i-directive (directive) nil)
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\I)) directive (end-directive t))
+  (change-class directive 'i-directive))
+
+(defmethod parameter-specifications ((client t) (directive i-directive))
+  '((:type integer :default 0)))
 
 (defmethod layout-requirements ((item i-directive))
   (list :logical-block))
 
-(define-format-directive-interpreter i-directive
+(defmethod interpret-item (client (directive i-directive) &optional parameters)
+  (declare (ignorable client parameters))
   #-sicl
   (inravina:pprint-indent client *destination*
-                          (if colonp :current :block)
-                          how-many))
+                          (if (colon-p directive) :current :block)
+                          (car parameters)))
 
-(define-format-directive-compiler i-directive
+(defmethod compile-item (client (directive i-directive) &optional parameters)
+  (declare (ignorable client parameters))
   #-sicl
   `((inravina:pprint-indent ,(incless:client-form client) *destination*
-                            ,(if colonp :current :block)
-                            how-many)))
+                            ,(if (colon-p directive) :current :block)
+                            ,(car parameters))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -205,13 +232,17 @@
 ;;; belonging to the directive beyond the directive character itself,
 ;;; which means the standard mechanism of parsing it cannot be used.
 ;;; Second, this directive takes an arbitrary number of parameters.
-;;;
-;;; So, define-format-directive-interpreter cannot be used, since its
-;;; main purpose is to give lexical access to each parameter by name.
 
-(define-directive #\/ call-function-directive nil (directive)
-    ()
-  (%function-name :accessor function-name))
+(defclass call-function-directive (directive)
+  ((%function-name :accessor function-name)))
+
+(defmethod specialize-directive
+    ((client t) (char (eql #\/)) directive (end-directive t))
+  (change-class directive 'call-function-directive))
+
+(defmethod parameter-specifications (client (directive call-function-directive))
+  (declare (ignore client))
+  '((:type (or null character integer) :default nil :rest t)))
 
 (defmethod parse-directive-suffix ((directive-character (eql #\/)) control-string start end)
   (let ((position-of-trailing-slash
@@ -223,14 +254,15 @@
              :why "expected a trailing slash"))
     (1+ position-of-trailing-slash)))
 
-(defmethod check-directive-syntax progn ((directive call-function-directive))
+(defmethod check-directive-syntax progn (client (directive call-function-directive))
+  (declare (ignore client))
   ;; Check that there is at most one package marker in the function name.
   ;; Also, compute a symbol from the name.
   (with-accessors ((control-string control-string)
                    (start start)
                    (suffix-start suffix-start)
                    (end end)
-                   (colonp colonp))
+                   (colon-p colon-p))
       directive
     ;; The HyperSpec says that all the characters of the function
     ;; name are treated as if they were upper-case.
@@ -259,53 +291,21 @@
                :directive directive))
       (setf (function-name directive) (intern symbol-name package)))))
 
-(defmethod interpret-format-directive (client (directive call-function-directive))
-  (with-accessors ((control-string control-string)
-                   (start start)
-                   (end end)
-                   (colonp colonp)
-                   (at-signp at-signp)
-                   (given-parameters given-parameters)
-                   (function-name function-name))
-    directive
-    (let ((param-args
-           (loop for parameter in given-parameters
-                 collect (cond ((eq parameter :remaining-argument-count)
-                                *remaining-argument-count*)
-                               ((eq parameter :argument-reference)
-                                (consume-next-argument t))
-                               (t parameter)))))
-      (apply function-name
+(defmethod interpret-item (client (directive call-function-directive) &optional parameters)
+  (declare (ignore client))
+  (apply (function-name directive)
+         *destination*
+         (consume-next-argument t)
+         (colon-p directive)
+         (at-sign-p directive)
+         parameters))
+
+(defmethod compile-item (client (directive call-function-directive) &optional parameters)
+  (declare (ignore client))
+  `((let ((parameters (list ,@parameters)))
+      (apply ',(function-name directive)
              *destination*
              (consume-next-argument t)
-             colonp
-             at-signp
-             param-args))))
-
-;;; This is not quite right.  We should probably look up the
-;;; function name at runtime as opposed to compile time.
-(defmethod compile-format-directive (client (directive call-function-directive))
-  (declare (ignorable client))
-  (with-accessors ((control-string control-string)
-                   (start start)
-                   (end end)
-                   (colonp colonp)
-                   (at-signp at-signp)
-                   (given-parameters given-parameters)
-                   (function-name function-name))
-      directive
-    `((let ((param-args (list ,@(mapcar (lambda (parameter)
-                                          (case parameter
-                                            (:remaining-argument-count
-                                             '*remaining-argument-count*)
-                                            (:argument-reference
-                                             '(consume-next-argument t))
-                                            (otherwise
-                                             parameter)))
-                                        given-parameters))))
-        (apply ',function-name
-               *destination*
-               (consume-next-argument t)
-               ,colonp
-               ,at-signp
-               param-args)))))
+             ,(colon-p directive)
+             ,(at-sign-p directive)
+             parameters))))

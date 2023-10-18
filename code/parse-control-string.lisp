@@ -13,29 +13,30 @@
 ;;; values, the parameter that was parsed and the position immediately
 ;;; beyond the parameter that was parsed.
 (defun parse-parameter (string start end tilde-position)
-  (cond ((= start end)
+  (when (= start end)
          (error 'end-of-control-string-error
                 :control-string string
                 :tilde-position tilde-position
                 :why "expected a parameter"))
-        ((eql (char string start) #\,)
-         ;; Indicates absence of parameter.
-         (values nil start))
-        ((or (eql (char string start) #\v) (eql (char string start) #\V))
+  (case (char string start)
+    ((#\v #\V)
          ;; Indicates that the value is to be taken from the arguments.
-         (values :argument-reference (1+ start)))
-        ((eql (char string start) #\#)
+         (values (make-instance 'argument-reference-parameter)
+                 (1+ start)))
+    (#\#
          ;; Indicates that the value is the remaining number of arguments
-         (values :remaining-argument-count (1+ start)))
-        ((eql (char string start) #\')
+         (values (make-instance 'remaining-argument-count-parameter)
+                 (1+ start)))
+    (#\'
          (incf start)
          (when (= start end)
            (error 'end-of-control-string-error
                   :control-string string
                   :tilde-position tilde-position
                   :why "character expected"))
-         (values (char string start) (1+ start)))
-        ((find (char string start) "+-0123456789")
+         (values (make-instance 'literal-parameter :value (char string start))
+                 (1+ start)))
+    ((#\+ #\- #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9)
          (multiple-value-bind (value position)
              (parse-integer string :start start :junk-allowed t)
            (when (null value)
@@ -43,13 +44,10 @@
                     :control-string string
                     :tilde-position tilde-position
                     :index start))
-           (values value position)))
-        (t
-         (values nil start)
-         #+(or)(error 'expected-parameter-start
-                :control-string string
-                :tilde-position tilde-position
-                :index start))))
+           (values (make-instance 'literal-parameter :value value)
+                   position)))
+        (otherwise
+         (values (make-instance 'literal-parameter) start))))
 
 ;;; Parse the parameters of a format directive.  STRING is the entire
 ;;; control string START is the position of the tilde character that
@@ -118,7 +116,7 @@
   (let ((end (length string)))
     (multiple-value-bind (parameters position1)
         (parse-parameters string start end)
-      (multiple-value-bind (colonp at-signp position2)
+      (multiple-value-bind (colon-p at-sign-p position2)
           (parse-modifiers string position1 end start)
         (when (= position2 end)
           (error 'end-of-control-string-error
@@ -131,4 +129,4 @@
         (let ((directive-character (char string position2))
               (suffix-start (incf position2)))
           (setf position2 (parse-directive-suffix directive-character string suffix-start end))
-          (values directive-character parameters colonp at-signp suffix-start position2))))))
+          (values directive-character parameters colon-p at-sign-p suffix-start position2))))))

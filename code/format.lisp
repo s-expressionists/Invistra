@@ -37,7 +37,7 @@
 
 (defun interpret-items (client items)
   (loop for item across items
-        do (interpret-format-directive client item)))
+        do (interpret-item client item)))
 
 ;;; Runtime environment
 
@@ -96,63 +96,7 @@
               (*inner-tag* ',block-name))
          ,@body))))
 
-(defun compute-parameter-value (directive parameter-spec)
-  (let* ((parameter-name (car parameter-spec))
-         (compile-time-value (funcall parameter-name directive)))
-    (cond ((null compile-time-value)
-           ;; The parameter was not given at all in the format control
-           ;; string, neither as a constant value, nor as a value to
-           ;; be acquired at runtime (# or V).  We must use a default
-           ;; value if it has any.
-           (getf (cdr parameter-spec) :default-value))
-          ((eq compile-time-value :argument-reference)
-           ;; The parameter was given the explicit value V in the
-           ;; format control string, meaning we use the next argument
-           ;; to acquire the value of the parameter.  We must test
-           ;; that there are more arguments, consume the next one, and
-           ;; check that the type of the argument acquired is correct.
-           (or (consume-next-argument `(or null
-                                           ,(getf (cdr parameter-spec) :type)))
-               (getf (cdr parameter-spec) :default-value)))
-          ((eq compile-time-value :remaining-argument-count)
-           ;; The parameter was given the explicit value # in the
-           ;; format control string, meaning we use the number of
-           ;; remaining arguments as the value of the parameter.
-           (unless (typep *remaining-argument-count*
-                          (getf (cdr parameter-spec) :type))
-             (error 'argument-type-error
-                    :expected-type (getf (cdr parameter-spec) :type)
-                    :datum *remaining-argument-count*))
-           *remaining-argument-count*)
-          (t
-           ;; The parameter was given an explicit value (number or
-           ;; character) in the format control string, and this is the
-           ;; value we want.
-           compile-time-value))))
-
 ;;; The directive interpreter.
-
-(defmethod interpret-format-directive (client directive)
-  (declare (ignore client))
-  (error 'unknown-format-directive
-         :control-string (control-string directive)
-         :tilde-position (start directive)
-         :index (1- (end directive))))
-
-(defmacro define-format-directive-interpreter (class-name &body body)
-  `(defmethod interpret-format-directive (client (directive ,class-name))
-     (declare (ignorable client))
-     (with-accessors ((control-string control-string)
-                      (start start)
-                      (suffix-start suffix-start)
-                      (end end)
-                      (colonp colonp)
-                      (at-signp at-signp))
-       directive
-       (let ,(loop for parameter-spec in (parameter-specs class-name)
-                   collect `(,(car parameter-spec)
-                              (compute-parameter-value directive ',parameter-spec)))
-         ,@body))))
 
 (defun consume-next-argument (type)
   (unless (< *previous-argument-index* (length *previous-arguments*))
@@ -211,27 +155,35 @@
            (setf *previous-argument-index* new-arg-index)
            (aref *previous-arguments* *previous-argument-index*)))))
 
-(defmacro define-format-directive-compiler (class-name &body body)
-  `(defmethod compile-format-directive (client (directive ,class-name))
-     (declare (ignorable client))
-     (with-accessors ((control-string control-string)
-                      (start start)
-                      (suffix-start suffix-start)
-                      (end end)
-                      (colonp colonp)
-                      (at-signp at-signp)
-                      (given-parameters given-parameters)
-                      ,@(loop for parameter-spec in (parameter-specs class-name)
-                              collect `(,(car parameter-spec) ,(car parameter-spec))))
-       directive
-       ,@body)))
+(defmethod interpret-parameter ((parameter argument-reference-parameter))
+  (or (consume-next-argument `(or null ,(parameter-type parameter)))
+      (parameter-default parameter)))
 
-(defun compile-time-value (directive slot-name)
-  (or (slot-value directive slot-name)
-      (getf (cdr (find slot-name
-                       (parameter-specs (class-name (class-of directive)))
-                       :key #'car))
-            :default-value)))
+(defmethod compile-parameter ((parameter argument-reference-parameter))
+  `(or (consume-next-argument '(or null ,(parameter-type parameter)))
+       ,(parameter-default parameter)))
+
+(defmethod interpret-parameter ((parameter remaining-argument-count-parameter))
+  (if (typep *remaining-argument-count*
+             (parameter-type parameter))
+      *remaining-argument-count*
+      (error 'argument-type-error
+             :expected-type (parameter-type parameter)
+             :datum *remaining-argument-count*)))
+
+(defmethod compile-parameter ((parameter remaining-argument-count-parameter))
+  `(if (typep *remaining-argument-count*
+              ',(parameter-type parameter))
+       *remaining-argument-count*
+       (error 'argument-type-error
+              :expected-type ',(parameter-type parameter)
+              :datum *remaining-argument-count*)))
+
+(defmethod interpret-parameter ((parameter literal-parameter))
+  (parameter-value parameter))
+
+(defmethod compile-parameter ((parameter literal-parameter))
+  (parameter-value parameter))
 
 ;;; The reason we define this function is that the ~? directive
 ;;; (recursive processing), when a @ modifier is used, reuses
@@ -241,7 +193,7 @@
 (defun format-with-runtime-arguments (client control-string)
   (catch *inner-tag*
     (interpret-items client
-                     (structure-items (split-control-string control-string)))))
+                     (structure-items client (split-control-string control-string)))))
 
 (defun format (client destination control &rest args)
   (let ((*destination* (cond ((or (streamp destination)
@@ -264,7 +216,8 @@
         (get-output-stream-string *destination*)
         nil)))
 
-(defmethod interpret-format-directive (client (item string))
+(defmethod interpret-item (client (item string) &optional parameters)
+  (declare (ignore parameters))
   (if *newline-kind*
       (loop with start = 0
             with in-blank-p = nil
@@ -281,7 +234,8 @@
             do (setf in-blank-p blankp))
       (write-string item *destination*)))
 
-(defmethod compile-format-directive (client (item string))
+(defmethod compile-item (client (item string) &optional parameters)
+  (declare (ignore parameters))
   (if *newline-kind*
       #+sicl nil #-sicl
       (loop with start = 0
@@ -300,3 +254,13 @@
               do (setf start index)
             do (setf in-blank-p blankp))
       `((write-string ,item *destination*))))
+
+(defmethod interpret-item :around (client (item directive) &optional parameters)
+  (declare (ignore parameters))
+  (call-next-method client item
+                    (mapcar #'interpret-parameter (parameters item))))
+
+(defmethod compile-item :around (client (item directive) &optional parameters)
+  (declare (ignore parameters))
+  (call-next-method client item
+                    (mapcar #'compile-parameter (parameters item))))
