@@ -130,7 +130,6 @@
 ;;; Checking syntax, interpreting, and compiling directives.
 
 (defmethod check-directive-syntax progn (client directive)
-  (declare (ignore client))
   (loop for remaining-parameters = (parameters directive) then (cdr remaining-parameters)
         for parameter = (car remaining-parameters)
         for remaining-specs = (parameter-specifications client directive)

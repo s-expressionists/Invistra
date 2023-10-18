@@ -293,7 +293,7 @@
 
 (defmethod interpret-item (client (directive call-function-directive) &optional parameters)
   (declare (ignore client))
-  (apply (function-name function-name)
+  (apply (function-name directive)
          *destination*
          (consume-next-argument t)
          (colon-p directive)

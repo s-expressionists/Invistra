@@ -229,7 +229,7 @@
                  ;; is used in a different iteration.
                  (if (functionp control)
                      (catch *inner-tag*
-                       (loop with *outer-catch-tag* = *inner-tag*
+                       (loop with *outer-tag* = *inner-tag*
                              with *outer-exit-if-exhausted* = *inner-exit-if-exhausted*
                              for index from 0
                              while (or (null iteration-limit)
@@ -238,7 +238,7 @@
                                do (funcall *inner-exit-if-exhausted*)
                              do (apply control *destination* (consume-next-argument 'list))))
                      (catch *inner-tag*
-                       (loop with *outer-catch-tag* = *inner-tag*
+                       (loop with *outer-tag* = *inner-tag*
                              with *outer-exit-if-exhausted* = *inner-exit-if-exhausted*
                              with catch-tag = (list nil)
                              for index from 0
