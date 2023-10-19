@@ -1,4 +1,4 @@
-Copyright 2010-2023 Robert Strandh (robert.strandh@gmail.com)
+Copyright © 2010-2023 Robert Strandh, Tarn W. Burton
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
