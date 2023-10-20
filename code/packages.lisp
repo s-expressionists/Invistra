@@ -7,6 +7,7 @@
   (:export #:*roman-digits*
            #:at-sign-p
            #:check-directive-syntax
+           #:coerce-function-designator
            #:colon-p
            #:compile-item
            #:directive

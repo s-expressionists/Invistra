@@ -293,7 +293,7 @@
 
 (defmethod interpret-item (client (directive call-function-directive) &optional parameters)
   (declare (ignore client))
-  (apply (function-name directive)
+  (apply (coerce-function-designator client (function-name directive))
          *destination*
          (consume-next-argument t)
          (colon-p directive)
@@ -303,7 +303,7 @@
 (defmethod compile-item (client (directive call-function-directive) &optional parameters)
   (declare (ignore client))
   `((let ((parameters (list ,@parameters)))
-      (apply ',(function-name directive)
+      (apply (coerce-function-designator ,(incless:client-form client) ',(function-name directive))
              *destination*
              (consume-next-argument t)
              ,(colon-p directive)

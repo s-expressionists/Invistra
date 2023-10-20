@@ -38,3 +38,7 @@
     (declare (ignore item))
     nil))
 
+(defgeneric coerce-function-designator (client object)
+  (:method (client object)
+    (declare (ignore client))
+    object))
