@@ -12,7 +12,7 @@
   :depends-on ("acclimation"
                (:feature :sicl "incless")
                (:feature (:not :sicl) "inravina")
-               ("nontrivial-gray-streams"))
+               "nontrivial-gray-streams")
   :components ((:module code
                 :serial t
                 :components ((:file "packages")

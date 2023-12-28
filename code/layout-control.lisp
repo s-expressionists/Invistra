@@ -27,10 +27,10 @@
   (if #+sicl nil #-sicl (inravina:pretty-stream-p client *destination*)
       #+sicl nil #-sicl (inravina:pprint-tab client *destination* :line-relative colnum colinc)
       (let* ((cur (ngray:stream-line-column *destination*)))
-        (ngray:stream-advance-to-column (if (and cur (plusp colinc))
+        (ngray:stream-advance-to-column *destination*
+                                        (if (and cur (plusp colinc))
                                             (* (ceiling (+ cur colnum) colinc) colinc)
-                                            colnum)
-                                        *destination*))))
+                                            colnum)))))
 
 (defun format-absolute-tab (client colnum colinc)
   (if #+sicl nil #-sicl (inravina:pretty-stream-p client *destination*)
@@ -39,10 +39,10 @@
         (cond ((null cur)
                (write-string "  " *destination*))
               ((< cur colnum)
-               (ngray:stream-advance-to-column colnum *destination*))
+               (ngray:stream-advance-to-column *destination* colnum))
               ((plusp colinc)
-               (ngray:stream-advance-to-column (+ cur (- colinc (rem (- cur colnum) colinc)))
-                                               *destination*))))))
+               (ngray:stream-advance-to-column *destination*
+                                               (+ cur (- colinc (rem (- cur colnum) colinc)))))))))
 
 (defmethod interpret-item (client (directive tabulate-directive) &optional parameters)
   (let ((colon-p (colon-p directive))
@@ -119,7 +119,7 @@
 
 (defun str-line-length (stream)
   (or *print-right-margin*
-      (trivial-stream-column:line-length stream)
+      #+gray-streams-line-length (ngray:stream-line-length stream)
       100))
 
 (defun print-justification (client pad-left pad-right extra-space line-len
