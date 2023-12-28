@@ -35,42 +35,42 @@
       (return (+ 2 n)))))
 
 (defclass case-conversion-stream
-    (trivial-gray-streams:fundamental-character-output-stream)
+    (ngray:fundamental-character-output-stream)
   ((target :reader target
            :initarg :target)))
 
-(defmethod trivial-gray-streams:stream-finish-output ((stream case-conversion-stream))
+(defmethod ngray:stream-finish-output ((stream case-conversion-stream))
   (finish-output (target stream)))
 
-(defmethod trivial-gray-streams:stream-force-output ((stream case-conversion-stream))
+(defmethod ngray:stream-force-output ((stream case-conversion-stream))
   (force-output (target stream)))
 
-(defmethod trivial-gray-streams:stream-clear-output ((stream case-conversion-stream))
+(defmethod ngray:stream-clear-output ((stream case-conversion-stream))
   (clear-output (target stream)))
 
-(defmethod trivial-gray-streams:stream-terpri ((stream case-conversion-stream))
+(defmethod ngray:stream-terpri ((stream case-conversion-stream))
   (terpri (target stream)))
 
-(defmethod trivial-gray-streams:stream-fresh-line ((stream case-conversion-stream))
+(defmethod ngray:stream-fresh-line ((stream case-conversion-stream))
   (fresh-line (target stream)))
 
 (defclass upcase-stream (case-conversion-stream)
   ())
 
-(defmethod trivial-gray-streams:stream-write-char ((stream upcase-stream) char)
+(defmethod ngray:stream-write-char ((stream upcase-stream) char)
   (write-char (char-upcase char) (target stream)))
 
 (defclass downcase-stream (case-conversion-stream)
   ())
 
-(defmethod trivial-gray-streams:stream-write-char ((stream downcase-stream) char)
+(defmethod ngray:stream-write-char ((stream downcase-stream) char)
   (write-char (char-downcase char) (target stream)))
 
 (defclass capitalize-stream (case-conversion-stream)
   ((capitalize-next :accessor capitalize-next
                     :initform t)))
 
-(defmethod trivial-gray-streams:stream-write-char ((stream capitalize-stream) char)
+(defmethod ngray:stream-write-char ((stream capitalize-stream) char)
   (with-accessors ((capitalize-next capitalize-next))
       stream
     (let ((an (alphanumericp char)))
@@ -86,7 +86,7 @@
 (defclass first-capitalize-stream (capitalize-stream)
   ())
 
-(defmethod trivial-gray-streams:stream-write-char ((stream first-capitalize-stream) char)
+(defmethod ngray:stream-write-char ((stream first-capitalize-stream) char)
   (with-accessors ((capitalize-next capitalize-next))
       stream
     (let ((an (alphanumericp char)))

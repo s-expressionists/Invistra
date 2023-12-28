@@ -5,6 +5,8 @@
   #+sicl
   (:local-nicknames (:trivial-gray-streams :cyclosis))
   (:export #:*roman-digits*
+           #:*destination*
+           #:consume-next-argument
            #:at-sign-p
            #:check-directive-syntax
            #:coerce-function-designator
