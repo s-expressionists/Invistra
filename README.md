@@ -11,7 +11,7 @@ implementations that this system has been tested on.
 
 In addition to a clone of this repository in a location that is
 discoverable by ASDF you will also need a clone of
-[trivial-stream-column][], [Incless][] and [Inravina][].
+[nontrivial-gray-streams][], [Incless][] and [Inravina][].
 
 # Usage
 
@@ -47,4 +47,4 @@ NIL
 [Inravina]: https://github.com/s-expressionists/Inravina
 [SBCL]: http://sbcl.org
 [SICL]: https://github.com/robert-strandh/SICL
-[trivial-stream-column]: https://github.com/yitzchak/trivial-stream-column
+[nontrivial-gray-streams]: https://github.com/yitzchak/nontrivial-gray-streams

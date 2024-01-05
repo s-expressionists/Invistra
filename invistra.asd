@@ -10,7 +10,7 @@
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
   :depends-on ("acclimation"
-               (:feature :sicl "incless")
+               "incless"
                (:feature (:not :sicl) "inravina")
                "nontrivial-gray-streams")
   :components ((:module code
