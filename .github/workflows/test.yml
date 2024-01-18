@@ -51,3 +51,6 @@ jobs:
     - name: Run ANSI Tests
       run: |
         lisp -i ${{ matrix.lisp }} -e "(ql:quickload :invistra-extrinsic/test)" -e "(invistra-extrinsic/test/ansi:test :exit t)"
+    - name: Run Numeral Tests
+      run: |
+        lisp -i ${{ matrix.lisp }} -e "(defparameter cl-user::*exit-on-test-failures* t)" -e "(ql:quickload :invistra-numeral/test)" -e "(parachute:test :invistra-numeral/test)"
