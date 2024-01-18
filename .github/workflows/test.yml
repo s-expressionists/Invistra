@@ -47,7 +47,7 @@ jobs:
         asdf-add
     - name: Run Regression Tests
       run: |
-        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :invistra-extrinsic/test)" -e "(asdf:test-system :invistra-extrinsic)"
+        lisp -i ${{ matrix.lisp }} -e "(defparameter cl-user::*exit-on-test-failures* t)" -e "(ql:quickload :invistra-extrinsic/test)" -e "(parachute:test :invistra-extrinsic/test/regression)"
     - name: Run ANSI Tests
       run: |
-        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :invistra-shim/test)" -e "(asdf:test-system :invistra-shim)"
+        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :invistra-extrinsic/test)" -e "(invistra-extrinsic/test/ansi:test :exit t)"

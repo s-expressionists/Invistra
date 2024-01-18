@@ -1,4 +1,4 @@
-(cl:in-package #:invistra-extrinsic/test)
+(cl:in-package #:invistra-extrinsic/test/regression)
 
 (defun format-eval (&rest args)
   (apply #'invistra-extrinsic:format args))

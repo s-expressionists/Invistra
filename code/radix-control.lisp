@@ -12,7 +12,7 @@
   '((:type integer :default 0)
     (:type character :default #\Space)
     (:type character :default #\,)
-    (:type (integer 1) :default 3)))
+    (:type integer :default 3)))
 
 (defun print-radix-arg (client colon-p at-sign-p radix mincol padchar commachar comma-interval)
   (let ((argument (consume-next-argument t)))

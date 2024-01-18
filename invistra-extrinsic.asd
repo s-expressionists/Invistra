@@ -21,18 +21,22 @@
 (defsystem "invistra-extrinsic/test"
   :description "Test system for Invistra"
   :license "BSD"
-  :author "Robert Strandh"
-  :maintainer "Robert Strandh"
+  :author ("Robert Strandh"
+           "Tarn W. Burton")
+  :maintainer "Tarn W. Burton"
   :version (:read-file-form "version.sexp")
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
   :depends-on ("invistra-extrinsic"
-               "parachute")
+               "parachute"
+               "ansi-test-harness")
   :perform (asdf:test-op (op c)
-             (defparameter cl-user::*exit-on-test-failures* t)
-             (uiop:symbol-call :parachute :test :invistra-extrinsic/test))
+             (uiop:symbol-call :invistra-extrinsic/test/ansi :test)
+             (uiop:symbol-call :parachute :test :invistra-extrinsic/test/regression))
   :components ((:module code
                 :pathname "code/extrinsic/test/"
                 :serial t
                 :components ((:file "packages")
-                             (:file "format")))))
+                             (:file "format")
+                             (:file "ansi-test")
+                             (:static-file "expected-failures.sexp")))))
