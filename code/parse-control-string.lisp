@@ -46,8 +46,10 @@
                     :index start))
            (values (make-instance 'literal-parameter :value value)
                    position)))
-        (otherwise
-         (values (make-instance 'literal-parameter) start))))
+    (#\,
+     (values (make-instance 'literal-parameter) start))
+    (otherwise
+     (values nil start))))
 
 ;;; Parse the parameters of a format directive.  STRING is the entire
 ;;; control string START is the position of the tilde character that
@@ -60,15 +62,17 @@
     (when (find (char string position) "',vV#+-0123456789")
       (multiple-value-bind (parameter pos)
           (parse-parameter string position end start)
-        (push parameter parameters)
+        (when parameter
+          (push parameter parameters))
         (setf position pos))
       (loop while (and (not (= position end))
                        (eql (char string position) #\,))
-            do (progn (incf position)
-                      (multiple-value-bind (parameter pos)
-                          (parse-parameter string position end start)
-                        (push parameter parameters)
-                        (setf position pos)))))
+            do (incf position)
+               (multiple-value-bind (parameter pos)
+                   (parse-parameter string position end start)
+                 (when parameter
+                   (push parameter parameters))
+                 (setf position pos))))
     (values (nreverse parameters) position)))
 
 ;;; Parse the modifiers of a format directive.  The colon and at-sign
