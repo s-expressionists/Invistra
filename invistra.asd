@@ -35,4 +35,5 @@
                              (:file "control-flow-operations")
                              (:file "miscellaneous-operations")
                              (:file "miscellaneous-pseudo-operations")
-                             (:file "condition-reporters-en")))))
+                             (:file "condition-reporters-en")
+                             (:file "interface")))))

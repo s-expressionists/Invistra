@@ -1,3 +1,4 @@
 (defpackage #:invistra-shim
   (:use #:common-lisp)
-  (:export #:*client*))
+  (:export #:*client*
+           #:initialize-invistra))

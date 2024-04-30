@@ -4,14 +4,15 @@
            #:formatter)
   #+sicl
   (:local-nicknames (:trivial-gray-streams :cyclosis))
-  (:export #:*roman-digits*
-           #:*destination*
-           #:consume-next-argument
+  (:export #:*destination*
+           #:*roman-digits*
            #:at-sign-p
            #:check-directive-syntax
            #:coerce-function-designator
            #:colon-p
            #:compile-item
+           #:consume-next-argument
+           #:define-interface
            #:directive
            #:format
            #:format-compiler-macro

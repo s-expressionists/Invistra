@@ -4,4 +4,5 @@
            #:formatter)
   (:export #:*client*
            #:format
-           #:formatter))
+           #:formatter
+           #:initialize-invistra))

@@ -1,3 +1,4 @@
 (defpackage #:invistra-intrinsic
   (:use #:common-lisp)
-  (:export #:*client*))
+  (:export #:*client*
+           #:initialize-invistra))
