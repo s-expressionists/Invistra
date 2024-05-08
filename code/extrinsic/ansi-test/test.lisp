@@ -1,4 +1,4 @@
-(in-package #:invistra-extrinsic/test/ansi)
+(in-package #:invistra-extrinsic/ansi-test)
 
 (defvar *tests*
   '("FORMAT."
@@ -33,7 +33,7 @@
     invistra-extrinsic:formatter))
 
 (defun test (&rest args)
-  (let ((system (asdf:find-system :invistra-extrinsic/test)))
+  (let ((system (asdf:find-system :invistra-extrinsic/ansi-test)))
     (apply #'ansi-test-harness:ansi-test
            :directory (merge-pathnames
                        (make-pathname :directory '(:relative
