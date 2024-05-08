@@ -56,6 +56,5 @@
                 :pathname "code/extrinsic/ansi-test/"
                 :serial t
                 :components ((:file "packages")
-                             (:file "format")
                              (:file "test")
                              (:static-file "expected-failures.sexp")))))

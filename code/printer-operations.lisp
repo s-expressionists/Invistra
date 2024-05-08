@@ -44,15 +44,23 @@
            (*print-readably* nil)
            (parameters (list ,@parameters))
            (arg (consume-next-argument t)))
-      (apply #'print-a-or-s
-             ,(if (colon-p directive)
-                  `(if (null arg)
-                       "()"
-                       (with-output-to-string (stream)
-                         (incless:write-object ,(incless:client-form client) arg stream)))
-                  `(with-output-to-string (stream)
-                     (incless:write-object ,(incless:client-form client) arg stream)))
-             ,(at-sign-p directive) parameters))))
+      ,(cond ((or (not (zerop (first parameters)))
+                  (not (zerop (third parameters))))
+              `(apply #'print-a-or-s
+                      ,(if (colon-p directive)
+                           `(if (null arg)
+                                "()"
+                                (with-output-to-string (stream)
+                                  (incless:write-object ,(incless:client-form client) arg stream)))
+                           `(with-output-to-string (stream)
+                              (incless:write-object ,(incless:client-form client) arg stream)))
+                      ,(at-sign-p directive) parameters))
+             ((colon-p directive)
+              `(if (null arg)
+                   "()"
+                   (incless:write-object ,(incless:client-form client) arg *destination*)))
+             (t
+              `(incless:write-object ,(incless:client-form client) arg *destination*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
