@@ -5,7 +5,7 @@
 (in-package #:invistra)
 
 (defun print-float-arg (client func)
-  (let ((value (consume-next-argument t)))
+  (let ((value (pop-argument)))
     (if (or (complexp value)
             (not (numberp value)))
         (let ((*print-base* 10)

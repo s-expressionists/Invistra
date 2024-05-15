@@ -79,11 +79,11 @@
   (when (colon-p item)
     (go-to-argument -1))
   (if (at-sign-p item)
-      (write-string (if (eql (consume-next-argument t) 1)
+      (write-string (if (eql (pop-argument) 1)
                         "y"
                         "ies")
                     *destination*)
-      (unless (eql (consume-next-argument t) 1)
+      (unless (eql (pop-argument) 1)
         (write-char #\s *destination*))))
 
 (defmethod compile-item (client (item plural-directive) &optional parameters)
@@ -91,9 +91,9 @@
   `(,@(when (colon-p item)
         `((go-to-argument -1)))
     ,(if (at-sign-p item)
-         `(write-string (if (eql (consume-next-argument t) 1)
+         `(write-string (if (eql (pop-argument) 1)
                             "y"
                             "ies")
                         *destination*)
-         `(unless (eql (consume-next-argument t) 1)
+         `(unless (eql (pop-argument) 1)
             (write-char #\s *destination*)))))

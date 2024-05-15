@@ -11,7 +11,7 @@
            #:coerce-function-designator
            #:colon-p
            #:compile-item
-           #:consume-next-argument
+           #:pop-argument
            #:define-interface
            #:directive
            #:format

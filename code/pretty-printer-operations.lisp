@@ -113,7 +113,7 @@
          (per-line-prefix-p (and (> (length (clauses directive)) 1)
                                  (at-sign-p (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0)))))))
-         (object (unless at-sign-p (consume-next-argument t))))
+         (object (unless at-sign-p (pop-argument))))
     (flet ((interpret-body (*destination* escape-hook pop-argument-hook)
              (if at-sign-p
                  (interpret-items client (aref (clauses directive)
@@ -177,7 +177,7 @@
                                                                                 1)))))
                                           :prefix ,prefix :suffix ,suffix
                                           :per-line-prefix-p ,per-line-prefix-p))
-        `((let* ((object (consume-next-argument t))
+        `((let* ((object (pop-argument))
                  (*remaining-argument-count* (dotted-list-length object))
                  (*previous-arguments* (make-array *remaining-argument-count*
                                                    :adjustable t :fill-pointer 0))
@@ -295,7 +295,7 @@
   (declare (ignore client))
   (apply (coerce-function-designator client (function-name directive))
          *destination*
-         (consume-next-argument t)
+         (pop-argument)
          (colon-p directive)
          (at-sign-p directive)
          parameters))
@@ -305,7 +305,7 @@
   `((let ((parameters (list ,@parameters)))
       (apply (coerce-function-designator ,(incless:client-form client) ',(function-name directive))
              *destination*
-             (consume-next-argument t)
+             (pop-argument)
              ,(colon-p directive)
              ,(at-sign-p directive)
              parameters))))

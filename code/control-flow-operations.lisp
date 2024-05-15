@@ -127,17 +127,17 @@
 (defmethod interpret-item (client (directive conditional-directive) &optional parameters)
   (let ((param (car parameters)))
     (cond ((at-sign-p directive)
-           (when (consume-next-argument t)
+           (when (pop-argument)
              (go-to-argument -1)
              (interpret-items client (aref (clauses directive) 0))))
           ((colon-p directive)
            (interpret-items client
                             (aref (clauses directive)
-                                  (if (consume-next-argument t) 1 0))))
+                                  (if (pop-argument) 1 0))))
           (t
            ;; If a parameter was given, use it,
            ;; else use the next argument.
-           (let ((val (or param (consume-next-argument 'integer))))
+           (let ((val (or param (pop-argument 'integer))))
              (if (or (minusp val)
                      (>= val (length (clauses directive))))
                  ;; Then the argument is out of range
@@ -153,18 +153,18 @@
 (defmethod compile-item (client (directive conditional-directive) &optional parameters)
   (let ((param (car parameters)))
     (cond ((at-sign-p directive)
-           `((when (consume-next-argument t)
+           `((when (pop-argument)
                (go-to-argument -1)
                ,@(compile-items client (aref (clauses directive) 0)))))
           ((colon-p directive)
-           `((cond ((consume-next-argument t)
+           `((cond ((pop-argument)
                     ,@(compile-items client (aref (clauses directive) 1)))
                    (t
                     ,@(compile-items client (aref (clauses directive) 0))))))
           (t
            ;; If a parameter was given, use it,
            ;; else use the next argument.
-           `((let ((val (or ,param (consume-next-argument 'integer))))
+           `((let ((val (or ,param (pop-argument 'integer))))
                (if (or (minusp val)
                        (>= val ,(length (clauses directive))))
                    ;; Then the argument is out of range
@@ -223,7 +223,7 @@
          (items (aref (clauses directive) 0))
          (oncep (colon-p (aref items (1- (length items))))))
     (if (= (length items) 1)
-        (let ((control (consume-next-argument '(or string function))))
+        (let ((control (pop-argument '(or string function))))
           (cond ((and colon-p at-sign-p)
                  ;; The remaining arguments should be lists.  Each argument
                  ;; is used in a different iteration.
@@ -236,7 +236,7 @@
                                        (< index iteration-limit))
                              when (or (not oncep) (plusp index))
                                do (funcall *inner-exit-if-exhausted*)
-                             do (apply control *destination* (consume-next-argument 'list))))
+                             do (apply control *destination* (pop-argument 'list))))
                      (catch *inner-tag*
                        (loop with *outer-tag* = *inner-tag*
                              with *outer-exit-if-exhausted* = *inner-exit-if-exhausted*
@@ -246,7 +246,7 @@
                                        (< index iteration-limit))
                              when (or (not oncep) (plusp index))
                                do (funcall *inner-exit-if-exhausted*)
-                             do (with-arguments (consume-next-argument 'list)
+                             do (with-arguments (pop-argument 'list)
                                   (let ((*inner-tag* catch-tag))
                                     (catch *inner-tag*
                                       (format-with-runtime-arguments client control))))))))
@@ -254,14 +254,14 @@
                  ;; We use one argument, and that should be a list of sublists.
                  ;; Each sublist is used as arguments for one iteration.
                  (if (functionp control)
-                     (let ((arg (consume-next-argument 'list)))
+                     (let ((arg (pop-argument 'list)))
                        (if (null iteration-limit)
                            (loop for args in arg ; a bit unusual naming perhaps
                                  do (apply control *destination* args))
                            (loop for args in arg ; a bit unusual naming perhaps
                                  repeat iteration-limit
                                  do (apply control *destination* args))))
-                     (let ((arg (consume-next-argument 'list)))
+                     (let ((arg (pop-argument 'list)))
                        (flet ((one-iteration (args)
                                 (unless (listp args)
                                   (error 'argument-type-error
@@ -278,7 +278,7 @@
                                    do (one-iteration args)))))))
                 (at-sign-p
                  (if (functionp control)
-                     (loop for args = (consume-remaining-arguments)
+                     (loop for args = (pop-remaining-arguments)
                              then (apply control *destination* args)
                            for index from 0
                            finally (go-to-argument (- (length args)))
@@ -297,13 +297,13 @@
                  ;; We use one argument, and that should be a list.
                  ;; The elements of that list are used by the iteration.
                  (if (functionp control)
-                     (loop for args = (consume-next-argument 'list)
+                     (loop for args = (pop-argument 'list)
                              then (apply control *destination* args)
                            for index from 0
                            while (and (or (null iteration-limit)
                                           (< index iteration-limit))
                                       (or (and oncep (zerop index)) args)))
-                     (with-arguments (consume-next-argument 'list)
+                     (with-arguments (pop-argument 'list)
                        (catch *inner-tag*
                          (loop for index from 0
                                while (or (null iteration-limit)
@@ -320,18 +320,18 @@
                                  (< index iteration-limit))
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
-                       do (with-arguments (consume-next-argument 'list)
+                       do (with-arguments (pop-argument 'list)
                             (interpret-items client items)))))
               (colon-p
                ;; We use one argument, and that should be a list of sublists.
                ;; Each sublist is used as arguments for one iteration.
-               (with-arguments (consume-next-argument 'list)
+               (with-arguments (pop-argument 'list)
                  (loop for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
-                       do (with-arguments (consume-next-argument 'list)
+                       do (with-arguments (pop-argument 'list)
                             (interpret-items client items)))))
               (at-sign-p
                (catch *inner-tag*
@@ -345,7 +345,7 @@
                ;; no modifiers
                ;; We use one argument, and that should be a list.
                ;; The elements of that list are used by the iteration.
-               (with-arguments (consume-next-argument 'list)
+               (with-arguments (pop-argument 'list)
                  (loop for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
@@ -366,7 +366,7 @@
                ;; The remaining arguments should be lists.  Each argument
                ;; is used in a different iteration.
                `((let ((iteration-limit ,iteration-limit)
-                       (control (consume-next-argument '(or function string))))
+                       (control (pop-argument '(or function string))))
                    (catch *inner-tag*
                      (loop for index from 0
                            while (or (null iteration-limit)
@@ -375,17 +375,17 @@
                                  '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                  '(do (funcall *inner-exit-if-exhausted*)))
                            if (functionp control)
-                             do (apply control *destination* (consume-next-argument 'list))
+                             do (apply control *destination* (pop-argument 'list))
                            else
-                             do (with-arguments (consume-next-argument 'list)
+                             do (with-arguments (pop-argument 'list)
                                   (format-with-runtime-arguments ,(incless:client-form client)
                                                                  control)))))))
               (colon-p
                ;; We use one argument, and that should be a list of sublists.
                ;; Each sublist is used as arguments for one iteration.
                `((let ((iteration-limit ,iteration-limit)
-                       (control (consume-next-argument '(or function string))))
-                   (with-arguments (consume-next-argument 'list)
+                       (control (pop-argument '(or function string))))
+                   (with-arguments (pop-argument 'list)
                      (loop for index from 0
                            while (or (null iteration-limit)
                                      (< index iteration-limit))
@@ -393,16 +393,16 @@
                                  '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                  '(do (funcall *inner-exit-if-exhausted*)))
                            if (functionp control)
-                             do (apply control *destination* (consume-next-argument 'list))
+                             do (apply control *destination* (pop-argument 'list))
                            else
-                             do (with-arguments (consume-next-argument 'list)
+                             do (with-arguments (pop-argument 'list)
                                   (format-with-runtime-arguments ,(incless:client-form client)
                                                                  control)))))))
               (at-sign-p
                `((let ((iteration-limit ,iteration-limit)
-                       (control (consume-next-argument '(or function string))))
+                       (control (pop-argument '(or function string))))
                    (if (functionp control)
-                       (loop for args = (consume-remaining-arguments)
+                       (loop for args = (pop-remaining-arguments)
                                then (apply control *destination* args)
                              for index from 0
                              finally (go-to-argument (- (length args)))
@@ -425,9 +425,9 @@
                ;; We use one argument, and that should be a list.
                ;; The elements of that list are used by the iteration.
                `((let ((iteration-limit ,iteration-limit)
-                       (control (consume-next-argument '(or function string))))
+                       (control (pop-argument '(or function string))))
                    (if (functionp control)
-                       (loop for args = (consume-next-argument 'list)
+                       (loop for args = (pop-argument 'list)
                                then (apply control *destination* args)
                              for index from 0
                              while (and (or (null iteration-limit)
@@ -435,7 +435,7 @@
                                         ,(if oncep
                                              '(or (zerop index) args)
                                              'args)))
-                       (with-arguments (consume-next-argument 'list)
+                       (with-arguments (pop-argument 'list)
                          (loop for index from 0
                                while (or (null iteration-limit)
                                          (< index iteration-limit))
@@ -456,20 +456,20 @@
                              ,@(if oncep
                                    '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                    '(do (funcall *inner-exit-if-exhausted*)))
-                             do (with-arguments (consume-next-argument 'list)
+                             do (with-arguments (pop-argument 'list)
                                   ,@compiled-items))))))
                 (colon-p
                  ;; We use one argument, and that should be a list of sublists.
                  ;; Each sublist is used as arguments for one iteration.
                  `((let ((iteration-limit ,iteration-limit))
-                     (with-arguments (consume-next-argument 'list)
+                     (with-arguments (pop-argument 'list)
                        (loop for index from 0
                              while (or (null iteration-limit)
                                        (< index iteration-limit))
                              ,@(if oncep
                                    '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                    '(do (funcall *inner-exit-if-exhausted*)))
-                             do (with-arguments (consume-next-argument 'list)
+                             do (with-arguments (pop-argument 'list)
                                   ,@compiled-items))))))
                 (at-sign-p
                  `((let ((iteration-limit ,iteration-limit))
@@ -487,7 +487,7 @@
                  ;; We use one argument, and that should be a list.
                  ;; The elements of that list are used by the iteration.
                  `((let ((iteration-limit ,iteration-limit))
-                     (with-arguments (consume-next-argument 'list)
+                     (with-arguments (pop-argument 'list)
                        (loop for index from 0
                              while (or (null iteration-limit)
                                        (< index iteration-limit))
@@ -514,23 +514,23 @@
   (if (at-sign-p directive)
       ;; reuse the arguments from the parent control-string
       (format-with-runtime-arguments client
-                                     (consume-next-argument 'string))
+                                     (pop-argument 'string))
       ;;
       (apply #'format
              client
              *destination*
-             (consume-next-argument 'string)
-             (consume-next-argument 'list))))
+             (pop-argument 'string)
+             (pop-argument 'list))))
 
 (defmethod compile-item (client (directive recursive-processing-directive) &optional parameters)
   (declare (ignore parameters))
   (if (at-sign-p directive)
       ;; reuse the arguments from the parent control-string
       `((format-with-runtime-arguments ,(incless:client-form client)
-                                       (consume-next-argument 'string)))
+                                       (pop-argument 'string)))
       ;;
       `((apply #'format
                ,(incless:client-form client)
                *destination*
-               (consume-next-argument 'string)
-               (consume-next-argument 'list)))))
+               (pop-argument 'string)
+               (pop-argument 'list)))))

@@ -18,7 +18,7 @@
 
 (defmethod interpret-item (client (directive c-directive) &optional parameters)
   (declare (ignore parameters))
-  (let ((char (consume-next-argument 'character))
+  (let ((char (pop-argument 'character))
         (colon-p (colon-p directive))
         (at-sign-p (at-sign-p directive)))
     (cond ((and (not colon-p) (not at-sign-p))
@@ -56,7 +56,7 @@
   (declare (ignore parameters))
   (let ((colon-p (colon-p directive))
         (at-sign-p (at-sign-p directive)))
-    `((let ((char (consume-next-argument 'character)))
+    `((let ((char (pop-argument 'character)))
         ,(cond ((and (not colon-p) (not at-sign-p))
                 `(write-char char *destination*))
                ((not at-sign-p)

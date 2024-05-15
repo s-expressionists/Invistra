@@ -15,7 +15,7 @@
     (:type integer :default 3)))
 
 (defun print-radix-arg (client colon-p at-sign-p radix mincol padchar commachar comma-interval)
-  (let ((argument (consume-next-argument t)))
+  (let ((argument (pop-argument)))
     (if (not (integerp argument))
         (let ((*print-base* radix)
               (*print-escape* nil)
@@ -89,7 +89,7 @@
                     (loop repeat r1
                           do (write-string (car digits) *destination*))))))))
     (let ((digit-count (list-length *roman-digits*)))
-      (write-digit (consume-next-argument
+      (write-digit (pop-argument
                     (if digit-count
                         (multiple-value-bind (q r)
                             (floor digit-count 2)
@@ -113,7 +113,7 @@
                  (loop repeat r1
                        do (write-string (car digits) *destination*))))))
     (let ((digit-count (list-length *roman-digits*)))
-      (write-digit (consume-next-argument
+      (write-digit (pop-argument
                     (if digit-count
                         (multiple-value-bind (q r)
                             (floor digit-count 2)
@@ -143,7 +143,7 @@
                         (loop repeat r1
                               do (write-string (car digits) *destination*))))))))
     (let ((digit-count (list-length *roman-digits*)))
-      (write-digit (consume-next-argument
+      (write-digit (pop-argument
                     (if digit-count
                         (multiple-value-bind (q r)
                             (floor digit-count 2)
@@ -217,7 +217,7 @@
 
 ;;; Print a cardinal number n such that - 10^65 < n < 10^65.
 (defun print-cardinal-arg ()
-  (let ((n (consume-next-argument `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))))
+  (let ((n (pop-argument `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))))
     (cond ((minusp n)
            (write-string "negative " *destination*)
            (print-cardinal-non-zero (- n) 0))
@@ -283,7 +283,7 @@
 
 ;;; Print an ordinal number n such that - 10^65 < n < 10^65.
 (defun print-ordinal-arg ()
-  (let ((n (consume-next-argument `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))))
+  (let ((n (pop-argument `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))))
     (cond ((minusp n)
            (write-string "negative " *destination*)
            (print-ordinal-non-zero (- n)))

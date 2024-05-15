@@ -6,7 +6,7 @@
     `(lambda (*destination* &rest args)
        (with-arguments args
          ,@(compile-items client items)
-         (consume-remaining-arguments)))))
+         (pop-remaining-arguments)))))
 
 (defun format-compiler-macro (client form destination control-string args)
   (declare (ignore form))
