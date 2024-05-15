@@ -18,23 +18,23 @@
 
 (defmethod interpret-item (client (directive c-directive) &optional parameters)
   (declare (ignore parameters))
-  (let ((char (pop-argument 'character))
-        (colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
-    (cond ((and (not colon-p) (not at-sign-p))
-           ;; Neither colon nor at-sign.
-           ;; The HyperSpec says to do what WRITE-CHAR does.
-           (write-char char *destination*))
-          ((not at-sign-p)
-           ;; We have only a colon modifier.
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
+  (let ((char (pop-argument 'character)))
+    (cond (colon-p
+           ;; We have a colon modifier.
            ;; The HyperSpec says to do what WRITE-CHAR does for
            ;; printing characters, and what char-name does otherwise.
            ;; The definition of "printing char" is a graphic character
            ;; other than space.
            (if (and (graphic-char-p char) (not (eql char #\Space)))
                (write-char char *destination*)
-               (write-string (char-name char) *destination*)))
-          ((not colon-p)
+               (write-string (char-name char) *destination*))
+           (when at-sign-p
+             ;; Allow client specific key sequence for at sign modifier.
+             (print-key-sequence client char *destination*)))
+          (at-sign-p
            ;; We have only an at-sign modifier.
            ;; The HyperSpec says to print it the way the Lisp
            ;; reader can understand, which I take to mean "use PRIN1".
@@ -42,34 +42,28 @@
            (let ((*print-escape* t))
              (incless:write-object client char *destination*)))
           (t
-           ;; We have both a colon and and at-sign.
-           ;; The HyperSpec says to do what ~:C does, but
-           ;; also to mention unusual shift keys on the
-           ;; keyboard required to type the character.
-           ;; I don't see how to do that, so we do the same
-           ;; as for ~:C.
-           (if (and (graphic-char-p char) (not (eql char #\Space)))
-               (write-char char *destination*)
-               (write-string (char-name char) *destination*))))))
+           ;; Neither colon nor at-sign.
+           ;; The HyperSpec says to do what WRITE-CHAR does.
+           (write-char char *destination*))))))
 
 (defmethod compile-item (client (directive c-directive) &optional parameters)
   (declare (ignore parameters))
-  (let ((colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
-    `((let ((char (pop-argument 'character)))
-        ,(cond ((and (not colon-p) (not at-sign-p))
-                `(write-char char *destination*))
-               ((not at-sign-p)
-                `(if (and (graphic-char-p char) (not (eql char #\Space)))
-                     (write-char char *destination*)
-                     (write-string (char-name char) *destination*)))
-               ((not colon-p)
-                `(let ((*print-escape* t))
-                   (incless:write-object ,(incless:client-form client) char *destination*)))
-               (t
-                `(if (and (graphic-char-p char) (not (eql char #\Space)))
-                     (write-char char *destination*)
-                     (write-string (char-name char) *destination*))))))))
+  (with-accessors ((at-sign-p at-sign-p)
+                   (colon-p colon-p))
+      directive
+    (cond (colon-p
+           `((let ((char (pop-argument 'character)))
+               (if (and (graphic-char-p char) (not (eql char #\Space)))
+                   (write-char char *destination*)
+                   (write-string (char-name char) *destination*))
+               ,@(when at-sign-p
+                   `((print-key-sequence ,(incless:client-form client) char
+                                         *destination*))))))
+          (at-sign-p
+           `((let ((*print-escape* t))
+               (incless:write-object ,(incless:client-form client) (pop-argument 'character) *destination*))))
+          (t
+           `((write-char (pop-argument 'character) *destination*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
