@@ -264,7 +264,7 @@
   (declare (ignore parameters))
   (loop for parameter in (parameters item)
         for compiled-parameter = (compile-parameter parameter)
-        for form = (gensym)
+        for name = (parameter-name parameter)
         finally (return (if bindings
                             `((let* ,bindings
                                 (declare (ignorable ,@(mapcar #'first bindings)))
@@ -273,5 +273,5 @@
         when (constantp compiled-parameter)
           collect compiled-parameter into forms
         else
-          collect form into forms
-          and collect `(,form ,compiled-parameter) into bindings))
+          collect name into forms
+          and collect `(,name ,compiled-parameter) into bindings))

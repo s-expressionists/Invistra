@@ -9,7 +9,7 @@
 
 (defmethod parameter-specifications (client (directive base-radix-directive))
   (declare (ignore client))
-  '((:type integer :default 0)
+  '((:name radix :type integer :default 0)
     (:type character :default #\Space)
     (:type character :default #\,)
     (:type integer :default 3)))
