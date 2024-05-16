@@ -21,8 +21,9 @@
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
-  (let ((colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
     (inravina:pprint-newline client *destination*
                              (cond ((and colon-p at-sign-p) :mandatory)
                                    (colon-p :fill)
@@ -33,8 +34,9 @@
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
-  (let ((colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
     `((inravina:pprint-newline ,(incless:client-form client) *destination*
                                ,(cond ((and colon-p at-sign-p) :mandatory)
                                       (colon-p :fill)
@@ -302,10 +304,9 @@
 
 (defmethod compile-item (client (directive call-function-directive) &optional parameters)
   (declare (ignore client))
-  `((let ((parameters (list ,@parameters)))
-      (apply (coerce-function-designator ,(incless:client-form client) ',(function-name directive))
+  `((funcall (coerce-function-designator ,(incless:client-form client) ',(function-name directive))
              *destination*
              (pop-argument)
              ,(colon-p directive)
              ,(at-sign-p directive)
-             parameters))))
+             ,@parameters)))

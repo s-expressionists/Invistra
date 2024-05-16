@@ -171,13 +171,11 @@
                             parameters))))
 
 (defmethod compile-item (client (directive f-directive) &optional parameters)
-  `((let ((parameters (list ,@parameters)))
-      (print-float-arg ,(incless:client-form client)
-                       (lambda (client value digits exponent)
-                         (apply #'print-fixed-arg
-                                client value digits exponent
-                                ,(colon-p directive) ,(at-sign-p directive)
-                                parameters))))))
+  `((print-float-arg ,(incless:client-form client)
+                     (lambda (client value digits exponent)
+                       (print-fixed-arg client value digits exponent
+                                        ,(colon-p directive) ,(at-sign-p directive)
+                                        ,@parameters)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -311,12 +309,11 @@
                             parameters))))
 
 (defmethod compile-item (client (directive e-directive) &optional parameters)
-  `((let ((parameters (list ,@parameters)))
-      (print-float-arg ,(incless:client-form client)
+  `((print-float-arg ,(incless:client-form client)
                        (lambda (client value digits exponent)
-                         (apply #'print-exponent-arg client value digits exponent
-                                ,(colon-p directive) ,(at-sign-p directive)
-                                parameters))))))
+                         (print-exponent-arg client value digits exponent
+                                             ,(colon-p directive) ,(at-sign-p directive)
+                                             ,@parameters))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -369,13 +366,11 @@
                             parameters))))
 
 (defmethod compile-item (client (directive g-directive) &optional parameters)
-  `((let ((parameters (list ,@parameters)))
-      (print-float-arg ,(incless:client-form client)
-                       (lambda (client value digits exponent)
-                         (apply #'print-general-arg
-                                client value digits exponent
-                                ,(colon-p directive) ,(at-sign-p directive)
-                                parameters))))))
+`((print-float-arg ,(incless:client-form client)
+                   (lambda (client value digits exponent)
+                     (print-general-arg client value digits exponent
+                                        ,(colon-p directive) ,(at-sign-p directive)
+                                        ,@parameters))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -461,10 +456,8 @@
                             parameters))))
 
 (defmethod compile-item (client (directive monetary-directive) &optional parameters)
-  `((let ((parameters (list ,@parameters)))
-      (print-float-arg ,(incless:client-form client)
-                       (lambda (client value digits exponent)
-                         (apply #'print-monetary-arg
-                                client value digits exponent
-                                ,(colon-p directive) ,(at-sign-p directive)
-                                parameters))))))
+  `((print-float-arg ,(incless:client-form client)
+                     (lambda (client value digits exponent)
+                       (print-monetary-arg client value digits exponent
+                                           ,(colon-p directive) ,(at-sign-p directive)
+                                           ,@parameters))))))
