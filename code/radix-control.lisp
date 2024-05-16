@@ -323,7 +323,7 @@
                  (t
                   `((print-cardinal-arg)))))
           (t
-           `((if (car parameters)
+           `((if ,(car parameters)
                  (print-radix-arg ,(incless:client-form client)
                                   ,colon-p ,at-sign-p ,@parameters)
                  ,(cond ((and at-sign-p colon-p)
