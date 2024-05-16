@@ -267,6 +267,7 @@
         for form = (gensym)
         finally (return (if bindings
                             `((let* ,bindings
+                                (declare (ignorable ,@(mapcar #'first bindings)))
                                 ,@(call-next-method client item forms)))
                             (call-next-method client item forms)))
         when (constantp compiled-parameter)

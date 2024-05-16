@@ -310,10 +310,10 @@
 
 (defmethod compile-item (client (directive e-directive) &optional parameters)
   `((print-float-arg ,(incless:client-form client)
-                       (lambda (client value digits exponent)
-                         (print-exponent-arg client value digits exponent
-                                             ,(colon-p directive) ,(at-sign-p directive)
-                                             ,@parameters))))))
+                     (lambda (client value digits exponent)
+                       (print-exponent-arg client value digits exponent
+                                           ,(colon-p directive) ,(at-sign-p directive)
+                                           ,@parameters)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -366,11 +366,11 @@
                             parameters))))
 
 (defmethod compile-item (client (directive g-directive) &optional parameters)
-`((print-float-arg ,(incless:client-form client)
-                   (lambda (client value digits exponent)
-                     (print-general-arg client value digits exponent
-                                        ,(colon-p directive) ,(at-sign-p directive)
-                                        ,@parameters))))))
+  `((print-float-arg ,(incless:client-form client)
+                     (lambda (client value digits exponent)
+                       (print-general-arg client value digits exponent
+                                          ,(colon-p directive) ,(at-sign-p directive)
+                                          ,@parameters)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -460,4 +460,4 @@
                      (lambda (client value digits exponent)
                        (print-monetary-arg client value digits exponent
                                            ,(colon-p directive) ,(at-sign-p directive)
-                                           ,@parameters))))))
+                                           ,@parameters)))))

@@ -323,18 +323,17 @@
                  (t
                   `((print-cardinal-arg)))))
           (t
-           `((let ((parameters (list ,@parameters)))
-               (if (car parameters)
-                   (apply #'print-radix-arg ,(incless:client-form client)
-                          ,colon-p ,at-sign-p parameters)
-                   ,(cond ((and at-sign-p colon-p)
-                           `(print-old-roman-arg))
-                          (at-sign-p
-                           `(print-roman-arg))
-                          (colon-p
-                           `(print-ordinal-arg))
-                          (t
-                           `(print-cardinal-arg))))))))))
+           `((if (car parameters)
+                 (print-radix-arg ,(incless:client-form client)
+                                  ,colon-p ,at-sign-p ,@parameters)
+                 ,(cond ((and at-sign-p colon-p)
+                         `(print-old-roman-arg))
+                        (at-sign-p
+                         `(print-roman-arg))
+                        (colon-p
+                         `(print-ordinal-arg))
+                        (t
+                         `(print-cardinal-arg)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
