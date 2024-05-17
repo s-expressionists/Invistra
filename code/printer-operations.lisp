@@ -32,45 +32,48 @@
            (at-sign-p directive) parameters)))
 
 (defmethod compile-item (client (directive a-directive) &optional parameters)
-  (destructuring-bind (mincol colinc minpad padchar)
-      parameters
-    (cond ((and (colon-p directive)
-                (eql 0 mincol)
-                (eql 0 minpad))
-           `((let ((*print-escape* nil)
-                   (*print-readably* nil)
-                   (arg (pop-argument)))
-               (if (null arg)
-                   (write-string "()" *destination*)
-                   (incless:write-object ,(incless:client-form client)
-                                         arg
-                                         *destination*)))))
-          ((and (eql 0 mincol)
-                (eql 0 minpad))
-           `((let ((*print-escape* nil)
-                   (*print-readably* nil))
-               (incless:write-object ,(incless:client-form client)
-                                     (pop-argument)
-                                     *destination*))))
-          ((colon-p directive)
-           `((let ((*print-escape* nil)
-                   (*print-readably* nil)
-                   (arg (pop-argument)))
-               (write-string-with-padding
-                (if (null arg)
-                    "()"
-                    (with-output-to-string (stream)
-                      (incless:write-object ,(incless:client-form client) arg stream)))
-                ,(at-sign-p directive) ,@parameters))))
-          (t
-           `((let ((*print-escape* nil)
-                   (*print-readably* nil))
-               (write-string-with-padding
-                (with-output-to-string (stream)
-                  (incless:write-object ,(incless:client-form client)
-                                        (pop-argument)
-                                        stream))
-                ,(at-sign-p directive) ,@parameters)))))))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
+    (destructuring-bind (mincol colinc minpad padchar)
+        parameters
+      (cond ((and colon-p
+                  (eql 0 mincol)
+                  (eql 0 minpad))
+             `((let ((*print-escape* nil)
+                     (*print-readably* nil)
+                     (arg (pop-argument)))
+                 (if (null arg)
+                     (write-string "()" *destination*)
+                     (incless:write-object ,(incless:client-form client)
+                                           arg
+                                           *destination*)))))
+            ((and (eql 0 mincol)
+                  (eql 0 minpad))
+             `((let ((*print-escape* nil)
+                     (*print-readably* nil))
+                 (incless:write-object ,(incless:client-form client)
+                                       (pop-argument)
+                                       *destination*))))
+            (colon-p
+             `((let ((*print-escape* nil)
+                     (*print-readably* nil)
+                     (arg (pop-argument)))
+                 (write-string-with-padding
+                  (if (null arg)
+                      "()"
+                      (with-output-to-string (stream)
+                        (incless:write-object ,(incless:client-form client) arg stream)))
+                  ,at-sign-p ,@parameters))))
+            (t
+             `((let ((*print-escape* nil)
+                     (*print-readably* nil))
+                 (write-string-with-padding
+                  (with-output-to-string (stream)
+                    (incless:write-object ,(incless:client-form client)
+                                          (pop-argument)
+                                          stream))
+                  ,at-sign-p ,@parameters))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -99,41 +102,44 @@
            (at-sign-p directive) parameters)))
 
 (defmethod compile-item (client (directive s-directive) &optional parameters)
-  (destructuring-bind (mincol colinc minpad padchar)
-      parameters
-    (cond ((and (colon-p directive)
-                (eql 0 mincol)
-                (eql 0 minpad))
-           `((let ((*print-escape* t)
-                   (arg (pop-argument)))
-               (if (null arg)
-                   (write-string "()" *destination*)
-                   (incless:write-object ,(incless:client-form client)
-                                         arg
-                                         *destination*)))))
-          ((and (eql 0 mincol)
-                (eql 0 minpad))
-           `((let ((*print-escape* t))
-               (incless:write-object ,(incless:client-form client)
-                                     (pop-argument)
-                                     *destination*))))
-          ((colon-p directive)
-           `((let ((*print-escape* t)
-                   (arg (pop-argument)))
-               (write-string-with-padding
-                (if (null arg)
-                    "()"
-                    (with-output-to-string (stream)
-                      (incless:write-object ,(incless:client-form client) arg stream)))
-                ,(at-sign-p directive) ,@parameters))))
-          (t
-           `((let ((*print-escape* t))
-               (write-string-with-padding
-                (with-output-to-string (stream)
-                  (incless:write-object ,(incless:client-form client)
-                                        (pop-argument)
-                                        stream))
-                ,(at-sign-p directive) ,@parameters)))))))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
+    (destructuring-bind (mincol colinc minpad padchar)
+        parameters
+      (cond ((and colon-p
+                  (eql 0 mincol)
+                  (eql 0 minpad))
+             `((let ((*print-escape* t)
+                     (arg (pop-argument)))
+                 (if (null arg)
+                     (write-string "()" *destination*)
+                     (incless:write-object ,(incless:client-form client)
+                                           arg
+                                           *destination*)))))
+            ((and (eql 0 mincol)
+                  (eql 0 minpad))
+             `((let ((*print-escape* t))
+                 (incless:write-object ,(incless:client-form client)
+                                       (pop-argument)
+                                       *destination*))))
+            (colon-p
+             `((let ((*print-escape* t)
+                     (arg (pop-argument)))
+                 (write-string-with-padding
+                  (if (null arg)
+                      "()"
+                      (with-output-to-string (stream)
+                        (incless:write-object ,(incless:client-form client) arg stream)))
+                  ,at-sign-p ,@parameters))))
+            (t
+             `((let ((*print-escape* t))
+                 (write-string-with-padding
+                  (with-output-to-string (stream)
+                    (incless:write-object ,(incless:client-form client)
+                                          (pop-argument)
+                                          stream))
+                  ,at-sign-p ,@parameters))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -150,28 +156,30 @@
 
 (defmethod interpret-item (client (directive w-directive) &optional parameters)
   (declare (ignore parameters))
-  (let ((arg (pop-argument))
-        (colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
-    (cond ((and colon-p at-sign-p)
-           (let ((*print-pretty* t)
-                 (*print-level* nil)
-                 (*print-length* nil))
-             (incless:write-object client arg *destination*)))
-          (colon-p
-           (let ((*print-pretty* t))
-             (incless:write-object client arg *destination*)))
-          (at-sign-p
-           (let ((*print-level* nil)
-                 (*print-length* nil))
-             (incless:write-object client arg *destination*)))
-          (t
-           (incless:write-object client arg *destination*)))))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
+    (let ((arg (pop-argument)))
+      (cond ((and colon-p at-sign-p)
+             (let ((*print-pretty* t)
+                   (*print-level* nil)
+                   (*print-length* nil))
+               (incless:write-object client arg *destination*)))
+            (colon-p
+             (let ((*print-pretty* t))
+               (incless:write-object client arg *destination*)))
+            (at-sign-p
+             (let ((*print-level* nil)
+                   (*print-length* nil))
+               (incless:write-object client arg *destination*)))
+            (t
+             (incless:write-object client arg *destination*))))))
 
 (defmethod compile-item (client (directive w-directive) &optional parameters)
   (declare (ignore parameters))
-  (let ((colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
     (cond ((and colon-p at-sign-p)
            `((let ((*print-pretty* t)
                    (*print-level* nil)
