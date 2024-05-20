@@ -16,39 +16,39 @@
   (change-class directive 'go-to-directive))
 
 (defmethod parameter-specifications ((client t) (directive go-to-directive))
-  '((:type (or null (integer 0)) :default nil)))
+  '((:name n :type (or null (integer 0)) :default nil)))
 
 (defmethod interpret-item (client (directive go-to-directive) &optional parameters)
   (declare (ignore client))
-  (let ((param (car parameters)))
+  (let ((n (car parameters)))
     (cond ((colon-p directive)
            ;; Back up in the list of arguments.
            ;; The default value for the parameter is 1.
-           (go-to-argument (- (or param 1))))
+           (go-to-argument (- (or n 1))))
           ((at-sign-p directive)
            ;; Go to an absolute argument number.
            ;; The default value for the parameter is 0.
-           (go-to-argument (or param 0) t))
+           (go-to-argument (or n 0) t))
           (t
            ;; Skip the next arguments.
            ;; The default value for the parameter is 1.
-           (go-to-argument (or param 1))))))
+           (go-to-argument (or n 1))))))
 
 (defmethod compile-item (client (directive go-to-directive) &optional parameters)
   (declare (ignore client))
-  (let ((param (car parameters)))
+  (let ((n (car parameters)))
     (cond ((colon-p directive)
            ;; Back up in the list of arguments.
            ;; The default value for the parameter is 1.
-           `((go-to-argument (- (or ,param 1)))))
+           `((go-to-argument (- (or ,n 1)))))
           ((at-sign-p directive)
            ;; Go to an absolute argument number.
            ;; The default value for the parameter is 0.
-           `((go-to-argument (or ,param 0) t)))
+           `((go-to-argument (or ,n 0) t)))
           (t
            ;; Skip the next arguments.
            ;; The default value for the parameter is 1.
-           `((go-to-argument (or ,param 1)))))))
+           `((go-to-argument (or ,n 1)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -87,7 +87,7 @@
 
 (defmethod parameter-specifications
     ((client t) (directive conditional-directive))
-  '((:type (or null integer) :default nil)))
+  '((:name n :type (or null integer) :default nil)))
 
 (defmethod check-directive-syntax progn (client (directive conditional-directive))
   (declare (ignore client))
@@ -125,59 +125,58 @@
     (setf (last-clause-is-default-p directive) (and pos t))))
 
 (defmethod interpret-item (client (directive conditional-directive) &optional parameters)
-  (let ((param (car parameters)))
-    (cond ((at-sign-p directive)
-           (when (pop-argument)
-             (go-to-argument -1)
-             (interpret-items client (aref (clauses directive) 0))))
-          ((colon-p directive)
-           (interpret-items client
-                            (aref (clauses directive)
-                                  (if (pop-argument) 1 0))))
-          (t
-           ;; If a parameter was given, use it,
-           ;; else use the next argument.
-           (let ((val (or param (pop-argument 'integer))))
-             (if (or (minusp val)
-                     (>= val (length (clauses directive))))
-                 ;; Then the argument is out of range
-                 (when (last-clause-is-default-p directive)
-                   ;; Then execute the default-clause
-                   (interpret-items client
-                                    (aref (clauses directive)
-                                          (1- (length (clauses directive))))))
-                 ;; Else, execute the corresponding clause
-                 (interpret-items client
-                                  (aref (clauses directive) val))))))))
+  (cond ((at-sign-p directive)
+         (when (pop-argument)
+           (go-to-argument -1)
+           (interpret-items client (aref (clauses directive) 0))))
+        ((colon-p directive)
+         (interpret-items client
+                          (aref (clauses directive)
+                                (if (pop-argument) 1 0))))
+        (t
+         ;; If a parameter was given, use it,
+         ;; else use the next argument.
+         (let ((n (or (car parameters) (pop-argument 'integer))))
+           (cond ((< -1 n (length (clauses directive)))
+                  (interpret-items client
+                                   (aref (clauses directive) n)))
+                 ((last-clause-is-default-p directive)
+                  (interpret-items client
+                                   (aref (clauses directive)
+                                         (1- (length (clauses directive)))))))))))
 
 (defmethod compile-item (client (directive conditional-directive) &optional parameters)
-  (let ((param (car parameters)))
-    (cond ((at-sign-p directive)
+  (with-accessors ((at-sign-p at-sign-p)
+                   (colon-p colon-p)
+                   (clauses clauses))
+      directive
+    (cond (at-sign-p
            `((when (pop-argument)
                (go-to-argument -1)
-               ,@(compile-items client (aref (clauses directive) 0)))))
-          ((colon-p directive)
+               ,@(compile-items client (aref clauses 0)))))
+          (colon-p
            `((cond ((pop-argument)
-                    ,@(compile-items client (aref (clauses directive) 1)))
+                    ,@(compile-items client (aref clauses 1)))
                    (t
-                    ,@(compile-items client (aref (clauses directive) 0))))))
+                    ,@(compile-items client (aref clauses 0))))))
           (t
-           ;; If a parameter was given, use it,
-           ;; else use the next argument.
-           `((let ((val (or ,param (pop-argument 'integer))))
-               (if (or (minusp val)
-                       (>= val ,(length (clauses directive))))
-                   ;; Then the argument is out of range
-                   ,(when (last-clause-is-default-p directive)
-                      ;; Then execute the default-clause
-                      `(progn ,@(compile-items client
-                                               (aref (clauses directive)
-                                                     (1- (length (clauses directive)))))))
-                   ;; Else, execute the corresponding clause
-                   (case val
-                     ,@(loop for i from 0
-                             for clause across (clauses directive)
-                             collect `(,i ,@(compile-items client clause)))))))))))
+           (let ((n (car parameters)))
+             (cond ((not (numberp n))
+                    `((case ,(if (null n)
+                                 '(pop-argument 'integer)
+                                 `(or ,n (pop-argument 'integer)))
+                        ,@(loop for i from 0
+                                for j downfrom (1- (length clauses))
+                                for clause across clauses
+                                collect `(,(if (and (zerop j)
+                                                    (last-clause-is-default-p directive))
+                                               'otherwise
+                                               i)
+                                          ,@(compile-items client clause))))))
+                   ((< -1 n (length clauses))
+                    (compile-items client (aref clauses n)))
+                   ((last-clause-is-default-p directive)
+                    (compile-items client (aref clauses (1- (length clauses)))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
