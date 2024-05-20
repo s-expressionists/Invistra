@@ -294,7 +294,6 @@
       (setf (function-name directive) (intern symbol-name package)))))
 
 (defmethod interpret-item (client (directive call-function-directive) &optional parameters)
-  (declare (ignore client))
   (apply (coerce-function-designator client (function-name directive))
          *destination*
          (pop-argument)
@@ -303,7 +302,6 @@
          parameters))
 
 (defmethod compile-item (client (directive call-function-directive) &optional parameters)
-  (declare (ignore client))
   `((funcall (coerce-function-designator ,(incless:client-form client) ',(function-name directive))
              *destination*
              (pop-argument)

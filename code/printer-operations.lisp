@@ -29,6 +29,7 @@
                "()"
                (with-output-to-string (stream)
                  (incless:write-object client arg stream)))
+           *destination*
            (at-sign-p directive) parameters)))
 
 (defmethod compile-item (client (directive a-directive) &optional parameters)
@@ -64,7 +65,8 @@
                       "()"
                       (with-output-to-string (stream)
                         (incless:write-object ,(incless:client-form client) arg stream)))
-                  ,at-sign-p ,@parameters))))
+                  *destination*
+                  ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))
             (t
              `((let ((*print-escape* nil)
                      (*print-readably* nil))
@@ -73,7 +75,8 @@
                     (incless:write-object ,(incless:client-form client)
                                           (pop-argument)
                                           stream))
-                  ,at-sign-p ,@parameters))))))))
+                  *destination*
+                  ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -99,6 +102,7 @@
                "()"
                (with-output-to-string (stream)
                  (incless:write-object client arg stream)))
+           *destination*
            (at-sign-p directive) parameters)))
 
 (defmethod compile-item (client (directive s-directive) &optional parameters)
@@ -131,7 +135,8 @@
                       "()"
                       (with-output-to-string (stream)
                         (incless:write-object ,(incless:client-form client) arg stream)))
-                  ,at-sign-p ,@parameters))))
+                  *destination*
+                  ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))
             (t
              `((let ((*print-escape* t))
                  (write-string-with-padding
@@ -139,7 +144,8 @@
                     (incless:write-object ,(incless:client-form client)
                                           (pop-argument)
                                           stream))
-                  ,at-sign-p ,@parameters))))))))
+                  *destination*
+                  ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

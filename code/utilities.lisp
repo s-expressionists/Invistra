@@ -98,12 +98,12 @@
             (t
              (write-char char (target stream)))))))
 
-(defun write-string-with-padding (string pad-left-p mincol colinc minpad padchar)
+(defun write-string-with-padding (string stream pad-left-p mincol colinc minpad padchar)
   (let ((pad-length (max minpad (* colinc (ceiling (- mincol (length string)) colinc)))))
     (if pad-left-p
         (loop repeat pad-length
-              finally (write-string string *destination*)
-              do (write-char padchar *destination*))
+              finally (write-string string stream)
+              do (write-char padchar stream))
         (loop repeat pad-length
-                initially (write-string string *destination*)
-              do (write-char padchar *destination*)))))
+                initially (write-string string stream)
+              do (write-char padchar stream)))))
