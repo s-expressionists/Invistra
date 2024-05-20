@@ -79,21 +79,22 @@
 
 (defmethod parameter-specifications (client (directive percent-directive))
   (declare (ignore client))
-  '((:type (integer 0) :default 1)))
+  '((:name n :type (integer 0) :default 1)))
 
 (defmethod interpret-item (client (directive percent-directive) &optional parameters)
   (loop repeat (car parameters)
         do (terpri *destination*)))
 
 (defmethod compile-item (client (directive percent-directive) &optional parameters)
-  (case (car parameters)
-    (0 '())
-    (1 '((terpri *destination*)))
-    (2 '((terpri *destination*)
-         (terpri *destination*)))
-    (otherwise
-     `((loop repeat ,(car parameters)
-             do (terpri *destination*))))))
+  (let ((n (car parameters)))
+    (case n
+      (0 '())
+      (1 '((terpri *destination*)))
+      (2 '((terpri *destination*)
+           (terpri *destination*)))
+      (otherwise
+       `((loop repeat ,n
+               do (terpri *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -110,7 +111,7 @@
 (defmethod parameter-specifications
     (client (directive ampersand-directive))
   (declare (ignore client))
-  '((:type (integer 0) :default 1)))
+  '((:name n :type (integer 0) :default 1)))
 
 (defmethod interpret-item (client (item ampersand-directive) &optional parameters)
   (let ((how-many (car parameters)))
@@ -120,22 +121,21 @@
             do (terpri *destination*)))))
 
 (defmethod compile-item (client (item ampersand-directive) &optional parameters)
-  (let ((how-many (car parameters)))
-    (case how-many
+  (let ((n (car parameters)))
+    (case n
       (0 nil)
       (1 `((fresh-line *destination*)))
       (2 `((fresh-line *destination*)
            (terpri *destination*)))
       (otherwise
-       (if (numberp how-many)
+       (if (numberp n)
            `((fresh-line *destination*)
-             (loop repeat ,(1- how-many)
+             (loop repeat ,(1- n)
                    do (terpri *destination*)))
-           `((let ((how-many ,how-many))
-               (unless (zerop how-many)
-                 (fresh-line *destination*)
-                 (loop repeat (1- how-many)
-                       do (terpri *destination*))))))))))
+           `((unless (zerop n)
+               (fresh-line *destination*)
+               (loop repeat (1- n)
+                     do (terpri *destination*)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -152,21 +152,21 @@
 (defmethod parameter-specifications
     (client (directive vertical-bar-directive))
   (declare (ignore client))
-  '((:type (integer 0) :default 1)))
+  '((:name n :type (integer 0) :default 1)))
 
 (defmethod interpret-item (client (directive vertical-bar-directive) &optional parameters)
   (loop repeat (car parameters)
         do (write-char #\Page *destination*)))
 
 (defmethod compile-item (client (directive vertical-bar-directive) &optional parameters)
-  (let ((how-many (car parameters)))
-    (case how-many
+  (let ((n (car parameters)))
+    (case n
       (0 nil)
       (1 `((write-char #\Page *destination*)))
       (2 `((write-char #\Page *destination*)
            (write-char #\Page *destination*)))
       (otherwise
-       `((loop repeat ,how-many
+       `((loop repeat ,n
                do (write-char #\Page *destination*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -183,19 +183,19 @@
 
 (defmethod parameter-specifications (client (directive tilde-directive))
   (declare (ignore client))
-  '((:type (integer 0) :default 1)))
+  '((:name n :type (integer 0) :default 1)))
 
 (defmethod interpret-item (client (directive tilde-directive) &optional parameters)
   (loop repeat (car parameters)
         do (write-char #\~ *destination*)))
 
 (defmethod compile-item (client (directive tilde-directive) &optional parameters)
-  (let ((how-many (car parameters)))
-    (case how-many
+  (let ((n (car parameters)))
+    (case n
       (0 nil)
       (1 `((write-char #\~ *destination*)))
       (2 `((write-char #\~ *destination*)
            (write-char #\~ *destination*)))
       (otherwise
-       `((loop repeat ,how-many
+       `((loop repeat ,n
                do (write-char #\~ *destination*)))))))
