@@ -125,25 +125,29 @@
     (setf (last-clause-is-default-p directive) (and pos t))))
 
 (defmethod interpret-item (client (directive conditional-directive) &optional parameters)
-  (cond ((at-sign-p directive)
-         (when (pop-argument)
-           (go-to-argument -1)
-           (interpret-items client (aref (clauses directive) 0))))
-        ((colon-p directive)
-         (interpret-items client
-                          (aref (clauses directive)
-                                (if (pop-argument) 1 0))))
-        (t
-         ;; If a parameter was given, use it,
-         ;; else use the next argument.
-         (let ((n (or (car parameters) (pop-argument 'integer))))
-           (cond ((< -1 n (length (clauses directive)))
-                  (interpret-items client
-                                   (aref (clauses directive) n)))
-                 ((last-clause-is-default-p directive)
-                  (interpret-items client
-                                   (aref (clauses directive)
-                                         (1- (length (clauses directive)))))))))))
+  (with-accessors ((at-sign-p at-sign-p)
+                   (colon-p colon-p)
+                   (clauses clauses))
+      directive
+    (cond (at-sign-p
+           (when (pop-argument)
+             (go-to-argument -1)
+             (interpret-items client (aref clauses 0))))
+          (colon-p
+           (interpret-items client
+                            (aref clauses
+                                  (if (pop-argument) 1 0))))
+          (t
+           ;; If a parameter was given, use it,
+           ;; else use the next argument.
+           (let ((n (or (car parameters) (pop-argument 'integer))))
+             (cond ((< -1 n (length clauses))
+                    (interpret-items client
+                                     (aref clauses n)))
+                   ((last-clause-is-default-p directive)
+                    (interpret-items client
+                                     (aref clauses
+                                           (1- (length clauses)))))))))))
 
 (defmethod compile-item (client (directive conditional-directive) &optional parameters)
   (with-accessors ((at-sign-p at-sign-p)
@@ -211,7 +215,7 @@
 
 (defmethod parameter-specifications
             ((client t) (directive iteration-directive))
-   '((:type (or null (integer 0)) :default nil)))
+   '((:name n :type (or null (integer 0)) :default nil)))
 
 (defmethod interpret-item (client (directive iteration-directive) &optional parameters)
   ;; eliminate the end-of-iteration directive from the
