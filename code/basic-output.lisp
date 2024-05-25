@@ -79,7 +79,10 @@
 
 (defmethod parameter-specifications (client (directive percent-directive))
   (declare (ignore client))
-  '((:name n :type (integer 0) :default 1)))
+  '((:name n
+     :type (integer 0)
+     :bind nil
+     :default 1)))
 
 (defmethod interpret-item (client (directive percent-directive) &optional parameters)
   (loop repeat (car parameters)
@@ -111,7 +114,9 @@
 (defmethod parameter-specifications
     (client (directive ampersand-directive))
   (declare (ignore client))
-  '((:name n :type (integer 0) :default 1)))
+  '((:name n
+     :type (integer 0)
+     :default 1)))
 
 (defmethod interpret-item (client (item ampersand-directive) &optional parameters)
   (let ((how-many (car parameters)))
@@ -132,9 +137,9 @@
            `((fresh-line *destination*)
              (loop repeat ,(1- n)
                    do (terpri *destination*)))
-           `((unless (zerop n)
+           `((unless (zerop ,n)
                (fresh-line *destination*)
-               (loop repeat (1- n)
+               (loop repeat (1- ,n)
                      do (terpri *destination*)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -152,7 +157,10 @@
 (defmethod parameter-specifications
     (client (directive vertical-bar-directive))
   (declare (ignore client))
-  '((:name n :type (integer 0) :default 1)))
+  '((:name n
+     :type (integer 0)
+     :bind nil
+     :default 1)))
 
 (defmethod interpret-item (client (directive vertical-bar-directive) &optional parameters)
   (loop repeat (car parameters)
@@ -183,7 +191,10 @@
 
 (defmethod parameter-specifications (client (directive tilde-directive))
   (declare (ignore client))
-  '((:name n :type (integer 0) :default 1)))
+  '((:name n
+     :type (integer 0)
+     :bind nil
+     :default 1)))
 
 (defmethod interpret-item (client (directive tilde-directive) &optional parameters)
   (loop repeat (car parameters)

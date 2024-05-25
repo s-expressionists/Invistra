@@ -152,7 +152,7 @@
          (write-string (subseq (control-string directive) (suffix-start directive) (end directive)) *destination*))
         ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
-         (write-char #\Newline *destination*))
+         (terpri *destination*))
         (t
          ;; Ignore both the newline and the following whitespace.
          nil)))
@@ -164,7 +164,7 @@
          `((write-string ,(subseq (control-string directive) (suffix-start directive) (end directive)) *destination*)))
         ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
-         `((write-char #\Newline *destination*)))
+         `((terpri *destination*)))
         (t
          ;; Ignore both the newline and the following whitespace.
          nil)))
