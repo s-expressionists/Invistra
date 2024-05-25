@@ -160,8 +160,10 @@
       (parameter-default parameter)))
 
 (defmethod compile-parameter ((parameter argument-reference-parameter))
-  `(or (pop-argument '(or null ,(parameter-type parameter)))
-       ,(parameter-default parameter)))
+  (if (parameter-default parameter)
+      `(or (pop-argument '(or null ,(parameter-type parameter)))
+           ,(parameter-default parameter))
+      `(pop-argument '(or null ,(parameter-type parameter)))))
 
 (defmethod interpret-parameter ((parameter remaining-argument-count-parameter))
   (if (typep *remaining-argument-count*
@@ -270,8 +272,10 @@
                                 (declare (ignorable ,@(mapcar #'first bindings)))
                                 ,@(call-next-method client item forms)))
                             (call-next-method client item forms)))
-        when (constantp compiled-parameter)
+        when (or (not (parameter-bind-p parameter))
+                 (constantp compiled-parameter))
           collect compiled-parameter into forms
         else
           collect name into forms
-          and collect `(,name ,compiled-parameter) into bindings))
+          and collect `(,name ,compiled-parameter) into bindings
+        end))

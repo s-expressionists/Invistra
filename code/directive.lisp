@@ -56,6 +56,10 @@
    (%type :accessor parameter-type
           :initarg :type
           :initform '(or null character integer))
+   (%bind :accessor parameter-bind-p
+          :initarg :bind
+          :initform t
+          :type boolean)
    (%default :accessor parameter-default
              :initarg :default
              :initform nil)))

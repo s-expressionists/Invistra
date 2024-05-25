@@ -20,8 +20,12 @@
 
 (defmethod parameter-specifications
     ((client t) (directive semicolon-directive))
-  '((:type (or null integer) :default nil)
-    (:type (or null integer) :default nil)))
+  '((:name *extra-space*
+     :type (or null integer)
+     :bind nil)
+    (:name *line-length*
+     :type (or null integer)
+     :bind nil)))
 
 (defmethod structured-separator-p ((directive semicolon-directive))
   t)
