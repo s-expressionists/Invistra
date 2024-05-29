@@ -26,6 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/yitzchak/archlinux-cl:latest
+      options:
+        security-opt: seccomp:unconfined
     steps:
     - name: Checkout nontrivial-gray-streams
       uses: actions/checkout@v4
