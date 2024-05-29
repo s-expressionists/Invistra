@@ -9,10 +9,18 @@
 
 (defmethod parameter-specifications (client (directive base-radix-directive))
   (declare (ignore client))
-  '((:name radix :type integer :default 0)
-    (:type character :default #\Space)
-    (:type character :default #\,)
-    (:type integer :default 3)))
+  '((:name mincol
+     :type integer
+     :default 0)
+    (:name padchar
+     :type character
+     :default #\Space)
+    (:name commachar
+     :type character
+     :default #\,)
+    (:name comma-interval
+     :type integer
+     :default 3)))
 
 (defun print-radix-arg (client colon-p at-sign-p radix mincol padchar commachar comma-interval)
   (let ((argument (pop-argument)))
@@ -62,7 +70,9 @@
   (change-class directive 'radix-directive))
 
 (defmethod parameter-specifications ((client t) (directive radix-directive))
-  (list* '(:type (or null (integer 2 36)) :default nil)
+  (list* '(:name radix
+           :type (or null (integer 2 36))
+           :default nil)
          (call-next-method)))
 
 (defparameter *roman-digits*
@@ -293,47 +303,50 @@
            (print-ordinal-non-zero n)))))
 
 (defmethod interpret-item (client (directive radix-directive) &optional parameters)
-  (let ((radix (car parameters))
-        (colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
-    (cond (radix
-           (apply #'print-radix-arg client colon-p at-sign-p parameters))
-          ((and at-sign-p colon-p)
-           (print-old-roman-arg))
-          (at-sign-p
-           (print-roman-arg))
-          (colon-p
-           (print-ordinal-arg))
-          (t
-           (print-cardinal-arg)))))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
+    (let ((radix (car parameters)))
+      (cond (radix
+             (apply #'print-radix-arg client colon-p at-sign-p parameters))
+            ((and at-sign-p colon-p)
+             (print-old-roman-arg))
+            (at-sign-p
+             (print-roman-arg))
+            (colon-p
+             (print-ordinal-arg))
+            (t
+             (print-cardinal-arg))))))
 
 (defmethod compile-item (client (directive radix-directive) &optional parameters)
-  (let ((colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
-    (cond ((numberp (car parameters))
-           `((print-radix-arg ,(incless:client-form client)
-                              ,colon-p ,at-sign-p ,@parameters)))
-          ((null (car parameters))
-           (cond ((and at-sign-p colon-p)
-                  `((print-old-roman-arg)))
-                 (at-sign-p
-                  `((print-roman-arg)))
-                 (colon-p
-                  `((print-ordinal-arg)))
-                 (t
-                  `((print-cardinal-arg)))))
-          (t
-           `((if ,(car parameters)
-                 (print-radix-arg ,(incless:client-form client)
-                                  ,colon-p ,at-sign-p ,@parameters)
-                 ,(cond ((and at-sign-p colon-p)
-                         `(print-old-roman-arg))
-                        (at-sign-p
-                         `(print-roman-arg))
-                        (colon-p
-                         `(print-ordinal-arg))
-                        (t
-                         `(print-cardinal-arg)))))))))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
+    (let ((radix (car parameters)))
+      (cond ((numberp radix)
+             `((print-radix-arg ,(incless:client-form client)
+                                ,colon-p ,at-sign-p ,@parameters)))
+            ((null radix)
+             (cond ((and at-sign-p colon-p)
+                    `((print-old-roman-arg)))
+                   (at-sign-p
+                    `((print-roman-arg)))
+                   (colon-p
+                    `((print-ordinal-arg)))
+                   (t
+                    `((print-cardinal-arg)))))
+            (t
+             `((if ,radix
+                   (print-radix-arg ,(incless:client-form client)
+                                    ,colon-p ,at-sign-p ,@parameters)
+                   ,(cond ((and at-sign-p colon-p)
+                           `(print-old-roman-arg))
+                          (at-sign-p
+                           `(print-roman-arg))
+                          (colon-p
+                           `(print-ordinal-arg))
+                          (t
+                           `(print-cardinal-arg))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
