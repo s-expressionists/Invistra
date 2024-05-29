@@ -18,6 +18,7 @@ jobs:
         lisp:
         - abcl
         - acl
+        - ccl
         - clasp
         - ecl
         - sbcl
