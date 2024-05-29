@@ -21,8 +21,9 @@
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
-  (let ((colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
     (inravina:pprint-newline client *destination*
                              (cond ((and colon-p at-sign-p) :mandatory)
                                    (colon-p :fill)
@@ -33,8 +34,9 @@
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
-  (let ((colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
     `((inravina:pprint-newline ,(incless:client-form client) *destination*
                                ,(cond ((and colon-p at-sign-p) :mandatory)
                                       (colon-p :fill)
@@ -113,7 +115,7 @@
          (per-line-prefix-p (and (> (length (clauses directive)) 1)
                                  (at-sign-p (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0)))))))
-         (object (unless at-sign-p (consume-next-argument t))))
+         (object (unless at-sign-p (pop-argument))))
     (flet ((interpret-body (*destination* escape-hook pop-argument-hook)
              (if at-sign-p
                  (interpret-items client (aref (clauses directive)
@@ -177,7 +179,7 @@
                                                                                 1)))))
                                           :prefix ,prefix :suffix ,suffix
                                           :per-line-prefix-p ,per-line-prefix-p))
-        `((let* ((object (consume-next-argument t))
+        `((let* ((object (pop-argument))
                  (*remaining-argument-count* (dotted-list-length object))
                  (*previous-arguments* (make-array *remaining-argument-count*
                                                    :adjustable t :fill-pointer 0))
@@ -292,20 +294,17 @@
       (setf (function-name directive) (intern symbol-name package)))))
 
 (defmethod interpret-item (client (directive call-function-directive) &optional parameters)
-  (declare (ignore client))
   (apply (coerce-function-designator client (function-name directive))
          *destination*
-         (consume-next-argument t)
+         (pop-argument)
          (colon-p directive)
          (at-sign-p directive)
          parameters))
 
 (defmethod compile-item (client (directive call-function-directive) &optional parameters)
-  (declare (ignore client))
-  `((let ((parameters (list ,@parameters)))
-      (apply (coerce-function-designator ,(incless:client-form client) ',(function-name directive))
+  `((funcall (coerce-function-designator ,(incless:client-form client) ',(function-name directive))
              *destination*
-             (consume-next-argument t)
+             (pop-argument)
              ,(colon-p directive)
              ,(at-sign-p directive)
-             parameters))))
+             ,@parameters)))

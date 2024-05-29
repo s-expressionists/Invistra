@@ -50,7 +50,7 @@
         . #1#))|#
 
 (defun print-numeral-arg (client colon-p at-sign-p pattern mincol padchar commachar comma-interval)
-  (prog ((q (invistra:consume-next-argument t))
+  (prog ((q (invistra:pop-argument))
          (r 0)
          (c 0)
          parts

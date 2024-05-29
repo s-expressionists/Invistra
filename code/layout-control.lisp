@@ -16,8 +16,14 @@
 
 (defmethod parameter-specifications
     ((client t) (directive tabulate-directive))
-  '((:type (integer 0) :default 1)
-    (:type (integer 0) :default 1)))
+  '((:name colnum
+     :type (integer 0)
+     :bind nil
+     :default 1)
+    (:name colinc
+     :type (integer 0)
+     :bind nil
+     :default 1)))
 
 (defmethod layout-requirements ((item tabulate-directive))
   (when (colon-p item)
@@ -45,8 +51,9 @@
                                                (+ cur (- colinc (rem (- cur colnum) colinc)))))))))
 
 (defmethod interpret-item (client (directive tabulate-directive) &optional parameters)
-  (let ((colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
     (cond (colon-p
            #-sicl
            (apply #'inravina:pprint-tab
@@ -59,8 +66,9 @@
            (apply #'format-absolute-tab client parameters)))))
 
 (defmethod compile-item (client (directive tabulate-directive) &optional parameters)
-  (let ((colon-p (colon-p directive))
-        (at-sign-p (at-sign-p directive)))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
     (cond (colon-p
            #-sicl
            `((inravina:pprint-tab ,(incless:client-form client) *destination*
@@ -105,10 +113,18 @@
 
 (defmethod parameter-specifications
     ((client t) (directive justification-directive))
-  '((:type integer :default 0)
-    (:type (integer 0) :default 1)
-    (:type integer :default 0)
-    (:type character :default #\Space)))
+  '((:name mincol
+     :type integer
+     :default 0)
+    (:name colinc
+     :type (integer 0)
+     :default 1)
+    (:name minpad
+     :type integer
+     :default 0)
+    (:name padchar
+     :type character
+     :default #\Space)))
 
 (defmethod layout-requirements :around ((item justification-directive))
   (merge-layout-requirements (list (if (colon-p (aref (aref (clauses item) 0) (1- (length (aref (clauses item) 0)))))
@@ -188,29 +204,21 @@
           collect segment into segments))
 
 (defmethod compile-item (client (directive justification-directive) &optional parameters)
-  `((prog (newline-segment segments
-           *extra-space* *line-length*
-           (parameters (list ,@parameters)))
-       ,@(loop for clause across (clauses directive)
-               for segment = `(catch *inner-tag*
-                                (with-output-to-string (*destination*)
-                                  ,@(compile-items client clause)))
-               for index from 0
-               while segment
-               if (and (zerop index)
-                       (colon-p (aref clause (1- (length clause)))))
-                 collect `(let ((segment ,segment))
-                            (if segment
-                                (setf newline-segment segment)
-                                (go end)))
-               else
-                 collect `(let ((segment ,segment))
-                            (if segment
-                                (push segment segments)
-                                (go end))))
-     end
-       (apply #'print-justification ,(incless:client-form client)
-              ,(colon-p directive) ,(at-sign-p directive)
-              *extra-space* *line-length*
-              newline-segment (nreverse segments)
-              parameters))))
+  `((let (newline-segment segments
+          *extra-space* *line-length*)
+      (catch *inner-tag*
+        ,@(loop for clause across (clauses directive)
+                for segment = `(with-output-to-string (*destination*)
+                                 ,@(compile-items client clause))
+                for index from 0
+                while segment
+                if (and (zerop index)
+                        (colon-p (aref clause (1- (length clause)))))
+                  collect `(setf newline-segment ,segment)
+                else
+                  collect `(push ,segment segments)))
+      (print-justification ,(incless:client-form client)
+                           ,(colon-p directive) ,(at-sign-p directive)
+                           *extra-space* *line-length*
+                           newline-segment (nreverse segments)
+                           ,@parameters))))

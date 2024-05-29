@@ -3,6 +3,8 @@
 (defun format-eval (&rest args)
   (apply #'invistra-extrinsic:format args))
 
+(defun rti (x) x)
+
 (defmacro my-with-standard-io-syntax (&body body)
   `(let ((*print-array* t)
          (*print-base* 10)
@@ -27,7 +29,7 @@
           ,expected
           ,form))
     (macrolet ((fmt (destination control-string &rest args)
-                 `(invistra-extrinsic:format ,destination (progn ,control-string) ,@args)))
+                 `(invistra-extrinsic:format ,destination (rti ,control-string) ,@args)))
       (is equal
           ,expected
           ,form))))
@@ -41,7 +43,7 @@
              ,expected
              ,form))
        (macrolet ((fmt (destination control-string &rest args)
-                    `(invistra-extrinsic:format ,destination (progn ,control-string) ,@args)))
+                    `(invistra-extrinsic:format ,destination (rti ,control-string) ,@args)))
          (is equal
              ,expected
              ,form)))))
@@ -54,7 +56,7 @@
                      ,form)
                    condition)
      (fail (macrolet ((fmt (destination control-string &rest args)
-                        `(invistra-extrinsic:format ,destination (progn ,control-string) ,@args)))
+                        `(invistra-extrinsic:format ,destination (rti ,control-string) ,@args)))
              ,form))))
 
 (defmacro define-argument-fail-test (name form)
@@ -64,5 +66,5 @@
                                 `(invistra-extrinsic:format ,destination ,control-string ,@args)))
                      ,form))
      (fail (macrolet ((fmt (destination control-string &rest args)
-                        `(invistra-extrinsic:format ,destination (progn ,control-string) ,@args)))
+                        `(invistra-extrinsic:format ,destination (rti ,control-string) ,@args)))
              ,form))))

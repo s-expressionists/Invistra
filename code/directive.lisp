@@ -50,9 +50,16 @@
 (defgeneric compile-parameter (parameter))
 
 (defclass parameter ()
-  ((%type :accessor parameter-type
+  ((%name :accessor parameter-name
+          :initarg :name
+          :initform (gensym))
+   (%type :accessor parameter-type
           :initarg :type
           :initform '(or null character integer))
+   (%bind :accessor parameter-bind-p
+          :initarg :bind
+          :initform t
+          :type boolean)
    (%default :accessor parameter-default
              :initarg :default
              :initform nil)))

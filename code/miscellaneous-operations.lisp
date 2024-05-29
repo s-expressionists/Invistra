@@ -36,24 +36,26 @@
          :control-string (control-string directive)
          :tilde-position (start directive)))
 
-(defmethod interpret-item (client (item case-conversion-directive) &optional parameters)
+(defmethod interpret-item (client (directive case-conversion-directive) &optional parameters)
   (declare (ignore parameters))
-  (let* ((colon-p (colon-p item))
-         (at-sign-p (at-sign-p item))
-         (*destination* (cond ((and colon-p at-sign-p)
-                               (make-instance 'upcase-stream :target *destination*))
-                              (colon-p
-                               (make-instance 'capitalize-stream :target *destination*))
-                              (at-sign-p
-                               (make-instance 'first-capitalize-stream :target *destination*))
-                              (t
-                               (make-instance 'downcase-stream :target *destination*)))))
-    (interpret-items client (aref (clauses item) 0))))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
+    (let ((*destination* (cond ((and colon-p at-sign-p)
+                                (make-instance 'upcase-stream :target *destination*))
+                               (colon-p
+                                (make-instance 'capitalize-stream :target *destination*))
+                               (at-sign-p
+                                (make-instance 'first-capitalize-stream :target *destination*))
+                               (t
+                                (make-instance 'downcase-stream :target *destination*)))))
+      (interpret-items client (aref (clauses directive) 0)))))
 
-(defmethod compile-item (client (item case-conversion-directive) &optional parameters)
+(defmethod compile-item (client (directive case-conversion-directive) &optional parameters)
   (declare (ignore parameters))
-  (let ((colon-p (colon-p item))
-        (at-sign-p (at-sign-p item)))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
     `((let ((*destination* ,(cond ((and colon-p at-sign-p)
                                    '(make-instance 'upcase-stream :target *destination*))
                                   (colon-p
@@ -62,7 +64,7 @@
                                    '(make-instance 'first-capitalize-stream :target *destination*))
                                   (t
                                    '(make-instance 'downcase-stream :target *destination*)))))
-        ,@(compile-items client (aref (clauses item) 0))))))
+        ,@(compile-items client (aref (clauses directive) 0))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -74,26 +76,32 @@
     ((client t) (char (eql #\P)) directive (end-directive t))
   (change-class directive 'plural-directive))
 
-(defmethod interpret-item (client (item plural-directive) &optional parameters)
+(defmethod interpret-item (client (directive plural-directive) &optional parameters)
   (declare (ignore parameters))
-  (when (colon-p item)
-    (go-to-argument -1))
-  (if (at-sign-p item)
-      (write-string (if (eql (consume-next-argument t) 1)
-                        "y"
-                        "ies")
-                    *destination*)
-      (unless (eql (consume-next-argument t) 1)
-        (write-char #\s *destination*))))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
+    (when colon-p
+      (go-to-argument -1))
+    (if at-sign-p
+        (write-string (if (eql (pop-argument) 1)
+                          "y"
+                          "ies")
+                      *destination*)
+        (unless (eql (pop-argument) 1)
+          (write-char #\s *destination*)))))
 
-(defmethod compile-item (client (item plural-directive) &optional parameters)
+(defmethod compile-item (client (directive plural-directive) &optional parameters)
   (declare (ignore parameters))
-  `(,@(when (colon-p item)
-        `((go-to-argument -1)))
-    ,(if (at-sign-p item)
-         `(write-string (if (eql (consume-next-argument t) 1)
-                            "y"
-                            "ies")
-                        *destination*)
-         `(unless (eql (consume-next-argument t) 1)
-            (write-char #\s *destination*)))))
+  (with-accessors ((colon-p colon-p)
+                   (at-sign-p at-sign-p))
+      directive
+    `(,@(when colon-p
+          `((go-to-argument -1)))
+      ,(if at-sign-p
+           `(write-string (if (eql (pop-argument) 1)
+                              "y"
+                              "ies")
+                          *destination*)
+           `(unless (eql (pop-argument) 1)
+              (write-char #\s *destination*))))))

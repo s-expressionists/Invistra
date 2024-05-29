@@ -42,3 +42,8 @@
   (:method (client object)
     (declare (ignore client))
     object))
+
+(defgeneric print-key-sequence (client character stream)
+  (:method (client character stream)
+    (declare (ignore client stream))
+    character))

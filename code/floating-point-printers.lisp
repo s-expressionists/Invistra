@@ -5,7 +5,7 @@
 (in-package #:invistra)
 
 (defun print-float-arg (client func)
-  (let ((value (consume-next-argument t)))
+  (let ((value (pop-argument)))
     (if (or (complexp value)
             (not (numberp value)))
         (let ((*print-base* 10)
@@ -66,11 +66,11 @@
   (change-class directive 'f-directive))
 
 (defmethod parameter-specifications ((client t) (directive f-directive))
-  '((:type (or null integer) :default nil)
-    (:type (or null integer) :default nil)
-    (:type (or null integer) :default 0)
-    (:type (or null character) :default nil)
-    (:type character :default #\Space)))
+  '((:name w :type (or null integer) :default nil)
+    (:name d :type (or null integer) :default nil)
+    (:name k :type (or null integer) :default 0)
+    (:name overflowchar :type (or null character) :default nil)
+    (:name padchar :type character :default #\Space)))
 
 (defun print-fixed-arg (client value digits exponent
                         colon-p at-sign-p w d k overflowchar padchar)
@@ -171,13 +171,11 @@
                             parameters))))
 
 (defmethod compile-item (client (directive f-directive) &optional parameters)
-  `((let ((parameters (list ,@parameters)))
-      (print-float-arg ,(incless:client-form client)
-                       (lambda (client value digits exponent)
-                         (apply #'print-fixed-arg
-                                client value digits exponent
-                                ,(colon-p directive) ,(at-sign-p directive)
-                                parameters))))))
+  `((print-float-arg ,(incless:client-form client)
+                     (lambda (client value digits exponent)
+                       (print-fixed-arg client value digits exponent
+                                        ,(colon-p directive) ,(at-sign-p directive)
+                                        ,@parameters)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -190,13 +188,13 @@
   (change-class directive 'e-directive))
 
 (defmethod parameter-specifications ((client t) (directive e-directive))
-  '((:type (or null integer) :default nil)
-    (:type (or null integer) :default nil)
-    (:type (or null integer) :default nil)
-    (:type (or null integer) :default 1)
-    (:type (or null character) :default nil)
-    (:type character :default #\Space)
-    (:type (or null character) :default nil)))
+  '((:name w :type (or null integer) :default nil)
+    (:name d :type (or null integer) :default nil)
+    (:name e :type (or null integer) :default nil)
+    (:name k :type (or null integer) :default 1)
+    (:name overflowchar :type (or null character) :default nil)
+    (:name padchar :type character :default #\Space)
+    (:name exponentchar :type (or null character) :default nil)))
 
 (defun print-exponent-arg (client value digits exponent colon-p at-sign-p w d e k overflowchar padchar exponentchar)
   (declare (ignore colon-p))
@@ -311,12 +309,11 @@
                             parameters))))
 
 (defmethod compile-item (client (directive e-directive) &optional parameters)
-  `((let ((parameters (list ,@parameters)))
-      (print-float-arg ,(incless:client-form client)
-                       (lambda (client value digits exponent)
-                         (apply #'print-exponent-arg client value digits exponent
-                                ,(colon-p directive) ,(at-sign-p directive)
-                                parameters))))))
+  `((print-float-arg ,(incless:client-form client)
+                     (lambda (client value digits exponent)
+                       (print-exponent-arg client value digits exponent
+                                           ,(colon-p directive) ,(at-sign-p directive)
+                                           ,@parameters)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -329,13 +326,13 @@
   (change-class directive 'g-directive))
 
 (defmethod parameter-specifications ((client t) (directive g-directive))
-  '((:type (or null integer) :default nil)
-    (:type (or null integer) :default nil)
-    (:type (or null integer) :default nil)
-    (:type (or null integer) :default 1)
-    (:type (or null character) :default nil)
-    (:type character :default #\Space)
-    (:type (or null character) :default nil)))
+  '((:name w :type (or null integer) :default nil)
+    (:name d :type (or null integer) :default nil)
+    (:name e :type (or null integer) :default nil)
+    (:name k :type (or null integer) :default 1)
+    (:name overflowchar :type (or null character) :default nil)
+    (:name padchar :type character :default #\Space)
+    (:name exponentchar :type (or null character) :default nil)))
 
 (defun print-general-arg (client value digits exponent
                           colon-p at-sign-p w d e k
@@ -369,13 +366,11 @@
                             parameters))))
 
 (defmethod compile-item (client (directive g-directive) &optional parameters)
-  `((let ((parameters (list ,@parameters)))
-      (print-float-arg ,(incless:client-form client)
-                       (lambda (client value digits exponent)
-                         (apply #'print-general-arg
-                                client value digits exponent
-                                ,(colon-p directive) ,(at-sign-p directive)
-                                parameters))))))
+  `((print-float-arg ,(incless:client-form client)
+                     (lambda (client value digits exponent)
+                       (print-general-arg client value digits exponent
+                                          ,(colon-p directive) ,(at-sign-p directive)
+                                          ,@parameters)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -389,10 +384,10 @@
 
 (defmethod parameter-specifications
     ((client t) (directive monetary-directive))
-  '((:type integer :default 2)
-    (:type integer :default 1)
-    (:type (or null integer) :default nil)
-    (:type character :default #\Space)))
+  '((:name d :type integer :default 2)
+    (:name n :type integer :default 1)
+    (:name w :type (or null integer) :default nil)
+    (:name padchar :type character :default #\Space)))
 
 (defun print-monetary-arg (client value digits exponent
                            colon-p at-sign-p d n w padchar)
@@ -461,10 +456,8 @@
                             parameters))))
 
 (defmethod compile-item (client (directive monetary-directive) &optional parameters)
-  `((let ((parameters (list ,@parameters)))
-      (print-float-arg ,(incless:client-form client)
-                       (lambda (client value digits exponent)
-                         (apply #'print-monetary-arg
-                                client value digits exponent
-                                ,(colon-p directive) ,(at-sign-p directive)
-                                parameters))))))
+  `((print-float-arg ,(incless:client-form client)
+                     (lambda (client value digits exponent)
+                       (print-monetary-arg client value digits exponent
+                                           ,(colon-p directive) ,(at-sign-p directive)
+                                           ,@parameters)))))

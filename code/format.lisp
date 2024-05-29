@@ -98,7 +98,7 @@
 
 ;;; The directive interpreter.
 
-(defun consume-next-argument (type)
+(defun pop-argument (&optional (type t))
   (unless (< *previous-argument-index* (length *previous-arguments*))
     (let (exited)
       (unwind-protect
@@ -119,7 +119,7 @@
              :datum arg))
     arg))
 
-(defun consume-remaining-arguments ()
+(defun pop-remaining-arguments ()
   (let* ((tail (funcall *pop-remaining-arguments*))
          (tail-len (length tail)))
     (adjust-array *previous-arguments* (+ (length *previous-arguments*) tail-len))
@@ -142,8 +142,8 @@
           next
             (decf index)
             (when (zerop index)
-              (return (consume-next-argument t)))
-            (consume-next-argument t)
+              (return (pop-argument)))
+            (pop-argument)
             (go next)))
         (t
          (let ((new-arg-index (+ *previous-argument-index* index)))
@@ -156,12 +156,14 @@
            (aref *previous-arguments* *previous-argument-index*)))))
 
 (defmethod interpret-parameter ((parameter argument-reference-parameter))
-  (or (consume-next-argument `(or null ,(parameter-type parameter)))
+  (or (pop-argument `(or null ,(parameter-type parameter)))
       (parameter-default parameter)))
 
 (defmethod compile-parameter ((parameter argument-reference-parameter))
-  `(or (consume-next-argument '(or null ,(parameter-type parameter)))
-       ,(parameter-default parameter)))
+  (if (parameter-default parameter)
+      `(or (pop-argument '(or null ,(parameter-type parameter)))
+           ,(parameter-default parameter))
+      `(pop-argument '(or null ,(parameter-type parameter)))))
 
 (defmethod interpret-parameter ((parameter remaining-argument-count-parameter))
   (if (typep *remaining-argument-count*
@@ -262,5 +264,18 @@
 
 (defmethod compile-item :around (client (item directive) &optional parameters)
   (declare (ignore parameters))
-  (call-next-method client item
-                    (mapcar #'compile-parameter (parameters item))))
+  (loop for parameter in (parameters item)
+        for compiled-parameter = (compile-parameter parameter)
+        for name = (parameter-name parameter)
+        finally (return (if bindings
+                            `((let* ,bindings
+                                (declare (ignorable ,@(mapcar #'first bindings)))
+                                ,@(call-next-method client item forms)))
+                            (call-next-method client item forms)))
+        when (or (not (parameter-bind-p parameter))
+                 (constantp compiled-parameter))
+          collect compiled-parameter into forms
+        else
+          collect name into forms
+          and collect `(,name ,compiled-parameter) into bindings
+        end))
