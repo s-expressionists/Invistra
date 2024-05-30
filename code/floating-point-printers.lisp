@@ -16,7 +16,7 @@
                                  value
                                  (coerce value 'single-float))))
           (multiple-value-call func client coerced-value
-            (incless:burger-dybvig-2 coerced-value))))))
+            (quaviver:float-to-digits client coerced-value))))))
 
 (defclass decimal ()
   ((%digits :accessor decimal-digits
@@ -72,18 +72,16 @@
     (:name overflowchar :type (or null character) :default nil)
     (:name padchar :type character :default #\Space)))
 
-(defun print-fixed-arg (client value digits exponent
+(defun print-fixed-arg (client value digits exponent sign
                         colon-p at-sign-p w d k overflowchar padchar)
   (declare (ignore client colon-p))
   (let ((decimal (make-instance 'decimal :digits digits))
-        sign
+        (sign-char (cond ((minusp sign) #\-)
+                         ((and at-sign-p (plusp sign)) #\+)))
         len)
     (with-accessors ((decimal-digits decimal-digits)
                      (decimal-position decimal-position))
         decimal
-      (setf sign
-            (cond ((minusp (float-sign value)) #\-)
-                  ((and at-sign-p (plusp value)) #\+)))
       (incf exponent k)
       (cond ((zerop (aref decimal-digits 0))
              (setf decimal-position 1))
@@ -100,7 +98,7 @@
                                                (make-array (- exponent (length decimal-digits))
                                                            :initial-element 0))
                    decimal-position exponent)))
-      (setf len (+ (if sign 2 1)
+      (setf len (+ (if sign-char 2 1)
                    (length decimal-digits)))
       (when (and w
                  (null d)
@@ -110,7 +108,7 @@
                            (max 0
                                 (- w
                                    decimal-position
-                                   (if sign 2 1)))))
+                                   (if sign-char 2 1)))))
         (let ((q (or (find-if #'plusp decimal-digits :start decimal-position :from-end t)
                      decimal-position)))
           (when (< q (1- (length decimal-digits)))
@@ -125,7 +123,7 @@
                                                 :initial-element 0))))
                 ((> l d)
                  (round-decimal decimal d)))))
-      (setf len (+ (if sign 2 1)
+      (setf len (+ (if sign-char 2 1)
                    (length decimal-digits)))
       (when (and (= decimal-position (length decimal-digits))
                  (null d)
@@ -153,8 +151,8 @@
              (when w
                (loop repeat (max 0 (- w len))
                      do (write-char padchar *destination*)))
-             (when sign
-               (write-char sign *destination*))
+             (when sign-char
+               (write-char sign-char *destination*))
              (print-decimal decimal)
              nil)
             (t
@@ -164,16 +162,16 @@
 
 (defmethod interpret-item (client (directive f-directive) &optional parameters)
   (print-float-arg client
-                   (lambda (client value digits exponent)
+                   (lambda (client value digits exponent sign)
                      (apply #'print-fixed-arg
-                            client value digits exponent
+                            client value digits exponent sign
                             (colon-p directive) (at-sign-p directive)
                             parameters))))
 
 (defmethod compile-item (client (directive f-directive) &optional parameters)
   `((print-float-arg ,(incless:client-form client)
-                     (lambda (client value digits exponent)
-                       (print-fixed-arg client value digits exponent
+                     (lambda (client value digits exponent sign)
+                       (print-fixed-arg client value digits exponent sign
                                         ,(colon-p directive) ,(at-sign-p directive)
                                         ,@parameters)))))
 
@@ -196,17 +194,16 @@
     (:name padchar :type character :default #\Space)
     (:name exponentchar :type (or null character) :default nil)))
 
-(defun print-exponent-arg (client value digits exponent colon-p at-sign-p w d e k overflowchar padchar exponentchar)
+(defun print-exponent-arg (client value digits exponent sign
+                           colon-p at-sign-p w d e k overflowchar padchar exponentchar)
   (declare (ignore colon-p))
   (let ((decimal (make-instance 'decimal :digits digits))
-        sign
+        (sign-char (cond ((minusp sign) #\-)
+                         ((and at-sign-p (plusp sign)) #\+)))
         len exp)
     (with-accessors ((decimal-digits decimal-digits)
                      (decimal-position decimal-position))
         decimal
-      (setf sign
-            (cond ((minusp (float-sign value)) #\-)
-                  ((and at-sign-p (plusp value)) #\+)))
       (setf exponent (if (or (zerop (length decimal-digits))
                              (zerop (aref decimal-digits 0)))
                          0
@@ -249,7 +246,7 @@
                                                 :initial-element 0))))
                 ((> l dp)
                  (round-decimal decimal dp)))))
-      (setf len (+ (if sign 4 3)
+      (setf len (+ (if sign-char 4 3)
                    (length exp)
                    (length decimal-digits)))
       (when (and w
@@ -258,8 +255,8 @@
         (round-decimal decimal
                       (- w
                          (length decimal-digits)
-                         (if sign 4 3)))
-        (setf len (+ (if sign 4 3)
+                         (if sign-char 4 3)))
+        (setf len (+ (if sign-char 4 3)
                      (length decimal-digits))))
       (when (and (= decimal-position (length decimal-digits))
                  (null d)
@@ -282,8 +279,8 @@
              (when w
                (loop repeat (max 0 (- w len))
                      do (write-char padchar *destination*)))
-             (when sign
-               (write-char sign *destination*))
+             (when sign-char
+               (write-char sign-char *destination*))
              (print-decimal decimal)
              (write-char (or exponentchar
                              (if (typep value *read-default-float-format*)
@@ -302,16 +299,16 @@
 
 (defmethod interpret-item (client (directive e-directive) &optional parameters)
   (print-float-arg client
-                   (lambda (client value digits exponent)
+                   (lambda (client value digits exponent sign)
                      (apply #'print-exponent-arg
-                            client value digits exponent
+                            client value digits exponent sign
                             (colon-p directive) (at-sign-p directive)
                             parameters))))
 
 (defmethod compile-item (client (directive e-directive) &optional parameters)
   `((print-float-arg ,(incless:client-form client)
-                     (lambda (client value digits exponent)
-                       (print-exponent-arg client value digits exponent
+                     (lambda (client value digits exponent sign)
+                       (print-exponent-arg client value digits exponent sign
                                            ,(colon-p directive) ,(at-sign-p directive)
                                            ,@parameters)))))
 
@@ -334,7 +331,7 @@
     (:name padchar :type character :default #\Space)
     (:name exponentchar :type (or null character) :default nil)))
 
-(defun print-general-arg (client value digits exponent
+(defun print-general-arg (client value digits exponent sign
                           colon-p at-sign-p w d e k
                           overflowchar padchar exponentchar)
   (unless d
@@ -346,29 +343,29 @@
          (ww (if w (- w ee) nil))
          (dd (- d exponent)))
     (cond ((<= 0 dd d)
-           (let ((char (if (print-fixed-arg client value digits exponent
+           (let ((char (if (print-fixed-arg client value digits exponent sign
                                             colon-p at-sign-p ww dd 0
                                             overflowchar padchar)
                            overflowchar
                            #\space)))
              (dotimes (i ee) (write-char char *destination*))))
           (t
-           (print-exponent-arg client value digits exponent
+           (print-exponent-arg client value digits exponent sign
                                colon-p at-sign-p w d e k
                                overflowchar padchar exponentchar)))))
 
 (defmethod interpret-item (client (directive g-directive) &optional parameters)
   (print-float-arg client
-                   (lambda (client value digits exponent)
+                   (lambda (client value digits exponent sign)
                      (apply #'print-general-arg
-                            client value digits exponent
+                            client value digits exponent sign
                             (colon-p directive) (at-sign-p directive)
                             parameters))))
 
 (defmethod compile-item (client (directive g-directive) &optional parameters)
   `((print-float-arg ,(incless:client-form client)
-                     (lambda (client value digits exponent)
-                       (print-general-arg client value digits exponent
+                     (lambda (client value digits exponent sign)
+                       (print-general-arg client value digits exponent sign
                                           ,(colon-p directive) ,(at-sign-p directive)
                                           ,@parameters)))))
 
@@ -389,17 +386,15 @@
     (:name w :type (or null integer) :default nil)
     (:name padchar :type character :default #\Space)))
 
-(defun print-monetary-arg (client value digits exponent
+(defun print-monetary-arg (client value digits exponent sign
                            colon-p at-sign-p d n w padchar)
   (let ((decimal (make-instance 'decimal :digits digits))
-        sign
+        (sign-char (cond ((minusp (float-sign sign)) #\-)
+                         ((and at-sign-p (plusp sign)) #\+)))
         len)
     (with-accessors ((decimal-digits decimal-digits)
                      (decimal-position decimal-position))
         decimal
-      (setf sign
-            (cond ((minusp (float-sign value)) #\-)
-                  ((and at-sign-p (plusp value)) #\+)))
       (cond ((zerop (aref decimal-digits 0))
              (setf decimal-position 1))
             ((not (plusp exponent))
@@ -431,33 +426,33 @@
                                                       :initial-element 0)
                                           decimal-digits)
               decimal-position n))
-      (setf len (+ (if sign 2 1)
+      (setf len (+ (if sign-char 2 1)
                    (length decimal-digits)))
       (cond ((> len (if w (max w 100) 100))
              (print-exponent-arg client value digits exponent
                                  colon-p at-sign-p w (+ d n -1) nil 1
                                  #\Space padchar nil))
             (t
-             (when (and colon-p sign)
-               (write-char sign *destination*))
+             (when (and colon-p sign-char)
+               (write-char sign-char *destination*))
              (when w
                (loop repeat (max 0 (- w len))
                      do (write-char padchar *destination*)))
-             (when (and (not colon-p) sign)
-               (write-char sign *destination*))
+             (when (and (not colon-p) sign-char)
+               (write-char sign-char *destination*))
              (print-decimal decimal))))))
 
 (defmethod interpret-item (client (directive monetary-directive) &optional parameters)
   (print-float-arg client
-                   (lambda (client value digits exponent)
+                   (lambda (client value digits exponent sign)
                      (apply #'print-monetary-arg
-                            client value digits exponent
+                            client value digits exponent sign
                             (colon-p directive) (at-sign-p directive)
                             parameters))))
 
 (defmethod compile-item (client (directive monetary-directive) &optional parameters)
   `((print-float-arg ,(incless:client-form client)
-                     (lambda (client value digits exponent)
-                       (print-monetary-arg client value digits exponent
+                     (lambda (client value digits exponent sign)
+                       (print-monetary-arg client value digits exponent sign
                                            ,(colon-p directive) ,(at-sign-p directive)
                                            ,@parameters)))))
