@@ -429,7 +429,7 @@
       (setf len (+ (if sign-char 2 1)
                    (length decimal-digits)))
       (cond ((> len (if w (max w 100) 100))
-             (print-exponent-arg client value digits exponent
+             (print-exponent-arg client value digits exponent sign
                                  colon-p at-sign-p w (+ d n -1) nil 1
                                  #\Space padchar nil))
             (t
