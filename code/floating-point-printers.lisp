@@ -16,7 +16,7 @@
                                  value
                                  (coerce value 'single-float))))
           (multiple-value-call func client coerced-value
-            (quaviver:float-to-digits client coerced-value))))))
+            (quaviver:float-decimal client coerced-value))))))
 
 (defclass decimal ()
   ((%digits :accessor decimal-digits
