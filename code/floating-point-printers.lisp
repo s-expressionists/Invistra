@@ -15,8 +15,11 @@
         (let ((coerced-value (if (floatp value)
                                  value
                                  (coerce value 'single-float))))
-          (multiple-value-call func client coerced-value
-            (quaviver:float-decimal client coerced-value))))))
+          (multiple-value-bind (significand exponent sign)
+              (quaviver:float-decimal client coerced-value)
+            (funcall func
+                     client coerced-value
+                     significand (+ exponent (length significand)) sign))))))
 
 (defclass decimal ()
   ((%digits :accessor decimal-digits
