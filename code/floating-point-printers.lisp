@@ -7,6 +7,23 @@
 (defun print-float-arg (client func)
   (let ((value (pop-argument)))
     (if (or (complexp value)
+            (and (floatp value)
+                 #+abcl
+                 (or (system:float-infinity-p value)
+                     (system:float-nan-p value))
+                 #+allegro
+                 (or (excl:infinityp value)
+                     (excl:nanp value))
+                 #+ccl
+                 (ccl::nan-or-infinity-p value)
+                 #+(or clasp cmucl ecl)
+                 (or (ext:float-infinity-p value)
+                     (ext:float-nan-p value))
+                 #+mezzano
+                 (or (mezzano.extensions:float-infinity-p value)
+                     (mezzano.extensions:float-nan-p value))
+                 #+sbcl (or (sb-ext:float-infinity-p value)
+                            (sb-ext:float-nan-p value)))
             (not (numberp value)))
         (let ((*print-base* 10)
               (*print-escape* nil)
