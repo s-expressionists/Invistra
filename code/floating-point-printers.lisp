@@ -34,7 +34,7 @@
                                  (coerce value 'single-float))))
           (multiple-value-bind (significand exponent sign)
               (quaviver:float-integer client 10 coerced-value)
-            (setf significand (quaviver:integer-digits client 'vector 10 significand))
+            (setf significand (quaviver:compose-digits client 'vector 10 significand))
             (funcall func
                      client coerced-value
                      significand (+ exponent (length significand)) sign))))))
