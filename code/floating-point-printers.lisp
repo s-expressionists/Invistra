@@ -32,13 +32,16 @@
         (let ((coerced-value (if (floatp value)
                                  value
                                  (coerce value 'single-float))))
-          (multiple-value-bind (significand exponent sign)
+          (multiple-value-call func
+            client coerced-value
+            (quaviver:float-integer client 10 coerced-value))))))
+#|          (multiple-value-bind (significand exponent sign)
               (quaviver:float-integer client 10 coerced-value)
-            (setf significand (quaviver:compose-digits client 'vector 10 significand))
+            #+(or)(setf significand (quaviver:compose-digits client 'vector 10 significand))
             (funcall func
                      client coerced-value
-                     significand (+ exponent (length significand)) sign))))))
-
+                     significand exponent #+(or)(+ exponent (length significand)) sign))))))
+|#
 (defclass decimal ()
   ((%digits :accessor decimal-digits
             :initarg :digits)
@@ -407,50 +410,34 @@
     (:name w :type (or null integer) :default nil)
     (:name padchar :type character :default #\Space)))
 
-(defun print-monetary-arg (client value digits exponent sign
+(defun print-monetary-arg (client value significand exponent sign
                            colon-p at-sign-p d n w padchar)
-  (let ((decimal (make-instance 'decimal :digits digits))
-        (sign-char (cond ((minusp (float-sign sign)) #\-)
-                         ((and at-sign-p (plusp sign)) #\+)))
-        len)
-    (with-accessors ((decimal-digits decimal-digits)
-                     (decimal-position decimal-position))
-        decimal
-      (cond ((zerop (aref decimal-digits 0))
-             (setf decimal-position 1))
-            ((not (plusp exponent))
-             (setf decimal-position 0
-                   decimal-digits (concatenate 'vector
-                                               (make-array (- exponent) :initial-element 0)
-                                               decimal-digits)))
-            ((<= exponent (length decimal-digits))
-             (setf decimal-position exponent))
-            (t
-             (setf decimal-digits (concatenate 'vector
-                                               decimal-digits
-                                               (make-array (- exponent
-                                                              (length decimal-digits))
-                                                           :initial-element 0))
-                   decimal-position exponent)))
-      (let ((l (- (length decimal-digits) decimal-position)))
-        (cond ((< l d)
-               (setf decimal-digits
-                     (concatenate 'vector
-                                  decimal-digits
-                                  (make-array (- d l)
-                                              :initial-element 0))))
-              ((> l d)
-               (round-decimal decimal (1- d)))))
-      (when (< decimal-position n)
-        (setf decimal-digits (concatenate 'vector
-                                          (make-array (- n decimal-position)
-                                                      :initial-element 0)
-                                          decimal-digits)
-              decimal-position n))
-      (setf len (+ (if sign-char 2 1)
-                   (length decimal-digits)))
+  (let* ((sign-char (cond ((minusp sign) #\-)
+                          ((and at-sign-p (plusp sign)) #\+)))
+         (digit-count (quaviver.math:count-digits 10 significand))
+         (decimal-position (if (zerop significand) 1 (+ digit-count exponent)))
+         (leading-zeros 0)
+         (trailing-zeros 0)
+         (my-significand significand))
+    (let ((l (- digit-count decimal-position)))
+      (cond ((< l d)
+             (setf trailing-zeros (- d l)))
+            ((> l d)
+             (when (minusp decimal-position)
+               (setf decimal-position
+                     (max decimal-position (- 1 d))))
+             (multiple-value-bind (q r)
+                 (truncate significand (expt 10 (- l d)))
+               (setf my-significand (if (>= (/ r (expt 10 (- l d))) 1/2)
+                                        (1+ q)
+                                        q))))))
+    (setf leading-zeros (max 0 (- n (max 0 decimal-position))))
+    (let ((len (+ (if sign-char 2 1)
+                  leading-zeros
+                  trailing-zeros
+                  (quaviver.math:count-digits 10 my-significand))))
       (cond ((> len (if w (max w 100) 100))
-             (print-exponent-arg client value digits exponent sign
+             (print-exponent-arg client value significand exponent sign
                                  colon-p at-sign-p w (+ d n -1) nil 1
                                  #\Space padchar nil))
             (t
@@ -461,7 +448,13 @@
                      do (write-char padchar *destination*)))
              (when (and (not colon-p) sign-char)
                (write-char sign-char *destination*))
-             (print-decimal decimal))))))
+             (loop repeat leading-zeros
+                   do (write-char #\0 *destination*))
+             (quaviver:write-digits client 10 my-significand *destination*
+                                    :decimal-position decimal-position
+                                    :decimal-marker #\.)
+             (loop repeat trailing-zeros
+                   do (write-char #\0 *destination*)))))))
 
 (defmethod interpret-item (client (directive monetary-directive) &optional parameters)
   (print-float-arg client
