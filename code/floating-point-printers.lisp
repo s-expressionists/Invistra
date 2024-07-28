@@ -79,6 +79,13 @@
           do (write-char #\. *destination*)
         do (write-char (char incless:*digit-chars* digit) *destination*)))
 
+(defun round-towards-infinity (x n)
+  (multiple-value-bind (q r)
+      (truncate x n)
+    (setf my-significand (if (>= (/ r n) 1/2)
+                             (1+ q)
+                             q))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.3.1 ~f Fixed-format floating point.
@@ -96,88 +103,86 @@
     (:name overflowchar :type (or null character) :default nil)
     (:name padchar :type character :default #\Space)))
 
-(defun print-fixed-arg (client value digits exponent sign
+(defun print-fixed-arg (client value significand exponent sign
                         colon-p at-sign-p w d k overflowchar padchar)
   (declare (ignore client colon-p))
-  (let ((decimal (make-instance 'decimal :digits digits))
-        (sign-char (cond ((minusp sign) #\-)
-                         ((and at-sign-p (plusp sign)) #\+)))
-        len)
-    (with-accessors ((decimal-digits decimal-digits)
-                     (decimal-position decimal-position))
-        decimal
-      (incf exponent k)
-      (cond ((zerop (aref decimal-digits 0))
-             (setf decimal-position 1))
-            ((not (plusp exponent))
-             (setf decimal-position 0
-                   decimal-digits (concatenate 'vector
-                                               (make-array (- exponent) :initial-element 0)
-                                               decimal-digits)))
-            ((<= exponent (length decimal-digits))
-             (setf decimal-position exponent))
-            (t
-             (setf decimal-digits (concatenate 'vector
-                                               decimal-digits
-                                               (make-array (- exponent (length decimal-digits))
-                                                           :initial-element 0))
-                   decimal-position exponent)))
-      (setf len (+ (if sign-char 2 1)
-                   (length decimal-digits)))
-      (when (and w
+  (let* ((sign-char (cond ((minusp sign) #\-)
+                          ((and at-sign-p (plusp sign)) #\+)))
+         (digit-count (quaviver.math:count-digits 10 significand))
+         (decimal-position (if (zerop significand) 0 (+ digit-count k exponent)))
+         (leading-zeros 0)
+         (trailing-zeros 0)
+         (my-significand significand)
+         len)
+    (flet ((compute-width ()
+             (+ (if sign-char 2 1)
+                leading-zeros
+                (max digit-count decimal-position)
+                (- (min 0 decimal-position))
+                trailing-zeros)))
+      #+(or)(when (and w
                  (null d)
-                 (> len w))
+                 (> (compute-width) w))
         (round-decimal decimal
-                      (min (- (length decimal-digits) decimal-position)
-                           (max 0
-                                (- w
-                                   decimal-position
-                                   (if sign-char 2 1)))))
+                       (min (- (length decimal-digits) decimal-position)
+                            (max 0
+                                 (- w
+                                    decimal-position
+                                    (if sign-char 2 1)))))
         (let ((q (or (find-if #'plusp decimal-digits :start decimal-position :from-end t)
                      decimal-position)))
           (when (< q (1- (length decimal-digits)))
             (setf decimal-digits (subseq decimal-digits 0 q)))))
       (when d
-        (let ((l (- (length decimal-digits) decimal-position)))
+        (let ((l (- digit-count decimal-position)))
           (cond ((< l d)
-                 (setf decimal-digits
-                       (concatenate 'vector
-                                    decimal-digits
-                                    (make-array (- d l)
-                                                :initial-element 0))))
-                ((> l d)
-                 (round-decimal decimal d)))))
-      (setf len (+ (if sign-char 2 1)
-                   (length decimal-digits)))
-      (when (and (= decimal-position (length decimal-digits))
+                 (setf trailing-zeros (- d l)))
+                ((= l d))
+                ((and (minusp decimal-position)
+                      (> (- decimal-position) d))
+                 (setf my-significand 0
+                       decimal-position 0
+                       trailing-zeros d
+                       digit-count 1))
+                ((and (minusp decimal-position)
+                      (= (- decimal-position) d))
+                 (setf my-significand (round-towards-infinity significand (expt 10 digit-count))
+                       trailing-zeros 0
+                       digit-count (quaviver.math:count-digits 10 my-significand))
+                 (incf decimal-position))
+                (t
+                 (setf my-significand (round-towards-infinity significand (expt 10 (- l d)))
+                       digit-count (quaviver.math:count-digits 10 my-significand))))))
+      (when (and (= decimal-position digit-count)
+                 (zerop trailing-zeros)
                  (null d)
-                 (or (zerop (length decimal-digits))
-                     (null w)
+                 (or (null w)
                      (null overflowchar)
-                     (< len w)))
-        (setf decimal-digits (concatenate 'vector decimal-digits #(0)))
-        (incf len))
+                     (< (compute-width) w)))
+        (setf trailing-zeros 1))
       (when (and (zerop decimal-position)
-                 (or (zerop (length decimal-digits))
-                     (and
-                      (< value (expt 10 (- k)))
-                      (or (null w) (null d)
-                          (> w (1+ d)))
-                      (or (= decimal-position (length decimal-digits))
-                          (null w)
-                          (< len w)))))
-        (setf decimal-digits (concatenate 'vector #(0) decimal-digits))
-        (incf decimal-position)
-        (incf len))
+                 (< value (expt 10 (- k)))
+                 (or (null w) (null d)
+                     (> w (1+ d)))
+                 (or (= decimal-position digit-count)
+                     (null w)
+                     (< len w)))
+              (setf leading-zeros 1))
       (cond ((or (null w)
                  (null overflowchar)
-                 (<= len w))
+                 (<= (compute-width) w))
              (when w
-               (loop repeat (max 0 (- w len))
+               (loop repeat (max 0 (- w (compute-width)))
                      do (write-char padchar *destination*)))
              (when sign-char
                (write-char sign-char *destination*))
-             (print-decimal decimal)
+             (loop repeat leading-zeros
+                   do (write-char #\0 *destination*))
+             (quaviver:write-digits 10 my-significand *destination*
+                                    :decimal-position decimal-position
+                                    :decimal-marker #\.)
+             (loop repeat trailing-zeros
+                   do (write-char #\0 *destination*))
              nil)
             (t
              (loop repeat w
@@ -426,11 +431,7 @@
              (when (minusp decimal-position)
                (setf decimal-position
                      (max decimal-position (- 1 d))))
-             (multiple-value-bind (q r)
-                 (truncate significand (expt 10 (- l d)))
-               (setf my-significand (if (>= (/ r (expt 10 (- l d))) 1/2)
-                                        (1+ q)
-                                        q))))))
+             (setf my-significand (round-towards-infinity significand (expt 10 (- l d)))))))
     (setf leading-zeros (max 0 (- n (max 0 decimal-position))))
     (let ((len (+ (if sign-char 2 1)
                   leading-zeros
@@ -450,7 +451,7 @@
                (write-char sign-char *destination*))
              (loop repeat leading-zeros
                    do (write-char #\0 *destination*))
-             (quaviver:write-digits client 10 my-significand *destination*
+             (quaviver:write-digits 10 my-significand *destination*
                                     :decimal-position decimal-position
                                     :decimal-marker #\.)
              (loop repeat trailing-zeros
