@@ -32,7 +32,7 @@
     (when (and (< (+ decimal-position count) (length decimal-digits))
                (< -1 (+ decimal-position count) (length decimal-digits))
                (> (aref decimal-digits (+ decimal-position count)) 4))
-      (loop for pos = (+ decimal-position count -1)
+      (loop for pos = (+ decimal-position count -1) then (1- pos)
             for (carry new-digit) = (multiple-value-list (floor (1+ (aref decimal-digits pos)) 10))
             do (setf (aref decimal-digits pos) new-digit)
             when (zerop carry)
