@@ -239,29 +239,22 @@
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
          (digit-count (quaviver.math:count-digits 10 significand))
-         (decimal-position digit-count)
+         (decimal-position k)
          (leading-zeros 0)
          (my-significand significand)
-         (my-exponent (if (zerop significand) 0 (+ exponent digit-count (- k))))
+         (my-exponent (if (zerop significand)
+                          0
+                          (+ exponent digit-count (- k))))
          (exp-count (quaviver.math:count-digits 10 (abs my-exponent)))
          (leading-exp-zeros (- (or e exp-count) exp-count)))
     (flet ((compute-width ()
              (+ (if sign-char 4 3)
                 leading-zeros
-                (max (quaviver.math:count-digits 10 significand)
+                (max (quaviver.math:count-digits 10 my-significand)
                      decimal-position)
                 (- (min 0 decimal-position))
                 leading-exp-zeros
                 exp-count)))
-      (cond ((minusp k)
-             (setf decimal-position k))
-            ((< digit-count k)
-             (if (zerop my-significand)
-                 (decf decimal-position (- k digit-count))
-                 (setf my-significand (* my-significand
-                                         (expt 10 (- k digit-count))))))
-            (t
-             (setf decimal-position k)))
       (when d
         (multiple-value-setq (my-significand decimal-position)
           (trim-fractional my-significand decimal-position
