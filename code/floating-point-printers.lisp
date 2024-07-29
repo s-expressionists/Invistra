@@ -264,15 +264,15 @@
                                   (- d k -1))
                                  (t
                                   (+ d k 1))))))
-      #+(or)(when (and w
+      (when (and w
                  (null d)
                  (> (compute-width) w))
-        (round-decimal decimal
-                      (- w
-                         (length decimal-digits)
-                         (if sign-char 4 3)))
-        (setf len (+ (if sign-char 4 3)
-                     (length decimal-digits))))
+        (multiple-value-setq (my-significand decimal-position)
+          (trim-fractional my-significand decimal-position
+                           (- w
+                              (max 0 decimal-position)
+                              (if sign-char 4 3)
+                              exp-count))))
       (when (and (= decimal-position (quaviver.math:count-digits 10 my-significand))
                  (null d)
                  (or (null w)
