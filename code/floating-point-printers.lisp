@@ -43,9 +43,8 @@
         (1+ q)
         q)))
 
-(defun trim-fractional (significand decimal-position d)
-  (let* ((digit-count (quaviver.math:count-digits 10 significand))
-         (l (max 0 (- digit-count decimal-position))))
+(defun trim-fractional (significand digit-count decimal-position d)
+  (let ((l (max 0 (- digit-count decimal-position))))
     (cond ((< l d)
            (if (zerop significand)
                (setf decimal-position (- d))
@@ -54,14 +53,16 @@
                         (expt 10
                               (+ (max 0
                                       (- decimal-position digit-count))
-                                 (- d l)))))))
+                                 (- d l))))
+                     digit-count (quaviver.math:count-digits 10 significand))))
           ((> l d)
            (when (minusp decimal-position)
              (setf decimal-position
                    (max decimal-position (- 1 d))))
            (setf significand (round-away-from-zero significand
-                                                   (expt 10 (- l d)))))))
-  (values significand decimal-position))
+                                                   (expt 10 (- l d)))
+                 digit-count (quaviver.math:count-digits 10 significand)))))
+  (values significand digit-count decimal-position))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -85,26 +86,23 @@
   (declare (ignore client colon-p))
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
+         (digit-count (quaviver.math:count-digits 10 significand))
          (decimal-position (if (zerop significand)
                                0
-                               (+ (quaviver.math:count-digits 10 significand)
-                                  k exponent)))
+                               (+ digit-count k exponent)))
          (leading-zeros 0)
          (my-significand significand))
     (flet ((compute-width ()
              (+ (if sign-char 2 1)
                 leading-zeros
-                (max (quaviver.math:count-digits 10 my-significand)
-                     decimal-position)
+                (max digit-count decimal-position)
                 (- (min 0 decimal-position)))))
       (when (and w
                  (null d)
                  (> (compute-width) w))
-        (multiple-value-setq (my-significand decimal-position)
-          (trim-fractional my-significand decimal-position
-                           (min (max 0
-                                     (- (quaviver.math:count-digits 10 my-significand)
-                                        decimal-position))
+        (multiple-value-setq (my-significand digit-count decimal-position)
+          (trim-fractional my-significand digit-count decimal-position
+                           (min (max 0 (- digit-count decimal-position))
                                 (max 0
                                      (- w
                                         (max 0 decimal-position)
@@ -112,10 +110,9 @@
         (when (zerop my-significand)
           (setf decimal-position 1)))
       (when d
-        (multiple-value-setq (my-significand decimal-position)
-          (trim-fractional my-significand decimal-position d)))
-      (when (and (>= decimal-position
-                     (quaviver.math:count-digits 10 my-significand))
+        (multiple-value-setq (my-significand digit-count decimal-position)
+          (trim-fractional my-significand digit-count decimal-position d)))
+      (when (and (>= decimal-position digit-count)
                  (null d)
                  (or (null w)
                      (null overflowchar)
@@ -125,8 +122,9 @@
             (setf my-significand (* my-significand
                                     (expt 10
                                           (+ decimal-position
-                                             (- (quaviver.math:count-digits 10 my-significand))
-                                             1))))))
+                                             (- digit-count)
+                                             1)))
+                  digit-count (quaviver.math:count-digits 10 my-significand))))
       (when (and (not (plusp decimal-position))
                  (< value (expt 10 (- k)))
                  (or (null w) (null d)
@@ -203,14 +201,13 @@
     (flet ((compute-width ()
              (+ (if sign-char 4 3)
                 leading-zeros
-                (max (quaviver.math:count-digits 10 my-significand)
-                     decimal-position)
+                (max digit-count decimal-position)
                 (- (min 0 decimal-position))
                 leading-exp-zeros
                 exp-count)))
       (when d
-        (multiple-value-setq (my-significand decimal-position)
-          (trim-fractional my-significand decimal-position
+        (multiple-value-setq (my-significand digit-count decimal-position)
+          (trim-fractional my-significand digit-count decimal-position
                            (cond ((zerop k)
                                   d)
                                  ((plusp k)
@@ -220,14 +217,14 @@
       (when (and w
                  (null d)
                  (> (compute-width) w))
-        (multiple-value-setq (my-significand decimal-position)
-          (trim-fractional my-significand decimal-position
+        (multiple-value-setq (my-significand digit-count decimal-position)
+          (trim-fractional my-significand digit-count decimal-position
                            (max 0
                                 (- w
                                    (max 0 decimal-position)
                                    (if sign-char 4 3)
                                    exp-count)))))
-      (when (and (= decimal-position (quaviver.math:count-digits 10 my-significand))
+      (when (and (= decimal-position digit-count)
                  (null d)
                  (or (null w)
                      (< (compute-width) w)
@@ -235,7 +232,8 @@
                      #+(or)(> w (1+ d))))
         (if (zerop significand)
             (setf decimal-position 0)
-            (setf my-significand (* 10 my-significand))))
+            (setf my-significand (* 10 my-significand)
+                  digit-count (1+ digit-count))))
       (when (and (not (plusp decimal-position))
                  (or (null w)
                      (< (compute-width) w)))
@@ -368,9 +366,9 @@
     (flet ((compute-width ()
              (+ (if sign-char 2 1)
                 leading-zeros
-                (quaviver.math:count-digits 10 my-significand))))
-      (multiple-value-setq (my-significand decimal-position)
-        (trim-fractional my-significand decimal-position d))
+                digit-count)))
+      (multiple-value-setq (my-significand digit-count decimal-position)
+        (trim-fractional my-significand digit-count decimal-position d))
       (setf leading-zeros (max 0 (- n (max 0 decimal-position))))
       (cond ((> (compute-width) (if w (max w 100) 100))
              (print-exponent-arg client value significand exponent sign
