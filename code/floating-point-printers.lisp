@@ -43,26 +43,26 @@
         (1+ q)
         q)))
 
-(defun trim-fractional (significand digit-count decimal-position d)
-  (let ((l (max 0 (- digit-count decimal-position))))
+(defun trim-fractional (significand digit-count fractional-position d)
+  (let ((l (max 0 (- digit-count fractional-position))))
     (cond ((< l d)
            (if (zerop significand)
-               (setf decimal-position (- d))
+               (setf fractional-position (- d))
                (setf significand
                      (* significand
                         (expt 10
                               (+ (max 0
-                                      (- decimal-position digit-count))
+                                      (- fractional-position digit-count))
                                  (- d l))))
                      digit-count (quaviver.math:count-digits 10 significand))))
           ((> l d)
-           (when (minusp decimal-position)
-             (setf decimal-position
-                   (max decimal-position (- 1 d))))
+           (when (minusp fractional-position)
+             (setf fractional-position
+                   (max fractional-position (- 1 d))))
            (setf significand (round-away-from-zero significand
                                                    (expt 10 (- l d)))
                  digit-count (quaviver.math:count-digits 10 significand)))))
-  (values significand digit-count decimal-position))
+  (values significand digit-count fractional-position))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -87,45 +87,45 @@
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
          (digit-count (quaviver.math:count-digits 10 significand))
-         (decimal-position (if (zerop significand)
-                               0
-                               (+ digit-count k exponent)))
+         (fractional-position (if (zerop significand)
+                                  0
+                                  (+ digit-count k exponent)))
          (leading-zeros 0)
          (my-significand significand))
     (flet ((compute-width ()
              (+ (if sign-char 2 1)
                 leading-zeros
-                (max digit-count decimal-position)
-                (- (min 0 decimal-position)))))
+                (max digit-count fractional-position)
+                (- (min 0 fractional-position)))))
       (when (and w
                  (null d)
                  (> (compute-width) w))
-        (multiple-value-setq (my-significand digit-count decimal-position)
-          (trim-fractional my-significand digit-count decimal-position
-                           (min (max 0 (- digit-count decimal-position))
+        (multiple-value-setq (my-significand digit-count fractional-position)
+          (trim-fractional my-significand digit-count fractional-position
+                           (min (max 0 (- digit-count fractional-position))
                                 (max 0
                                      (- w
-                                        (max 0 decimal-position)
+                                        (max 0 fractional-position)
                                         (if sign-char 2 1))))))
         (when (zerop my-significand)
-          (setf decimal-position 1)))
+          (setf fractional-position 1)))
       (when d
-        (multiple-value-setq (my-significand digit-count decimal-position)
-          (trim-fractional my-significand digit-count decimal-position d)))
-      (when (and (>= decimal-position digit-count)
+        (multiple-value-setq (my-significand digit-count fractional-position)
+          (trim-fractional my-significand digit-count fractional-position d)))
+      (when (and (>= fractional-position digit-count)
                  (null d)
                  (or (null w)
                      (null overflowchar)
                      (< (compute-width) w)))
         (if (zerop my-significand)
-            (decf decimal-position)
+            (decf fractional-position)
             (setf my-significand (* my-significand
                                     (expt 10
-                                          (+ decimal-position
+                                          (+ fractional-position
                                              (- digit-count)
                                              1)))
                   digit-count (quaviver.math:count-digits 10 my-significand))))
-      (when (and (not (plusp decimal-position))
+      (when (and (not (plusp fractional-position))
                  (< value (expt 10 (- k)))
                  (or (null w) (null d)
                      (> w (1+ d)))
@@ -142,8 +142,8 @@
                (write-char sign-char *destination*))
              (quaviver:write-digits 10 my-significand *destination*
                                     :leading-zeros leading-zeros
-                                    :decimal-position decimal-position
-                                    :decimal-marker #\.)
+                                    :fractional-position fractional-position
+                                    :fractional-marker #\.)
              nil)
             (t
              (loop repeat w
@@ -190,7 +190,7 @@
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
          (digit-count (quaviver.math:count-digits 10 significand))
-         (decimal-position k)
+         (fractional-position k)
          (leading-zeros 0)
          (my-significand significand)
          (my-exponent (if (zerop significand)
@@ -201,13 +201,13 @@
     (flet ((compute-width ()
              (+ (if sign-char 4 3)
                 leading-zeros
-                (max digit-count decimal-position)
-                (- (min 0 decimal-position))
+                (max digit-count fractional-position)
+                (- (min 0 fractional-position))
                 leading-exp-zeros
                 exp-count)))
       (when d
-        (multiple-value-setq (my-significand digit-count decimal-position)
-          (trim-fractional my-significand digit-count decimal-position
+        (multiple-value-setq (my-significand digit-count fractional-position)
+          (trim-fractional my-significand digit-count fractional-position
                            (cond ((zerop k)
                                   d)
                                  ((plusp k)
@@ -217,24 +217,24 @@
       (when (and w
                  (null d)
                  (> (compute-width) w))
-        (multiple-value-setq (my-significand digit-count decimal-position)
-          (trim-fractional my-significand digit-count decimal-position
+        (multiple-value-setq (my-significand digit-count fractional-position)
+          (trim-fractional my-significand digit-count fractional-position
                            (max 0
                                 (- w
-                                   (max 0 decimal-position)
+                                   (max 0 fractional-position)
                                    (if sign-char 4 3)
                                    exp-count)))))
-      (when (and (= decimal-position digit-count)
+      (when (and (= fractional-position digit-count)
                  (null d)
                  (or (null w)
                      (< (compute-width) w)
                      #+(or)(null d)
                      #+(or)(> w (1+ d))))
         (if (zerop significand)
-            (setf decimal-position 0)
+            (setf fractional-position 0)
             (setf my-significand (* 10 my-significand)
                   digit-count (1+ digit-count))))
-      (when (and (not (plusp decimal-position))
+      (when (and (not (plusp fractional-position))
                  (or (null w)
                      (< (compute-width) w)))
         (setf leading-zeros 1))
@@ -248,8 +248,8 @@
                (write-char sign-char *destination*))
              (quaviver:write-digits 10 my-significand *destination*
                                     :leading-zeros leading-zeros
-                                    :decimal-position decimal-position
-                                    :decimal-marker #\.)
+                                    :fractional-position fractional-position
+                                    :fractional-marker #\.)
              (write-char (or exponentchar
                              (if (typep value *read-default-float-format*)
                                  #+abcl #\E #-abcl #\e
@@ -360,16 +360,16 @@
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
          (digit-count (quaviver.math:count-digits 10 significand))
-         (decimal-position (if (zerop significand) 1 (+ digit-count exponent)))
+         (fractional-position (if (zerop significand) 1 (+ digit-count exponent)))
          (leading-zeros 0)
          (my-significand significand))
     (flet ((compute-width ()
              (+ (if sign-char 2 1)
                 leading-zeros
                 digit-count)))
-      (multiple-value-setq (my-significand digit-count decimal-position)
-        (trim-fractional my-significand digit-count decimal-position d))
-      (setf leading-zeros (max 0 (- n (max 0 decimal-position))))
+      (multiple-value-setq (my-significand digit-count fractional-position)
+        (trim-fractional my-significand digit-count fractional-position d))
+      (setf leading-zeros (max 0 (- n (max 0 fractional-position))))
       (cond ((> (compute-width) (if w (max w 100) 100))
              (print-exponent-arg client value significand exponent sign
                                  colon-p at-sign-p w (+ d n -1) nil 1
@@ -384,8 +384,8 @@
                (write-char sign-char *destination*))
              (quaviver:write-digits 10 my-significand *destination*
                                     :leading-zeros leading-zeros
-                                    :decimal-position decimal-position
-                                    :decimal-marker #\.))))))
+                                    :fractional-position fractional-position
+                                    :fractional-marker #\.))))))
 
 (defmethod interpret-item (client (directive monetary-directive) &optional parameters)
   (print-float-arg client
