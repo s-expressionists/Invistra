@@ -34,12 +34,12 @@
                                  (coerce value 'single-float))))
           (multiple-value-call func
             client coerced-value
-            (quaviver:float-integer client 10 coerced-value))))))
+            (quaviver:float-triple client 10 coerced-value))))))
 
 (defun round-away-from-zero (x n)
   (multiple-value-bind (q r)
       (truncate x n)
-    (if (>= (/ r n) 1/2)
+    (if (>= (* 2 r) n)
         (1+ q)
         q)))
 
