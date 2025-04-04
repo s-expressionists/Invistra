@@ -378,7 +378,7 @@
              (when (and colon-p sign-char)
                (write-char sign-char *destination*))
              (when w
-               (loop repeat (max 0 (- w len))
+               (loop repeat (max 0 (- w (compute-width)))
                      do (write-char padchar *destination*)))
              (when (and (not colon-p) sign-char)
                (write-char sign-char *destination*))
