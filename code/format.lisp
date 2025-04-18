@@ -195,7 +195,7 @@
 (defun format-with-runtime-arguments (client control-string)
   (catch *inner-tag*
     (interpret-items client
-                     (structure-items client (split-control-string control-string)))))
+                     (structure-items client (split-control-string client control-string)))))
 
 (defun format (client destination control &rest args)
   (let ((*destination* (cond ((or (streamp destination)

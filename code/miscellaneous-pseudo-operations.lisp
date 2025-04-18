@@ -15,7 +15,7 @@
 (defclass semicolon-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\;)) directive (end-directive t))
+    ((client standard-client) (char (eql #\;)) directive (end-directive t))
   (change-class directive 'semicolon-directive))
 
 (defmethod parameter-specifications
@@ -59,7 +59,7 @@
 (defclass circumflex-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\^)) directive (end-directive t))
+    ((client standard-client) (char (eql #\^)) directive (end-directive t))
   (change-class directive 'circumflex-directive))
 
 (defmethod parameter-specifications
@@ -136,7 +136,7 @@
     (directive at-most-one-modifier-mixin) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\Newline)) directive (end-directive t))
+    ((client standard-client) (char (eql #\Newline)) directive (end-directive t))
   (change-class directive 'newline-directive))
 
 (defmethod parse-directive-suffix ((directive-character (eql #\Newline)) control-string start end)

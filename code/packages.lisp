@@ -20,4 +20,5 @@
            #:interpret-item
            #:parameter-specifications
            #:parse-directive-suffix
-           #:specialize-directive))
+           #:specialize-directive
+           #:standard-client))

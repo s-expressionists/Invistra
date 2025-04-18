@@ -12,7 +12,7 @@
   ())
 
 (defmethod specialize-directive
-    (client (char (eql #\C)) directive end-directive)
+    ((client standard-client) (char (eql #\C)) directive end-directive)
   (declare (ignore client end-directive))
   (change-class directive 'c-directive))
 
@@ -73,7 +73,7 @@
   ())
 
 (defmethod specialize-directive
-    (client (char (eql #\%)) directive end-directive)
+    ((client standard-client) (char (eql #\%)) directive end-directive)
   (declare (ignore client end-directive))
   (change-class directive 'percent-directive))
 
@@ -107,7 +107,7 @@
   ())
 
 (defmethod specialize-directive
-    (client (char (eql #\&)) directive end-directive)
+    ((client standard-client) (char (eql #\&)) directive end-directive)
   (declare (ignore client end-directive))
   (change-class directive 'ampersand-directive))
 
@@ -150,7 +150,7 @@
   ())
 
 (defmethod specialize-directive
-    (client (char (eql #\|)) directive end-directive)
+    ((client standard-client) (char (eql #\|)) directive end-directive)
   (declare (ignore client end-directive))
   (change-class directive 'vertical-bar-directive))
 
@@ -185,7 +185,7 @@
   ())
 
 (defmethod specialize-directive
-    (client (char (eql #\~)) directive end-directive)
+    ((client standard-client) (char (eql #\~)) directive end-directive)
   (declare (ignore client end-directive))
   (change-class directive 'tilde-directive))
 

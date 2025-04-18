@@ -14,7 +14,7 @@
   nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\))) directive (end-directive t))
+    ((client standard-client) (char (eql #\))) directive (end-directive t))
   (change-class directive 'end-case-conversion-directive))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -25,12 +25,12 @@
     (directive structured-directive-mixin) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\()) directive
+    ((client standard-client) (char (eql #\()) directive
      (end-directive end-case-conversion-directive))
   (change-class directive 'case-conversion-directive))
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\()) directive (end-directive t))
+    ((client standard-client) (char (eql #\()) directive (end-directive t))
   (error 'unmatched-directive
          :directive directive
          :control-string (control-string directive)
@@ -73,7 +73,7 @@
 (defclass plural-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\P)) directive (end-directive t))
+    ((client standard-client) (char (eql #\P)) directive (end-directive t))
   (change-class directive 'plural-directive))
 
 (defmethod interpret-item (client (directive plural-directive) &optional parameters)

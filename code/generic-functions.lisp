@@ -47,3 +47,5 @@
   (:method (client character stream)
     (declare (ignore client stream))
     character))
+
+(defgeneric parse-control-string-fragment (client control-string start))

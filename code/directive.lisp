@@ -1,5 +1,7 @@
 (cl:in-package #:invistra)
 
+(defclass standard-client () ())
+
 (defun merge-layout-requirements (r1 r2 ancestor)
   (when (or (and (member :justify-dynamic r1)
                  (member :logical-block r2))

@@ -11,7 +11,7 @@
 (defclass a-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\A)) directive (end-directive t))
+    ((client standard-client) (char (eql #\A)) directive (end-directive t))
   (change-class directive 'a-directive))
 
 (defmethod parameter-specifications ((client t) (directive a-directive))
@@ -85,7 +85,7 @@
 (defclass s-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\S)) directive (end-directive t))
+    ((client standard-client) (char (eql #\S)) directive (end-directive t))
   (change-class directive 's-directive))
 
 (defmethod parameter-specifications ((client t) (directive s-directive))
@@ -154,7 +154,7 @@
 (defclass w-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\W)) directive (end-directive t))
+    ((client standard-client) (char (eql #\W)) directive (end-directive t))
   (change-class directive 'w-directive))
 
 (defmethod layout-requirements ((item w-directive))
