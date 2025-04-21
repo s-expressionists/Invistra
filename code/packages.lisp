@@ -20,5 +20,6 @@
            #:interpret-item
            #:parameter-specifications
            #:parse-directive-suffix
+           #:parse-control-string-fragment
            #:specialize-directive
            #:standard-client))
