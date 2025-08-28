@@ -46,14 +46,14 @@
                      (arg (pop-argument)))
                  (if (null arg)
                      (write-string "()" *destination*)
-                     (incless:write-object ,(incless:client-form client)
+                     (incless:write-object ,(trinsic:client-form client)
                                            arg
                                            *destination*)))))
             ((and (eql 0 mincol)
                   (eql 0 minpad))
              `((let ((*print-escape* nil)
                      (*print-readably* nil))
-                 (incless:write-object ,(incless:client-form client)
+                 (incless:write-object ,(trinsic:client-form client)
                                        (pop-argument)
                                        *destination*))))
             (colon-p
@@ -64,7 +64,7 @@
                   (if (null arg)
                       "()"
                       (with-output-to-string (stream)
-                        (incless:write-object ,(incless:client-form client) arg stream)))
+                        (incless:write-object ,(trinsic:client-form client) arg stream)))
                   *destination*
                   ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))
             (t
@@ -72,7 +72,7 @@
                      (*print-readably* nil))
                  (write-string-with-padding
                   (with-output-to-string (stream)
-                    (incless:write-object ,(incless:client-form client)
+                    (incless:write-object ,(trinsic:client-form client)
                                           (pop-argument)
                                           stream))
                   *destination*
@@ -118,13 +118,13 @@
                      (arg (pop-argument)))
                  (if (null arg)
                      (write-string "()" *destination*)
-                     (incless:write-object ,(incless:client-form client)
+                     (incless:write-object ,(trinsic:client-form client)
                                            arg
                                            *destination*)))))
             ((and (eql 0 mincol)
                   (eql 0 minpad))
              `((let ((*print-escape* t))
-                 (incless:write-object ,(incless:client-form client)
+                 (incless:write-object ,(trinsic:client-form client)
                                        (pop-argument)
                                        *destination*))))
             (colon-p
@@ -134,14 +134,14 @@
                   (if (null arg)
                       "()"
                       (with-output-to-string (stream)
-                        (incless:write-object ,(incless:client-form client) arg stream)))
+                        (incless:write-object ,(trinsic:client-form client) arg stream)))
                   *destination*
                   ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))
             (t
              `((let ((*print-escape* t))
                  (write-string-with-padding
                   (with-output-to-string (stream)
-                    (incless:write-object ,(incless:client-form client)
+                    (incless:write-object ,(trinsic:client-form client)
                                           (pop-argument)
                                           stream))
                   *destination*
@@ -190,13 +190,13 @@
            `((let ((*print-pretty* t)
                    (*print-level* nil)
                    (*print-length* nil))
-               (incless:write-object ,(incless:client-form client) (pop-argument) *destination*))))
+               (incless:write-object ,(trinsic:client-form client) (pop-argument) *destination*))))
           (colon-p
            `((let ((*print-pretty* t))
-               (incless:write-object ,(incless:client-form client) (pop-argument) *destination*))))
+               (incless:write-object ,(trinsic:client-form client) (pop-argument) *destination*))))
           (at-sign-p
            `((let ((*print-level* nil)
                    (*print-length* nil))
-               (incless:write-object ,(incless:client-form client) (pop-argument) *destination*))))
+               (incless:write-object ,(trinsic:client-form client) (pop-argument) *destination*))))
           (t
-           `((incless:write-object ,(incless:client-form client) (pop-argument) *destination*))))))
+           `((incless:write-object ,(trinsic:client-form client) (pop-argument) *destination*))))))

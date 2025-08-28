@@ -381,7 +381,7 @@
                              do (apply control *destination* (pop-argument 'list))
                            else
                              do (with-arguments (pop-argument 'list)
-                                  (format-with-runtime-arguments ,(incless:client-form client)
+                                  (format-with-runtime-arguments ,(trinsic:client-form client)
                                                                  control)))))))
               (colon-p
                ;; We use one argument, and that should be a list of sublists.
@@ -399,7 +399,7 @@
                              do (apply control *destination* (pop-argument 'list))
                            else
                              do (with-arguments (pop-argument 'list)
-                                  (format-with-runtime-arguments ,(incless:client-form client)
+                                  (format-with-runtime-arguments ,(trinsic:client-form client)
                                                                  control)))))))
               (at-sign-p
                `((let ((iteration-limit ,iteration-limit)
@@ -421,7 +421,7 @@
                                ,@(if oncep
                                      '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                      '(do (funcall *inner-exit-if-exhausted*)))
-                               do (format-with-runtime-arguments ,(incless:client-form client)
+                               do (format-with-runtime-arguments ,(trinsic:client-form client)
                                                                  control)))))))
               (t
                ;; no modifiers
@@ -445,7 +445,7 @@
                                ,@(if oncep
                                      '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                      '(do (funcall *inner-exit-if-exhausted*)))
-                               do (format-with-runtime-arguments ,(incless:client-form client)
+                               do (format-with-runtime-arguments ,(trinsic:client-form client)
                                                                  control))))))))
         (let ((compiled-items (compile-items client items)))
           (cond ((and colon-p at-sign-p)
@@ -529,11 +529,11 @@
   (declare (ignore parameters))
   (if (at-sign-p directive)
       ;; reuse the arguments from the parent control-string
-      `((format-with-runtime-arguments ,(incless:client-form client)
+      `((format-with-runtime-arguments ,(trinsic:client-form client)
                                        (pop-argument 'string)))
       ;;
       `((apply #'format
-               ,(incless:client-form client)
+               ,(trinsic:client-form client)
                *destination*
                (pop-argument 'string)
                (pop-argument 'list)))))

@@ -37,7 +37,7 @@
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
-    `((inravina:pprint-newline ,(incless:client-form client) *destination*
+    `((inravina:pprint-newline ,(trinsic:client-form client) *destination*
                                ,(cond ((and colon-p at-sign-p) :mandatory)
                                       (colon-p :fill)
                                       (at-sign-p :miser)
@@ -168,7 +168,7 @@
                                  (at-sign-p (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0))))))))
     (if at-sign-p
-        `((inravina:execute-logical-block ,(incless:client-form client) *destination*
+        `((inravina:execute-logical-block ,(trinsic:client-form client) *destination*
                                           nil
                                           (lambda (*destination* escape-hook pop-argument-hook)
                                             (declare (ignore escape-hook pop-argument-hook))
@@ -184,7 +184,7 @@
                  (*previous-arguments* (make-array *remaining-argument-count*
                                                    :adjustable t :fill-pointer 0))
                  (*previous-argument-index* 0))
-            (inravina:execute-logical-block ,(incless:client-form client) *destination*
+            (inravina:execute-logical-block ,(trinsic:client-form client) *destination*
                                             object
                                             (lambda (*destination* *inner-exit-if-exhausted* *pop-argument-hook*)
 
@@ -221,7 +221,7 @@
 (defmethod compile-item (client (directive i-directive) &optional parameters)
   (declare (ignorable client parameters))
   #-sicl
-  `((inravina:pprint-indent ,(incless:client-form client) *destination*
+  `((inravina:pprint-indent ,(trinsic:client-form client) *destination*
                             ,(if (colon-p directive) :current :block)
                             ,(car parameters))))
 
@@ -302,7 +302,7 @@
          parameters))
 
 (defmethod compile-item (client (directive call-function-directive) &optional parameters)
-  `((funcall (coerce-function-designator ,(incless:client-form client) ',(function-name directive))
+  `((funcall (coerce-function-designator ,(trinsic:client-form client) ',(function-name directive))
              *destination*
              (pop-argument)
              ,(colon-p directive)

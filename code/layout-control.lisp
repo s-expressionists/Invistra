@@ -71,13 +71,13 @@
       directive
     (cond (colon-p
            #-sicl
-           `((inravina:pprint-tab ,(incless:client-form client) *destination*
+           `((inravina:pprint-tab ,(trinsic:client-form client) *destination*
                                   ,(if at-sign-p :section-relative :section)
                                   ,@parameters)))
           (at-sign-p
-           `((format-relative-tab ,(incless:client-form client) ,@parameters)))
+           `((format-relative-tab ,(trinsic:client-form client) ,@parameters)))
           (t
-           `((format-absolute-tab ,(incless:client-form client) ,@parameters))))))
+           `((format-absolute-tab ,(trinsic:client-form client) ,@parameters))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -217,7 +217,7 @@
                   collect `(setf newline-segment ,segment)
                 else
                   collect `(push ,segment segments)))
-      (print-justification ,(incless:client-form client)
+      (print-justification ,(trinsic:client-form client)
                            ,(colon-p directive) ,(at-sign-p directive)
                            *extra-space* *line-length*
                            newline-segment (nreverse segments)

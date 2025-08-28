@@ -57,11 +57,11 @@
                    (write-char char *destination*)
                    (write-string (char-name char) *destination*))
                ,@(when at-sign-p
-                   `((print-key-sequence ,(incless:client-form client) char
+                   `((print-key-sequence ,(trinsic:client-form client) char
                                          *destination*))))))
           (at-sign-p
            `((let ((*print-escape* t))
-               (incless:write-object ,(incless:client-form client) (pop-argument 'character) *destination*))))
+               (incless:write-object ,(trinsic:client-form client) (pop-argument 'character) *destination*))))
           (t
            `((write-char (pop-argument 'character) *destination*))))))
 

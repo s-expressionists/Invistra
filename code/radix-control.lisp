@@ -324,7 +324,7 @@
       directive
     (let ((radix (car parameters)))
       (cond ((numberp radix)
-             `((print-radix-arg ,(incless:client-form client)
+             `((print-radix-arg ,(trinsic:client-form client)
                                 ,colon-p ,at-sign-p ,@parameters)))
             ((null radix)
              (cond ((and at-sign-p colon-p)
@@ -337,7 +337,7 @@
                     `((print-cardinal-arg)))))
             (t
              `((if ,radix
-                   (print-radix-arg ,(incless:client-form client)
+                   (print-radix-arg ,(trinsic:client-form client)
                                     ,colon-p ,at-sign-p ,@parameters)
                    ,(cond ((and at-sign-p colon-p)
                            `(print-old-roman-arg))
@@ -363,7 +363,7 @@
   (apply #'print-radix-arg client (colon-p directive) (at-sign-p directive) 10 parameters))
 
 (defmethod compile-item (client (directive decimal-radix-directive) &optional parameters)
-  `((print-radix-arg ,(incless:client-form client) ,(colon-p directive) ,(at-sign-p directive) 10 ,@parameters)))
+  `((print-radix-arg ,(trinsic:client-form client) ,(colon-p directive) ,(at-sign-p directive) 10 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -380,7 +380,7 @@
   (apply #'print-radix-arg client (colon-p directive) (at-sign-p directive) 2 parameters))
 
 (defmethod compile-item (client (directive binary-radix-directive) &optional parameters)
-  `((print-radix-arg ,(incless:client-form client) ,(colon-p directive) ,(at-sign-p directive) 2 ,@parameters)))
+  `((print-radix-arg ,(trinsic:client-form client) ,(colon-p directive) ,(at-sign-p directive) 2 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -397,7 +397,7 @@
   (apply #'print-radix-arg client (colon-p directive) (at-sign-p directive) 8 parameters))
 
 (defmethod compile-item (client (directive octal-radix-directive) &optional parameters)
-  `((print-radix-arg ,(incless:client-form client) ,(colon-p directive) ,(at-sign-p directive) 8 ,@parameters)))
+  `((print-radix-arg ,(trinsic:client-form client) ,(colon-p directive) ,(at-sign-p directive) 8 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -416,4 +416,4 @@
 
 (defmethod compile-item
     (client (directive hexadecimal-radix-directive) &optional parameters)
-  `((print-radix-arg ,(incless:client-form client) ,(colon-p directive) ,(at-sign-p directive) 16 ,@parameters)))
+  `((print-radix-arg ,(trinsic:client-form client) ,(colon-p directive) ,(at-sign-p directive) 16 ,@parameters)))

@@ -242,7 +242,7 @@
       #+sicl nil #-sicl
       (loop with start = 0
             with in-blank-p = nil
-            with pprint-newline = `(inravina:pprint-newline ,(incless:client-form client) *destination* ,*newline-kind*)
+            with pprint-newline = `(inravina:pprint-newline ,(trinsic:client-form client) *destination* ,*newline-kind*)
             for char across item
             for index from 0
             for blankp = (and (find char #(#\Space #\Tab #\Page #\Return)) t)

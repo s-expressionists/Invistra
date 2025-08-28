@@ -159,7 +159,7 @@
                             parameters))))
 
 (defmethod compile-item (client (directive f-directive) &optional parameters)
-  `((print-float-arg ,(incless:client-form client)
+  `((print-float-arg ,(trinsic:client-form client)
                      (lambda (client value digits exponent sign)
                        (print-fixed-arg client value digits exponent sign
                                         ,(colon-p directive) ,(at-sign-p directive)
@@ -275,7 +275,7 @@
                             parameters))))
 
 (defmethod compile-item (client (directive e-directive) &optional parameters)
-  `((print-float-arg ,(incless:client-form client)
+  `((print-float-arg ,(trinsic:client-form client)
                      (lambda (client value digits exponent sign)
                        (print-exponent-arg client value digits exponent sign
                                            ,(colon-p directive) ,(at-sign-p directive)
@@ -332,7 +332,7 @@
                             parameters))))
 
 (defmethod compile-item (client (directive g-directive) &optional parameters)
-  `((print-float-arg ,(incless:client-form client)
+  `((print-float-arg ,(trinsic:client-form client)
                      (lambda (client value significand exponent sign)
                        (print-general-arg client value significand exponent sign
                                           ,(colon-p directive) ,(at-sign-p directive)
@@ -396,7 +396,7 @@
                             parameters))))
 
 (defmethod compile-item (client (directive monetary-directive) &optional parameters)
-  `((print-float-arg ,(incless:client-form client)
+  `((print-float-arg ,(trinsic:client-form client)
                      (lambda (client value digits exponent sign)
                        (print-monetary-arg client value digits exponent sign
                                            ,(colon-p directive) ,(at-sign-p directive)
