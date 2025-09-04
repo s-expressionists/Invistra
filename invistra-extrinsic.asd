@@ -51,7 +51,7 @@
                "parachute"
                "ansi-test-harness")
   :perform (asdf:test-op (op c)
-             (uiop:symbol-call :invistra-extrinsic/test/ansi :test))
+             (uiop:symbol-call :invistra-extrinsic/ansi-test :test))
   :components ((:module code
                 :pathname "code/extrinsic/ansi-test/"
                 :serial t
