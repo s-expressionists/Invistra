@@ -1,6 +1,10 @@
 (in-package #:invistra-numeral/test)
 
-(defclass numeral-client (incless-extrinsic:extrinsic-client) ())
+(defclass numeral-client (incless-extrinsic::extrinsic-client-impl) ())
+
+(defmethod make-load-form ((object numeral-client) &optional environment)
+  (declare (ignore environment))
+  '(make-instance 'numeral-client))
 
 (defvar *kaktovik-numeral-pattern*
   '#1=(#("𝋀" "𝋁" "𝋂" "𝋃" "𝋄"
