@@ -80,7 +80,7 @@
          parameters))
 
 (defmethod invistra:compile-item (client (directive numeral-directive) &optional parameters)
-  `((print-numeral-arg ,(incless:client-form client)
+  `((print-numeral-arg ,(trinsic:client-form client)
                        ,(invistra:colon-p directive) ,(invistra:at-sign-p directive)
                        ,(numeral-pattern directive)
                        ,@parameters)))
