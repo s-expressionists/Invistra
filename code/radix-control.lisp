@@ -66,7 +66,7 @@
 (defclass radix-directive (base-radix-directive) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\R)) directive (end-directive t))
+    ((client standard-client) (char (eql #\R)) directive (end-directive t))
   (change-class directive 'radix-directive))
 
 (defmethod parameter-specifications ((client t) (directive radix-directive))
@@ -356,7 +356,7 @@
   ())
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\D)) directive (end-directive t))
+    ((client standard-client) (char (eql #\D)) directive (end-directive t))
   (change-class directive 'decimal-radix-directive))
 
 (defmethod interpret-item (client (directive decimal-radix-directive) &optional parameters)
@@ -373,7 +373,7 @@
   ())
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\B)) directive (end-directive t))
+    ((client standard-client) (char (eql #\B)) directive (end-directive t))
   (change-class directive 'binary-radix-directive))
 
 (defmethod interpret-item (client (directive binary-radix-directive) &optional parameters)
@@ -390,7 +390,7 @@
   ())
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\O)) directive (end-directive t))
+    ((client standard-client) (char (eql #\O)) directive (end-directive t))
   (change-class directive 'octal-radix-directive))
 
 (defmethod interpret-item (client (directive octal-radix-directive) &optional parameters)
@@ -407,7 +407,7 @@
   ())
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\X)) directive (end-directive t))
+    ((client standard-client) (char (eql #\X)) directive (end-directive t))
   (change-class directive 'hexadecimal-radix-directive))
 
 (defmethod interpret-item

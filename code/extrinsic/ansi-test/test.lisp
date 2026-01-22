@@ -1,6 +1,6 @@
 (in-package #:invistra-extrinsic/ansi-test)
 
-(defclass extrinsic-test-client (inravina-extrinsic::extrinsic-client-impl) ())
+(defclass extrinsic-test-client (invistra-extrinsic::extrinsic-client-impl) ())
 
 (defvar *tests*
   '("FORMAT."

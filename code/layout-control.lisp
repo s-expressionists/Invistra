@@ -11,7 +11,7 @@
 (defclass tabulate-directive (directive) ())
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\T)) directive (end-directive t))
+    ((client standard-client) (char (eql #\T)) directive (end-directive t))
   (change-class directive 'tabulate-directive))
 
 (defmethod parameter-specifications
@@ -87,7 +87,7 @@
     (directive end-structured-directive-mixin no-modifiers-mixin) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\>)) directive (end-directive t))
+    ((client standard-client) (char (eql #\>)) directive (end-directive t))
   (if (colon-p directive)
       (change-class directive 'end-logical-block-directive)
       (change-class directive 'end-justification-directive)))
@@ -100,12 +100,12 @@
     (directive structured-directive-mixin) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\<)) directive
+    ((client standard-client) (char (eql #\<)) directive
      (end-directive end-justification-directive))
   (change-class directive 'justification-directive))
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\<)) directive (end-directive t))
+    ((client standard-client) (char (eql #\<)) directive (end-directive t))
   (error 'unmatched-directive
          :directive directive
          :control-string (control-string directive)

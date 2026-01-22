@@ -11,7 +11,7 @@
 (defclass underscore-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\_)) directive (end-directive t))
+    ((client standard-client) (char (eql #\_)) directive (end-directive t))
   (change-class directive 'underscore-directive))
 
 (defmethod layout-requirements ((item underscore-directive))
@@ -54,12 +54,12 @@
     (directive structured-directive-mixin) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\<)) directive
+    ((client standard-client) (char (eql #\<)) directive
      (end-directive end-logical-block-directive))
   (change-class directive 'logical-block-directive))
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\<)) directive (end-directive t))
+    ((client standard-client) (char (eql #\<)) directive (end-directive t))
   (error 'unmatched-directive
          :directive directive
          :control-string (control-string directive)
@@ -202,7 +202,7 @@
 (defclass i-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\I)) directive (end-directive t))
+    ((client standard-client) (char (eql #\I)) directive (end-directive t))
   (change-class directive 'i-directive))
 
 (defmethod parameter-specifications ((client t) (directive i-directive))
@@ -239,7 +239,7 @@
   ((%function-name :accessor function-name)))
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\/)) directive (end-directive t))
+    ((client standard-client) (char (eql #\/)) directive (end-directive t))
   (change-class directive 'call-function-directive))
 
 (defmethod parameter-specifications (client (directive call-function-directive))

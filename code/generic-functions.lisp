@@ -1,5 +1,7 @@
 (cl:in-package #:invistra)
 
+(defclass standard-client () ())
+
 ;;; Return the name of a subclass to be used for a particular
 ;;; directive.  Each particular directive subclass must be accompanied
 ;;; by an eql-specialized method on this generic function.

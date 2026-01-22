@@ -12,7 +12,7 @@
     (directive at-most-one-modifier-mixin) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\*)) directive (end-directive t))
+    ((client standard-client) (char (eql #\*)) directive (end-directive t))
   (change-class directive 'go-to-directive))
 
 (defmethod parameter-specifications ((client t) (directive go-to-directive))
@@ -60,7 +60,7 @@
   nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\])) directive (end-directive t))
+    ((client standard-client) (char (eql #\])) directive (end-directive t))
   (change-class directive 'end-conditional-directive))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -74,12 +74,12 @@
                               :accessor last-clause-is-default-p)))
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\[)) directive
+    ((client standard-client) (char (eql #\[)) directive
      (end-directive end-conditional-directive))
   (change-class directive 'conditional-directive))
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\[)) directive (end-directive t))
+    ((client standard-client) (char (eql #\[)) directive (end-directive t))
   (error 'unmatched-directive
          :directive directive
          :control-string (control-string directive)
@@ -192,7 +192,7 @@
   ())
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\})) directive (end-directive t))
+    ((client standard-client) (char (eql #\})) directive (end-directive t))
   (change-class directive 'end-iteration-directive))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -204,12 +204,12 @@
   ())
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\{)) directive
+    ((client standard-client) (char (eql #\{)) directive
      (end-directive end-iteration-directive))
   (change-class directive 'iteration-directive))
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\{)) directive (end-directive t))
+    ((client standard-client) (char (eql #\{)) directive (end-directive t))
   (error 'unmatched-directive :directive directive :control-string
          (control-string directive) :tilde-position (start directive)))
 
@@ -509,7 +509,7 @@
   ())
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\?)) directive (end-directive t))
+    ((client standard-client) (char (eql #\?)) directive (end-directive t))
   (change-class directive 'recursive-processing-directive))
 
 (defmethod interpret-item (client (directive recursive-processing-directive) &optional parameters)
