@@ -246,7 +246,7 @@
   (declare (ignore client))
   '((:type (or null character integer) :default nil :rest t)))
 
-(defmethod parse-directive-suffix ((directive-character (eql #\/)) control-string start end)
+(defmethod parse-directive-suffix ((client standard-client) (directive-character (eql #\/)) control-string start end)
   (let ((position-of-trailing-slash
           (position #\/ control-string :start start :end end)))
     (when (null position-of-trailing-slash)

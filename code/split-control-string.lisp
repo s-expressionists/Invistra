@@ -3,7 +3,7 @@
 ;;; Split a control string into its components.  Each component is
 ;;; either a string to be printed as it is, or a directive.  The list
 ;;; of components will never contain two consecutive strings.
-(defun split-control-string (control-string)
+(defun split-control-string (client control-string)
   (loop with start = 0
         with end = (length control-string)
         while (< start end)
@@ -31,7 +31,7 @@
                                                at-sign-p
                                                suffix-start
                                                end-of-directive-position)
-                             (parse-format-directive control-string tilde-position)
+                             (parse-format-directive client control-string tilde-position)
                            (prog1 (make-instance 'directive
                                     :control-string control-string
                                     :start tilde-position

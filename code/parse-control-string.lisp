@@ -116,7 +116,7 @@
 ;;; whether the colon and the at-sign modifiers were given, and the
 ;;; position in the string immediately beyond the character indicating
 ;;; the directive.
-(defun parse-format-directive (string start)
+(defun parse-format-directive (client string start)
   (let ((end (length string)))
     (multiple-value-bind (parameters position1)
         (parse-parameters string start end)
@@ -132,5 +132,5 @@
         ;; that follow the directive character itself.
         (let ((directive-character (char string position2))
               (suffix-start (incf position2)))
-          (setf position2 (parse-directive-suffix directive-character string suffix-start end))
+          (setf position2 (parse-directive-suffix client directive-character string suffix-start end))
           (values directive-character parameters colon-p at-sign-p suffix-start position2))))))
