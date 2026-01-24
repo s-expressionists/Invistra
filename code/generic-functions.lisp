@@ -49,3 +49,5 @@
   (:method (client character stream)
     (declare (ignore client stream))
     character))
+
+(defgeneric make-argument-cursor (client object))

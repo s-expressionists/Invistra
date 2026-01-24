@@ -4,11 +4,12 @@
   (check-type control-string string)
   (let ((items (structure-items client (split-control-string client control-string))))
     `(lambda (*destination* &rest args)
-       (with-arguments args
+       (with-arguments (,(trinsic:client-form client) args)
          ,@(compile-items client items)
          (pop-remaining-arguments)))))
 
 (defun format-compiler-macro (client form destination control-string args)
+  (declare (ignore form))
   `(format ,(trinsic:client-form client) ,destination
            ,(if (stringp control-string)
                 (formatter client control-string)

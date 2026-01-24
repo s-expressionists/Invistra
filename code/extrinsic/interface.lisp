@@ -7,10 +7,6 @@
     (extrinsic-client quaviver/schubfach:client)
   ())
 
-(defmethod make-load-form ((object extrinsic-client-impl) &optional environment)
-  (declare (ignore environment))
-  '(make-instance 'extrinsic-client-impl))
-
 (change-class incless-extrinsic:*client* 'extrinsic-client-impl)
 
 (invistra:define-interface :client-form incless-extrinsic:*client*

@@ -249,7 +249,7 @@
                                        (< index iteration-limit))
                              when (or (not oncep) (plusp index))
                                do (funcall *inner-exit-if-exhausted*)
-                             do (with-arguments (pop-argument 'list)
+                             do (with-arguments (client (pop-argument))
                                   (let ((*inner-tag* catch-tag))
                                     (catch *inner-tag*
                                       (format-with-runtime-arguments client control))))))))
@@ -270,7 +270,7 @@
                                   (error 'argument-type-error
                                          :expected-type 'list
                                          :datum args))
-                                (with-arguments args
+                                (with-arguments (client args)
                                   (catch *inner-tag*
                                      (format-with-runtime-arguments client control)))))
                          (if (null iteration-limit)
@@ -306,7 +306,7 @@
                            while (and (or (null iteration-limit)
                                           (< index iteration-limit))
                                       (or (and oncep (zerop index)) args)))
-                     (with-arguments (pop-argument 'list)
+                     (with-arguments (client (pop-argument))
                        (catch *inner-tag*
                          (loop for index from 0
                                while (or (null iteration-limit)
@@ -323,18 +323,18 @@
                                  (< index iteration-limit))
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
-                       do (with-arguments (pop-argument 'list)
+                       do (with-arguments (client (pop-argument))
                             (interpret-items client items)))))
               (colon-p
                ;; We use one argument, and that should be a list of sublists.
                ;; Each sublist is used as arguments for one iteration.
-               (with-arguments (pop-argument 'list)
+               (with-arguments (client (pop-argument))
                  (loop for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
-                       do (with-arguments (pop-argument 'list)
+                       do (with-arguments (client (pop-argument))
                             (interpret-items client items)))))
               (at-sign-p
                (catch *inner-tag*
@@ -348,7 +348,7 @@
                ;; no modifiers
                ;; We use one argument, and that should be a list.
                ;; The elements of that list are used by the iteration.
-               (with-arguments (pop-argument 'list)
+               (with-arguments (client (pop-argument))
                  (loop for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
@@ -380,7 +380,7 @@
                            if (functionp control)
                              do (apply control *destination* (pop-argument 'list))
                            else
-                             do (with-arguments (pop-argument 'list)
+                             do (with-arguments (,(trinsic:client-form client) (pop-argument))
                                   (format-with-runtime-arguments ,(trinsic:client-form client)
                                                                  control)))))))
               (colon-p
@@ -388,7 +388,7 @@
                ;; Each sublist is used as arguments for one iteration.
                `((let ((iteration-limit ,iteration-limit)
                        (control (pop-argument '(or function string))))
-                   (with-arguments (pop-argument 'list)
+                   (with-arguments (,(trinsic:client-form client) (pop-argument))
                      (loop for index from 0
                            while (or (null iteration-limit)
                                      (< index iteration-limit))
@@ -398,22 +398,21 @@
                            if (functionp control)
                              do (apply control *destination* (pop-argument 'list))
                            else
-                             do (with-arguments (pop-argument 'list)
+                             do (with-arguments (,(trinsic:client-form client) (pop-argument))
                                   (format-with-runtime-arguments ,(trinsic:client-form client)
                                                                  control)))))))
               (at-sign-p
                `((let ((iteration-limit ,iteration-limit)
                        (control (pop-argument '(or function string))))
                    (if (functionp control)
-                       (loop for args = (pop-remaining-arguments)
-                               then (apply control *destination* args)
-                             for index from 0
-                             finally (go-to-argument (- (length args)))
+                       (loop for index from 0
                              while (and (or (null iteration-limit)
                                             (< index iteration-limit))
                                         ,(if oncep
                                              '(or (zerop index) args)
-                                             'args)))
+                                             'args))
+                             do (funcall *inner-exit-if-exhausted*)
+                                (go-to-argument (- (length (apply control *destination* (pop-remaining-arguments))))))
                        (catch *inner-tag*
                          (loop for index from 0
                                while (or (null iteration-limit)
@@ -438,7 +437,7 @@
                                         ,(if oncep
                                              '(or (zerop index) args)
                                              'args)))
-                       (with-arguments (pop-argument 'list)
+                       (with-arguments (,(trinsic:client-form client) (pop-argument))
                          (loop for index from 0
                                while (or (null iteration-limit)
                                          (< index iteration-limit))
@@ -459,20 +458,20 @@
                              ,@(if oncep
                                    '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                    '(do (funcall *inner-exit-if-exhausted*)))
-                             do (with-arguments (pop-argument 'list)
+                             do (with-arguments (,(trinsic:client-form client) (pop-argument))
                                   ,@compiled-items))))))
                 (colon-p
                  ;; We use one argument, and that should be a list of sublists.
                  ;; Each sublist is used as arguments for one iteration.
                  `((let ((iteration-limit ,iteration-limit))
-                     (with-arguments (pop-argument 'list)
+                     (with-arguments (,(trinsic:client-form client) (pop-argument))
                        (loop for index from 0
                              while (or (null iteration-limit)
                                        (< index iteration-limit))
                              ,@(if oncep
                                    '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                    '(do (funcall *inner-exit-if-exhausted*)))
-                             do (with-arguments (pop-argument 'list)
+                             do (with-arguments (,(trinsic:client-form client) (pop-argument))
                                   ,@compiled-items))))))
                 (at-sign-p
                  `((let ((iteration-limit ,iteration-limit))
@@ -490,7 +489,7 @@
                  ;; We use one argument, and that should be a list.
                  ;; The elements of that list are used by the iteration.
                  `((let ((iteration-limit ,iteration-limit))
-                     (with-arguments (pop-argument 'list)
+                     (with-arguments (,(trinsic:client-form client) (pop-argument))
                        (loop for index from 0
                              while (or (null iteration-limit)
                                        (< index iteration-limit))

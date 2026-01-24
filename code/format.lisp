@@ -47,15 +47,26 @@
 
 (defparameter *newline-kind* nil)
 
-(defvar *previous-arguments*)
+(defvar *argument-count* 0)
 
-(defvar *previous-argument-index*)
+(defvar *argument-index-hook*
+  (lambda ()
+    0))
 
-(defvar *remaining-argument-count*)
+(defvar *pop-argument-hook*
+  (lambda ()
+    (error 'no-more-arguments)))
 
-(defvar *pop-argument-hook*)
+(defvar *go-to-argument-hook*
+  (lambda (index absolutep)
+    (declare (ignore absolutep))
+    (error 'go-to-out-of-bounds
+           :what-argument index
+           :max-arguments 0)))
 
-(defvar *pop-remaining-arguments*)
+(defvar *pop-remaining-arguments-hook*
+  (lambda ()
+    nil))
 
 (defvar *inner-exit-if-exhausted* nil)
 
@@ -69,91 +80,109 @@
 
 (defvar *outer-tag* nil)
 
-(defmacro with-arguments (arguments &body body)
-  (let ((block-name (gensym))
-        (arguments-var (gensym)))
+(defmethod make-argument-cursor ((client standard-client) object)
+  (error 'type-error :datum object :expected-type 'list))
+
+(defmethod make-argument-cursor ((client standard-client) (object null))
+  (values 0
+          (lambda ()
+            nil)
+          (lambda ()
+            0)
+          (lambda ()
+            (error 'no-more-arguments))
+          (lambda ()
+            nil)
+          (lambda (index absolutep)
+            (declare (ignore absolutep))
+            (unless (zerop index)
+              (error 'go-to-out-of-bounds
+                     :what-argument index
+                     :max-arguments 0)))))
+
+(defmethod make-argument-cursor ((client standard-client) (object cons))
+  (let ((head object)
+        (position 0))
+    (values (length object)
+            (lambda ()
+              head)
+            (lambda ()
+              position)
+            (lambda ()
+              (cond (head
+                     (incf position)
+                     (pop head))
+                    (t
+                     (error 'no-more-arguments))))
+            (lambda ()
+              (prog1
+                  head
+                (setf head nil
+                      position (length object))))
+            (lambda (index absolutep)
+              (cond (absolutep
+                     (setf position index)
+                     (when (minusp position)
+                       (error 'go-to-out-of-bounds
+                              :what-argument position
+                              :max-arguments (length object)))
+                     (setf head (nthcdr position object)))
+                    ((minusp index)
+                     (setf position (+ position index))
+                     (when (minusp position)
+                       (error 'go-to-out-of-bounds
+                              :what-argument position
+                              :max-arguments (length object)))
+                     (setf head (nthcdr position object)))
+                    (t
+                     (setf position (+ position index)
+                           head (nthcdr index head))))))))
+
+(defmacro with-arguments ((client arguments) &body body)
+  (let ((block-name (gensym)))
     `(catch ',block-name
-       (let* ((,arguments-var ,arguments)
-              (*previous-argument-index* 0)
-              (*remaining-argument-count* (length ,arguments-var))
-              (*previous-arguments* (make-array *remaining-argument-count*
-                                                :adjustable t :fill-pointer 0))
-              (*pop-argument-hook* (lambda ()
-                                     (pop ,arguments-var)))
-              (*pop-remaining-arguments* (lambda ()
-                                           (prog1 ,arguments-var
-                                             (setf ,arguments-var nil))))
-              (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
-              (*outer-exit* *inner-exit*)
-              (*outer-tag* *inner-tag*)
-              (*inner-exit-if-exhausted* (lambda (&optional ret)
-                                           (unless (or ,arguments-var
-                                                       (< *previous-argument-index*
-                                                          (length *previous-arguments*)))
-                                             (throw ',block-name ret))))
-              (*inner-exit* (lambda (&optional ret)
-                              (throw ',block-name ret)))
-              (*inner-tag* ',block-name))
-         ,@body))))
+       (multiple-value-bind (*argument-count* more-arguments-p-hook *argument-index-hook*
+                             *pop-argument-hook* *pop-remaining-arguments-hook*
+                             *go-to-argument-hook*)
+           (make-argument-cursor ,client ,arguments)
+         (let* ((*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
+                (*outer-exit* *inner-exit*)
+                (*outer-tag* *inner-tag*)
+                (*inner-exit-if-exhausted* (lambda (&optional ret)
+                                             (unless (funcall more-arguments-p-hook)
+                                               (throw ',block-name ret))))
+                (*inner-exit* (lambda (&optional ret)
+                                (throw ',block-name ret)))
+                (*inner-tag* ',block-name))
+           ,@body)))))
 
 ;;; The directive interpreter.
 
 (defun pop-argument (&optional (type t))
-  (unless (< *previous-argument-index* (length *previous-arguments*))
-    (let (exited)
-      (unwind-protect
-           (progn
-             (funcall *inner-exit-if-exhausted*)
-             (setf exited t))
-        (unless exited
-          (error 'no-more-arguments)))
-      (vector-push-extend (funcall *pop-argument-hook*) *previous-arguments*)))
-  (when (= *previous-argument-index* (length *previous-arguments*))
-    (error 'no-more-arguments))
-  (let ((arg (aref *previous-arguments* *previous-argument-index*)))
-    (incf *previous-argument-index*)
-    (decf *remaining-argument-count*)
-    (unless (typep arg type)
-      (error 'argument-type-error
-             :expected-type type
-             :datum arg))
-    arg))
+  ;(if (funcall *more-arguments-p-hook*)
+      (let ((arg (funcall *pop-argument-hook*)))
+        (unless (typep arg type)
+          (error 'argument-type-error
+                 :expected-type type
+                 :datum arg))
+        arg))
+   #|   (let ((exited nil))
+        (unwind-protect
+             (progn
+               (funcall *inner-exit-if-exhausted*)
+               (setf exited t))
+          (unless exited
+            (error 'no-more-arguments))))))|#
 
 (defun pop-remaining-arguments ()
-  (let* ((tail (funcall *pop-remaining-arguments*))
-         (tail-len (length tail)))
-    (adjust-array *previous-arguments* (+ (length *previous-arguments*) tail-len))
-    (replace *previous-arguments* tail :start1 (length *previous-arguments*))
-    (setf tail
-          (concatenate 'list
-                       (subseq *previous-arguments* *previous-argument-index*)
-                       tail))
-    (setf *previous-argument-index* (length *previous-arguments*))
-    tail))
+  (funcall *pop-remaining-arguments-hook*))
 
 (defun go-to-argument (index &optional absolute)
-  (when absolute
-    (incf *remaining-argument-count* *previous-argument-index*)
-    (setf *previous-argument-index* 0))
-  (cond ((zerop index)
-         (aref *previous-arguments* *previous-argument-index*))
-        ((plusp index)
-         (prog ()
-          next
-            (decf index)
-            (when (zerop index)
-              (return (pop-argument)))
-            (pop-argument)
-            (go next)))
-        (t
-         (let ((new-arg-index (+ *previous-argument-index* index)))
-           (when (minusp new-arg-index)
-             (error 'go-to-out-of-bounds
-                    :what-argument new-arg-index
-                    :max-arguments *remaining-argument-count*))
-           (decf *remaining-argument-count* index)
-           (setf *previous-argument-index* new-arg-index)
-           (aref *previous-arguments* *previous-argument-index*)))))
+  (funcall *go-to-argument-hook* index absolute))
+
+(defun remaining-argument-count ()
+  (- *argument-count*
+     (funcall *argument-index-hook*)))
 
 (defmethod interpret-parameter ((parameter argument-reference-parameter))
   (or (pop-argument `(or null ,(parameter-type parameter)))
@@ -166,20 +195,20 @@
       `(pop-argument '(or null ,(parameter-type parameter)))))
 
 (defmethod interpret-parameter ((parameter remaining-argument-count-parameter))
-  (if (typep *remaining-argument-count*
-             (parameter-type parameter))
-      *remaining-argument-count*
-      (error 'argument-type-error
-             :expected-type (parameter-type parameter)
-             :datum *remaining-argument-count*)))
+  (let ((value (remaining-argument-count)))
+    (if (typep value (parameter-type parameter))
+        value
+        (error 'argument-type-error
+               :expected-type (parameter-type parameter)
+               :datum value))))
 
 (defmethod compile-parameter ((parameter remaining-argument-count-parameter))
-  `(if (typep *remaining-argument-count*
-              ',(parameter-type parameter))
-       *remaining-argument-count*
-       (error 'argument-type-error
-              :expected-type ',(parameter-type parameter)
-              :datum *remaining-argument-count*)))
+  `(let ((value (remaining-argument-count)))
+     (if (typep value ',(parameter-type parameter))
+         value
+         (error 'argument-type-error
+                :expected-type ',(parameter-type parameter)
+                :datum value))))
 
 (defmethod interpret-parameter ((parameter literal-parameter))
   (parameter-value parameter))
@@ -212,7 +241,7 @@
                                      :destination destination)))))
     (if (functionp control)
         (apply control *destination* args)
-        (with-arguments args
+        (with-arguments (client args)
           (format-with-runtime-arguments client control)))
     (if (null destination)
         (get-output-stream-string *destination*)

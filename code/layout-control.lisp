@@ -104,7 +104,7 @@
      (end-directive end-justification-directive))
   (change-class directive 'justification-directive))
 
-(defmethod specialize-directive
+#+(or)(defmethod specialize-directive
     ((client standard-client) (char (eql #\<)) directive (end-directive t))
   (error 'unmatched-directive
          :directive directive

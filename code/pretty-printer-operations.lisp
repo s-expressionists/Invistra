@@ -116,18 +116,44 @@
                                  (at-sign-p (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0)))))))
          (object (unless at-sign-p (pop-argument))))
-    (flet ((interpret-body (*destination* escape-hook pop-argument-hook)
+    (flet ((interpret-body (*destination* *inner-exit-if-exhausted* pop-argument-hook)
              (if at-sign-p
                  (interpret-items client (aref (clauses directive)
                                                (if (= (length (clauses directive)) 1)
                                                    0
                                                    1)))
-                 (let* ((*remaining-argument-count* (dotted-list-length object))
-                        (*previous-arguments* (make-array *remaining-argument-count*
-                                                          :adjustable t :fill-pointer 0))
-                        (*previous-argument-index* 0)
-                        (*inner-exit-if-exhausted* escape-hook)
-                        (*pop-argument-hook* pop-argument-hook))
+                 (let* ((*argument-count* (dotted-list-length object))
+                        (previous-arguments (make-array *argument-count*
+                                                        :adjustable t :fill-pointer 0))
+                        (position 0)
+                        (*argument-index-hook*
+                          (lambda () position))
+                        (*pop-argument-hook*
+                          (lambda ()
+                            (prog1
+                                (if (< position (length previous-arguments))
+                                    (aref previous-arguments position)
+                                    (vector-push-extend (funcall pop-argument-hook)
+                                                        previous-arguments))
+                              (incf position))))
+                        (*pop-remaining-arguments-hook*
+                          (lambda () nil))
+                        (*go-to-argument-hook*
+                          (lambda (index absolutep)
+                            (unless absolutep
+                              (incf index position))
+                            (cond ((not (< -1 index *argument-count*))
+                                   (error 'go-to-out-of-bounds
+                                          :what-argument index
+                                          :max-arguments *argument-count*))
+                                  ((<= index position)
+                                   (setf position index))
+                                  (t
+                                   (tagbody
+                                    next
+                                      (when (< position index)
+                                        (funcall *pop-argument-hook*)
+                                        (go next))))))))
                    (interpret-items client (aref (clauses directive)
                                                  (if (= (length (clauses directive)) 1)
                                                      0
