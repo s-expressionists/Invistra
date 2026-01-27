@@ -13,4 +13,5 @@
                 :pathname "code/extension/"
                 :serial t
                 :components ((:file "packages")
-                             (:file "arguments")))))
+                             (:file "arguments")
+                             (:file "call-function")))))

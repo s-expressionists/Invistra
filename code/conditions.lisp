@@ -78,13 +78,16 @@
   ())
 
 (define-condition no-such-package (directive-syntax-error)
-  ())
+  ((%package-name :reader no-such-package-package-name
+                  :initarg :package-name)))
 
 (define-condition no-such-symbol (directive-syntax-error)
-  ())
+  ((%symbol-name :reader no-such-symbol-symbol-name
+                 :initarg :symbol-name)))
 
 (define-condition symbol-not-external (directive-syntax-error)
-  ())
+  ((%symbol :reader symbol-not-external-symbol
+            :initarg :symbol)))
 
 (define-condition go-to-out-of-bounds (format-runtime-error)
   ((%what-argument :initarg :what-argument :reader what-argument)

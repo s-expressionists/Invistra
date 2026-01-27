@@ -303,12 +303,14 @@
                   (subseq control-string
                           suffix-start
                           position-of-package-marker))))
+           (internalp (or (null position-of-package-marker)
+                          (char= #\: (char control-string (1+ position-of-package-marker)))))
            (symbol-name
              (string-upcase
               (subseq control-string
                       (cond ((null position-of-package-marker)
                              suffix-start)
-                            ((char= #\: (char control-string (1+ position-of-package-marker)))
+                            (internalp
                              (+ 2 position-of-package-marker))
                             (t
                              (1+ position-of-package-marker)))
@@ -316,8 +318,22 @@
            (package (find-package package-name)))
       (when (null package)
         (error 'no-such-package
-               :directive directive))
-      (setf (function-name directive) (intern symbol-name package)))))
+               :directive directive
+               :package-name package-name))
+      (if (eq *package* package)
+          (setf (function-name directive) (intern symbol-name package))
+          (multiple-value-bind (symbol status)
+              (find-symbol symbol-name package)
+            (when (null symbol)
+              (error 'no-such-symbol
+                     :directive directive
+                     :symbol-name symbol-name))
+            (when (and (not internalp)
+                       (not (eql status :external)))
+              (error 'symbol-not-external
+                     :directive directive
+                     :symbol symbol))
+            (setf (function-name directive) symbol))))))
 
 (defmethod interpret-item (client (directive call-function-directive) &optional parameters)
   (apply (coerce-function-designator client (function-name directive))

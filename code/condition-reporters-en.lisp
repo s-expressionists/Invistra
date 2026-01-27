@@ -173,21 +173,24 @@
      stream
      (language acclimation:english))
   (report-control-string-and-directive-position condition stream)
-  (cl:format stream "the named package does not exist."))
+  (cl:format stream "A package named ~a does not exist."
+             (no-such-package-package-name condition)))
 
 (defmethod acclimation:report-condition
     ((condition no-such-symbol)
      stream
      (language acclimation:english))
   (report-control-string-and-directive-position condition stream)
-  (cl:format stream "a symbol with that name does not exist."))
+  (cl:format stream "A symbol with a name of ~a does not exist."
+             (no-such-symbol-symbol-name condition)))
 
 (defmethod acclimation:report-condition
     ((condition symbol-not-external)
      stream
      (language acclimation:english))
   (report-control-string-and-directive-position condition stream)
-  (cl:format stream "the symbol is not external in the package."))
+  (cl:format stream "The symbol ~s is not external in the package."
+             (symbol-not-external-symbol condition)))
 
 (defmethod acclimation:report-condition
     ((condition go-to-out-of-bounds)

@@ -47,26 +47,15 @@
 
 (defparameter *newline-kind* nil)
 
-(defvar *argument-count* 0)
+(defvar *argument-count* nil)
 
-(defvar *argument-index-hook*
-  (lambda ()
-    0))
+(defvar *argument-index-hook* nil)
 
-(defvar *pop-argument-hook*
-  (lambda ()
-    (error 'no-more-arguments)))
+(defvar *pop-argument-hook* nil)
 
-(defvar *go-to-argument-hook*
-  (lambda (index absolutep)
-    (declare (ignore absolutep))
-    (error 'go-to-out-of-bounds
-           :what-argument index
-           :max-arguments 0)))
+(defvar *go-to-argument-hook* nil)
 
-(defvar *pop-remaining-arguments-hook*
-  (lambda ()
-    nil))
+(defvar *pop-remaining-arguments-hook* nil)
 
 (defvar *inner-exit-if-exhausted* nil)
 
@@ -174,15 +163,43 @@
           (unless exited
             (error 'no-more-arguments))))))|#
 
+(defun pop-argument-form (&optional (type t))
+  (cond ((null *pop-argument-hook*)
+         `(pop-argument `,type))
+        ((eq type t)
+         (funcall *pop-argument-hook*))
+        (t
+         (let ((arg (funcall *pop-argument-hook*)))
+           `(progn
+              (check-type ,arg ,type)
+              ,arg)))))
+
 (defun pop-remaining-arguments ()
   (funcall *pop-remaining-arguments-hook*))
+
+(defun pop-remaining-arguments-form ()
+  (if *pop-remaining-arguments-hook*
+      (funcall *pop-remaining-arguments-hook*)
+      `(funcall *pop-remaining-arguments-hook*)))
 
 (defun go-to-argument (index &optional absolute)
   (funcall *go-to-argument-hook* index absolute))
 
+(defun go-to-argument-form (index &optional absolute)
+  (if *go-to-argument-hook*
+      (funcall *go-to-argument-hook* index absolute)
+      `(funcall *go-to-argument-hook* index absolute)))
+
 (defun remaining-argument-count ()
   (- *argument-count*
      (funcall *argument-index-hook*)))
+
+(defun remaining-argument-count-form ()
+  (if (and *argument-count* *argument-index-hook*)
+      (- *argument-count*
+         (funcall *argument-index-hook*))
+      `(- *argument-count*
+          (funcall *argument-index-hook*))))
 
 (defmethod interpret-parameter ((parameter argument-reference-parameter))
   (or (pop-argument `(or null ,(parameter-type parameter)))
