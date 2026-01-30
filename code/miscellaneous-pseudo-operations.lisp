@@ -95,7 +95,7 @@
                  (and (null p2) p1 p3 (eql p1 p3))
                  (and (null p3) p1 p2 (eql p1 p2))
                  (and p1 p2 p3 (<= p1 p2 p3)))
-             (funcall (if colon-p *outer-exit* *inner-exit*) nil))))))
+             (funcall (if colon-p *outer-exit* *inner-exit*)))))))
 
 (defmethod compile-item (client (directive circumflex-directive) &optional parameters)
   (with-accessors ((colon-p colon-p))
@@ -108,14 +108,14 @@
              `((cond ((null ,p1)
                       (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
                      ((eql 0 ,p1)
-                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*) nil)))))
+                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*))))))
             ((null p3)
              `((cond ((and (null ,p1) (null ,p2))
                       (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
                      ((or (and (null ,p1) (eql 0 ,p2))
                           (and (eql 0 ,p1) (null ,p2))
                           (and ,p1 ,p2 (eql ,p1 ,p2)))
-                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*) nil)))))
+                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*))))))
             (t
              `((cond ((and (null ,p1) (null ,p2) (null ,p3))
                       (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
@@ -126,7 +126,7 @@
                           (and (null ,p2) ,p1 ,p3 (eql ,p1 ,p3))
                           (and (null ,p3) ,p1 ,p2 (eql ,p1 ,p2))
                           (and ,p1 ,p2 ,p3 (<= ,p1 ,p2 ,p3)))
-                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*) nil)))))))))
+                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
