@@ -317,7 +317,7 @@
         (cond ((and colon-p at-sign-p)
                ;; The remaining arguments should be lists.  Each argument
                ;; is used in a different iteration.
-               (catch *inner-tag*
+               (with-remaining-arguments
                  (loop for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
@@ -337,7 +337,7 @@
                        do (with-arguments (client (pop-argument))
                             (interpret-items client items)))))
               (at-sign-p
-               (catch *inner-tag*
+               (with-remaining-arguments
                  (loop for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
@@ -451,7 +451,7 @@
                  ;; The remaining arguments should be lists.  Each argument
                  ;; is used in a different iteration.
                  `((let ((iteration-limit ,iteration-limit))
-                     (catch *inner-tag*
+                     (with-remaining-arguments
                        (loop for index from 0
                              while (or (null iteration-limit)
                                        (< index iteration-limit))
@@ -475,7 +475,7 @@
                                   ,@compiled-items))))))
                 (at-sign-p
                  `((let ((iteration-limit ,iteration-limit))
-                     (catch *inner-tag*
+                     (with-remaining-arguments
                        (loop for index from 0
                              while (or (null iteration-limit)
                                        (< index iteration-limit))

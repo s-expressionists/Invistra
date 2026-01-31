@@ -116,7 +116,7 @@
                                  (at-sign-p (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0)))))))
          (object (unless at-sign-p (pop-argument))))
-    (flet ((interpret-body (*destination* *inner-exit-if-exhausted* pop-argument-hook)
+    (flet ((interpret-body (*destination* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
              (if at-sign-p
                  (interpret-items client (aref (clauses directive)
                                                (if (= (length (clauses directive)) 1)
@@ -196,7 +196,7 @@
     (if at-sign-p
         `((inravina:execute-logical-block ,(trinsic:client-form client) *destination*
                                           nil
-                                          (lambda (*destination* escape-hook pop-argument-hook)
+                                          (lambda (*destination* escape-hook pop-argument-hook more-arguments-p-hook)
                                             (declare (ignore escape-hook pop-argument-hook))
                                             (catch *inner-tag*
                                               ,@(compile-items client (aref (clauses directive)
@@ -212,7 +212,7 @@
                  (*previous-argument-index* 0))
             (inravina:execute-logical-block ,(trinsic:client-form client) *destination*
                                             object
-                                            (lambda (*destination* *inner-exit-if-exhausted* *pop-argument-hook*)
+                                            (lambda (*destination* *inner-exit-if-exhausted* *pop-argument-hook* *more-arguments-p-hook*)
 
                                               ,@(compile-items client (aref (clauses directive)
                                                                             (if (= (length (clauses directive)) 1)

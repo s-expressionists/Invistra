@@ -49,6 +49,8 @@
 
 (defvar *argument-count* nil)
 
+(defvar *more-arguments-p-hook* nil)
+
 (defvar *argument-index-hook* nil)
 
 (defvar *pop-argument-hook* nil)
@@ -134,7 +136,8 @@
                              *pop-argument-hook* *pop-remaining-arguments-hook*
                              *go-to-argument-hook*)
            (make-argument-cursor ,client ,arguments)
-         (let* ((*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
+         (let* ((*more-arguments-p-hook* more-arguments-p-hook)
+                (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
                 (*outer-exit* *inner-exit*)
                 (*outer-tag* *inner-tag*)
                 (*inner-exit-if-exhausted* (lambda ()
@@ -144,6 +147,21 @@
                                 (throw ',block-name nil)))
                 (*inner-tag* ',block-name))
            ,@body)))))
+
+(defmacro with-remaining-arguments (&body body)
+  (let ((block-name (gensym)))
+    `(catch ',block-name
+       (let* ((more-arguments-p-hook *more-arguments-p-hook*)
+              (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
+              (*outer-exit* *inner-exit*)
+              (*outer-tag* *inner-tag*)
+              (*inner-exit-if-exhausted* (lambda ()
+                                           (unless (funcall more-arguments-p-hook)
+                                             (throw ',block-name nil))))
+              (*inner-exit* (lambda ()
+                              (throw ',block-name nil)))
+              (*inner-tag* ',block-name))
+         ,@body))))
 
 ;;; The directive interpreter.
 
