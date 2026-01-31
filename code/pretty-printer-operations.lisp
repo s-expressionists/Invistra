@@ -198,11 +198,10 @@
                                           nil
                                           (lambda (*destination* escape-hook pop-argument-hook more-arguments-p-hook)
                                             (declare (ignore escape-hook pop-argument-hook))
-                                            (catch *inner-tag*
-                                              ,@(compile-items client (aref (clauses directive)
-                                                                            (if (= (length (clauses directive)) 1)
-                                                                                0
-                                                                                1)))))
+                                            ,@(compile-items client (aref (clauses directive)
+                                                                          (if (= (length (clauses directive)) 1)
+                                                                              0
+                                                                              1))))
                                           :prefix ,prefix :suffix ,suffix
                                           :per-line-prefix-p ,per-line-prefix-p))
         `((let* ((object (pop-argument))

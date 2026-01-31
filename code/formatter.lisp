@@ -2,7 +2,7 @@
 
 (defun formatter (client control-string)
   (check-type control-string string)
-  (let ((items (structure-items client (split-control-string client control-string))))
+  (let ((items (parse-control-string client control-string)))
     `(lambda (*destination* &rest args)
        (with-arguments (,(trinsic:client-form client) args)
          ,@(compile-items client items)

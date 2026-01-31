@@ -29,3 +29,6 @@
                     (push nil (group-clauses (car result)))))
              (check-directive-syntax client item)
         do (push item (car (group-clauses (car result))))))
+
+(defun parse-control-string (client control-string)
+  (structure-items client (split-control-string client control-string)))

@@ -67,10 +67,6 @@
 
 (defvar *outer-exit* nil)
 
-(defvar *inner-tag* nil)
-
-(defvar *outer-tag* nil)
-
 (defmethod make-argument-cursor ((client standard-client) object)
   (error 'type-error :datum object :expected-type 'list))
 
@@ -139,13 +135,11 @@
          (let* ((*more-arguments-p-hook* more-arguments-p-hook)
                 (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
                 (*outer-exit* *inner-exit*)
-                (*outer-tag* *inner-tag*)
                 (*inner-exit-if-exhausted* (lambda ()
                                              (unless (funcall more-arguments-p-hook)
                                                (throw ',block-name nil))))
                 (*inner-exit* (lambda ()
-                                (throw ',block-name nil)))
-                (*inner-tag* ',block-name))
+                                (throw ',block-name nil))))
            ,@body)))))
 
 (defmacro with-remaining-arguments (&body body)
@@ -154,13 +148,11 @@
        (let* ((more-arguments-p-hook *more-arguments-p-hook*)
               (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
               (*outer-exit* *inner-exit*)
-              (*outer-tag* *inner-tag*)
               (*inner-exit-if-exhausted* (lambda ()
                                            (unless (funcall more-arguments-p-hook)
                                              (throw ',block-name nil))))
               (*inner-exit* (lambda ()
-                              (throw ',block-name nil)))
-              (*inner-tag* ',block-name))
+                              (throw ',block-name nil))))
          ,@body))))
 
 ;;; The directive interpreter.
@@ -257,9 +249,7 @@
 ;;; to call a version of format that doesn't initialize the
 ;;; *arguments* runtime environment variable.
 (defun format-with-runtime-arguments (client control-string)
-  (catch *inner-tag*
-    (interpret-items client
-                     (structure-items client (split-control-string client control-string)))))
+  (interpret-items client (parse-control-string client control-string)))
 
 (defun format (client destination control &rest args)
   (let ((*destination* (cond ((or (streamp destination)

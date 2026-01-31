@@ -187,7 +187,7 @@
         with *extra-space* = nil
         with *line-length* = nil
         for clause across (clauses directive)
-        for segment = (catch *inner-tag*
+        for segment = (with-remaining-arguments
                         (with-output-to-string (*destination*)
                           (interpret-items client clause)))
         for index from 0
@@ -206,7 +206,7 @@
 (defmethod compile-item (client (directive justification-directive) &optional parameters)
   `((let (newline-segment segments
           *extra-space* *line-length*)
-      (catch *inner-tag*
+      (with-remaining-arguments
         ,@(loop for clause across (clauses directive)
                 for segment = `(with-output-to-string (*destination*)
                                  ,@(compile-items client clause))
