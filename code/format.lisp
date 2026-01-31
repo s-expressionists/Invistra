@@ -127,7 +127,7 @@
 
 (defmacro with-arguments ((client arguments) &body body)
   (let ((block-name (gensym)))
-    `(catch ',block-name
+    `(block ,block-name
        (multiple-value-bind (*argument-count* more-arguments-p-hook *argument-index-hook*
                              *pop-argument-hook* *pop-remaining-arguments-hook*
                              *go-to-argument-hook*)
@@ -137,22 +137,22 @@
                 (*outer-exit* *inner-exit*)
                 (*inner-exit-if-exhausted* (lambda ()
                                              (unless (funcall more-arguments-p-hook)
-                                               (throw ',block-name nil))))
+                                               (return-from ,block-name nil))))
                 (*inner-exit* (lambda ()
-                                (throw ',block-name nil))))
+                                (return-from ,block-name nil))))
            ,@body)))))
 
 (defmacro with-remaining-arguments (&body body)
   (let ((block-name (gensym)))
-    `(catch ',block-name
+    `(block ,block-name
        (let* ((more-arguments-p-hook *more-arguments-p-hook*)
               (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
               (*outer-exit* *inner-exit*)
               (*inner-exit-if-exhausted* (lambda ()
                                            (unless (funcall more-arguments-p-hook)
-                                             (throw ',block-name nil))))
+                                             (return-from ,block-name nil))))
               (*inner-exit* (lambda ()
-                              (throw ',block-name nil))))
+                              (return-from ,block-name nil))))
          ,@body))))
 
 ;;; The directive interpreter.
