@@ -43,7 +43,7 @@
                   (eql 0 minpad))
              `((let ((*print-escape* nil)
                      (*print-readably* nil)
-                     (arg (pop-argument)))
+                     (arg ,(pop-argument-form)))
                  (if (null arg)
                      (write-string "()" *destination*)
                      (incless:write-object ,(trinsic:client-form client)
@@ -54,12 +54,12 @@
              `((let ((*print-escape* nil)
                      (*print-readably* nil))
                  (incless:write-object ,(trinsic:client-form client)
-                                       (pop-argument)
+                                       ,(pop-argument-form)
                                        *destination*))))
             (colon-p
              `((let ((*print-escape* nil)
                      (*print-readably* nil)
-                     (arg (pop-argument)))
+                     (arg ,(pop-argument-form)))
                  (write-string-with-padding
                   (if (null arg)
                       "()"
@@ -73,7 +73,7 @@
                  (write-string-with-padding
                   (with-output-to-string (stream)
                     (incless:write-object ,(trinsic:client-form client)
-                                          (pop-argument)
+                                          ,(pop-argument-form)
                                           stream))
                   *destination*
                   ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))))))
@@ -115,7 +115,7 @@
                   (eql 0 mincol)
                   (eql 0 minpad))
              `((let ((*print-escape* t)
-                     (arg (pop-argument)))
+                     (arg ,(pop-argument-form)))
                  (if (null arg)
                      (write-string "()" *destination*)
                      (incless:write-object ,(trinsic:client-form client)
@@ -125,11 +125,11 @@
                   (eql 0 minpad))
              `((let ((*print-escape* t))
                  (incless:write-object ,(trinsic:client-form client)
-                                       (pop-argument)
+                                       ,(pop-argument-form)
                                        *destination*))))
             (colon-p
              `((let ((*print-escape* t)
-                     (arg (pop-argument)))
+                     (arg ,(pop-argument-form)))
                  (write-string-with-padding
                   (if (null arg)
                       "()"
@@ -142,7 +142,7 @@
                  (write-string-with-padding
                   (with-output-to-string (stream)
                     (incless:write-object ,(trinsic:client-form client)
-                                          (pop-argument)
+                                          ,(pop-argument-form)
                                           stream))
                   *destination*
                   ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))))))
@@ -190,13 +190,13 @@
            `((let ((*print-pretty* t)
                    (*print-level* nil)
                    (*print-length* nil))
-               (incless:write-object ,(trinsic:client-form client) (pop-argument) *destination*))))
+               (incless:write-object ,(trinsic:client-form client) ,(pop-argument-form) *destination*))))
           (colon-p
            `((let ((*print-pretty* t))
-               (incless:write-object ,(trinsic:client-form client) (pop-argument) *destination*))))
+               (incless:write-object ,(trinsic:client-form client) ,(pop-argument-form) *destination*))))
           (at-sign-p
            `((let ((*print-level* nil)
                    (*print-length* nil))
-               (incless:write-object ,(trinsic:client-form client) (pop-argument) *destination*))))
+               (incless:write-object ,(trinsic:client-form client) ,(pop-argument-form) *destination*))))
           (t
-           `((incless:write-object ,(trinsic:client-form client) (pop-argument) *destination*))))))
+           `((incless:write-object ,(trinsic:client-form client) ,(pop-argument-form) *destination*))))))

@@ -52,7 +52,7 @@
                    (colon-p colon-p))
       directive
     (cond (colon-p
-           `((let ((char (pop-argument 'character)))
+           `((let ((char ,(pop-argument-form 'character)))
                (if (and (graphic-char-p char) (not (eql char #\Space)))
                    (write-char char *destination*)
                    (write-string (char-name char) *destination*))
@@ -61,9 +61,9 @@
                                          *destination*))))))
           (at-sign-p
            `((let ((*print-escape* t))
-               (incless:write-object ,(trinsic:client-form client) (pop-argument 'character) *destination*))))
+               (incless:write-object ,(trinsic:client-form client) ,(pop-argument-form 'character) *destination*))))
           (t
-           `((write-char (pop-argument 'character) *destination*))))))
+           `((write-char ,(pop-argument-form 'character) *destination*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

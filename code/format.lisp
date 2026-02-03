@@ -76,11 +76,12 @@
             nil)
           (lambda ()
             0)
-          (lambda ()
+          (lambda (&optional type)
+            (declare (ignore type))
             (error 'no-more-arguments))
           (lambda ()
             nil)
-          (lambda (index absolutep)
+          (lambda (index &optional absolutep)
             (declare (ignore absolutep))
             (unless (zerop index)
               (error 'go-to-out-of-bounds
@@ -95,8 +96,10 @@
               head)
             (lambda ()
               position)
-            (lambda ()
+            (lambda (&optional (type t))
               (cond (head
+                     (unless (typep (car head) type)
+                       (error 'type-error :datum (car head) :expected-type type))
                      (incf position)
                      (pop head))
                     (t
@@ -106,7 +109,7 @@
                   head
                 (setf head nil
                       position (length object))))
-            (lambda (index absolutep)
+            (lambda (index &optional absolutep)
               (cond (absolutep
                      (setf position index)
                      (when (minusp position)
@@ -158,31 +161,12 @@
 ;;; The directive interpreter.
 
 (defun pop-argument (&optional (type t))
-  ;(if (funcall *more-arguments-p-hook*)
-      (let ((arg (funcall *pop-argument-hook*)))
-        (unless (typep arg type)
-          (error 'argument-type-error
-                 :expected-type type
-                 :datum arg))
-        arg))
-   #|   (let ((exited nil))
-        (unwind-protect
-             (progn
-               (funcall *inner-exit-if-exhausted*)
-               (setf exited t))
-          (unless exited
-            (error 'no-more-arguments))))))|#
+  (funcall *pop-argument-hook* type))
 
 (defun pop-argument-form (&optional (type t))
-  (cond ((null *pop-argument-hook*)
-         `(pop-argument `,type))
-        ((eq type t)
-         (funcall *pop-argument-hook*))
-        (t
-         (let ((arg (funcall *pop-argument-hook*)))
-           `(progn
-              (check-type ,arg ,type)
-              ,arg)))))
+  (if *pop-argument-hook*
+      (funcall *pop-argument-hook* type)
+      `(funcall *pop-argument-hook* ',type)))
 
 (defun pop-remaining-arguments ()
   (funcall *pop-remaining-arguments-hook*))
@@ -217,9 +201,9 @@
 
 (defmethod compile-parameter ((parameter argument-reference-parameter))
   (if (parameter-default parameter)
-      `(or (pop-argument '(or null ,(parameter-type parameter)))
+      `(or ,(pop-argument-form `(or null ,(parameter-type parameter)))
            ,(parameter-default parameter))
-      `(pop-argument '(or null ,(parameter-type parameter)))))
+      (pop-argument-form `(or null ,(parameter-type parameter)))))
 
 (defmethod interpret-parameter ((parameter remaining-argument-count-parameter))
   (let ((value (remaining-argument-count)))
@@ -230,7 +214,7 @@
                :datum value))))
 
 (defmethod compile-parameter ((parameter remaining-argument-count-parameter))
-  `(let ((value (remaining-argument-count)))
+  `(let ((value ,(remaining-argument-count-form)))
      (if (typep value ',(parameter-type parameter))
          value
          (error 'argument-type-error

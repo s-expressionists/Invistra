@@ -129,12 +129,13 @@
                         (*argument-index-hook*
                           (lambda () position))
                         (*pop-argument-hook*
-                          (lambda ()
-                            (prog1
-                                (if (< position (length previous-arguments))
-                                    (aref previous-arguments position)
-                                    (vector-push-extend (funcall pop-argument-hook)
-                                                        previous-arguments))
+                          (lambda (&optional (type t))
+                            (let ((value (if (< position (length previous-arguments))
+                                             (aref previous-arguments position)
+                                             (vector-push-extend (funcall pop-argument-hook)
+                                                                 previous-arguments))))
+                              (unless (typep value type)
+                                (error 'type-error :datum value :expected-type type))
                               (incf position))))
                         (*pop-remaining-arguments-hook*
                           (lambda () nil))
@@ -211,12 +212,17 @@
                  (*previous-argument-index* 0))
             (inravina:execute-logical-block ,(trinsic:client-form client) *destination*
                                             object
-                                            (lambda (*destination* *inner-exit-if-exhausted* *pop-argument-hook* *more-arguments-p-hook*)
+                                            (lambda (*destination* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
+                                              (let ((*pop-argument-hook* (lambda (&optional (type t))
+                                                                           (let ((value (funcall pop-argument-hook)))
+                                                                             (unless (typep value type)
+                                                                               (error 'type-error :datum value :expected-type type))
+                                                                             value))))
 
-                                              ,@(compile-items client (aref (clauses directive)
-                                                                            (if (= (length (clauses directive)) 1)
-                                                                                0
-                                                                                1))))
+                                                ,@(compile-items client (aref (clauses directive)
+                                                                              (if (= (length (clauses directive)) 1)
+                                                                                  0
+                                                                                  1)))))
                                             :prefix ,prefix :suffix ,suffix
                                             :per-line-prefix-p ,per-line-prefix-p))))))
 
