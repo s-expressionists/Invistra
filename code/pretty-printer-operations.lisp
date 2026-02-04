@@ -205,7 +205,7 @@
                                                                               1))))
                                           :prefix ,prefix :suffix ,suffix
                                           :per-line-prefix-p ,per-line-prefix-p))
-        `((let* ((object (pop-argument))
+        `((let* ((object ,(pop-argument-form))
                  (*remaining-argument-count* (dotted-list-length object))
                  (*previous-arguments* (make-array *remaining-argument-count*
                                                    :adjustable t :fill-pointer 0))
@@ -351,7 +351,7 @@
 (defmethod compile-item (client (directive call-function-directive) &optional parameters)
   `((funcall (coerce-function-designator ,(trinsic:client-form client) ',(function-name directive))
              *destination*
-             (pop-argument)
+             ,(pop-argument-form)
              ,(colon-p directive)
              ,(at-sign-p directive)
              ,@parameters)))

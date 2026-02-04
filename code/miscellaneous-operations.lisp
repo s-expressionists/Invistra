@@ -99,9 +99,9 @@
     `(,@(when colon-p
           `((go-to-argument -1)))
       ,(if at-sign-p
-           `(write-string (if (eql (pop-argument) 1)
+           `(write-string (if (eql ,(pop-argument-form) 1)
                               "y"
                               "ies")
                           *destination*)
-           `(unless (eql (pop-argument) 1)
+           `(unless (eql ,(pop-argument-form) 1)
               (write-char #\s *destination*))))))

@@ -22,42 +22,42 @@
      :type integer
      :default 3)))
 
-(defun print-radix-arg (client colon-p at-sign-p radix mincol padchar commachar comma-interval)
-  (let ((argument (pop-argument)))
-    (if (not (integerp argument))
-        (let ((*print-base* radix)
-              (*print-escape* nil)
-              (*print-readably* nil))
-          (incless:write-object client argument *destination*))
-        (let* ((string (let ((*print-base* radix)
-                             (*print-radix* nil)
-                             (*print-escape* nil)
-                             (*print-readably* nil))
-                         (with-output-to-string (stream)
-                           (incless:write-object client (abs argument) stream))))
-               (comma-length (if colon-p
-                                 (max 0 (floor (1- (length string)) comma-interval))
-                                 0))
-               (sign-length (if (or at-sign-p (minusp argument)) 1 0))
-               (total-length (+ (length string) comma-length sign-length))
-               (pad-length (max 0 (- mincol total-length))))
-          ;; Print the padding.
-          (loop repeat pad-length
-                do (write-char padchar *destination*))
-          ;; Possibliy print a sign.
-          (cond ((minusp argument)
-                 (write-char #\- *destination*))
-                (at-sign-p
-                 (write-char #\+ *destination*))
-                (t nil))
-          ;; Print the string in reverse order
-          (loop for index downfrom (1- (length string)) to 0
-                for c across string
-                do (write-char c *destination*)
-                do (when (and colon-p
-                              (plusp index)
-                              (zerop (mod index comma-interval)))
-                     (write-char commachar *destination*)))))))
+(defun write-radix-numeral
+    (client value colon-p at-sign-p radix mincol padchar commachar comma-interval)
+  (if (not (integerp value))
+      (let ((*print-base* radix)
+            (*print-escape* nil)
+            (*print-readably* nil))
+        (incless:write-object client value *destination*))
+      (let* ((string (let ((*print-base* radix)
+                           (*print-radix* nil)
+                           (*print-escape* nil)
+                           (*print-readably* nil))
+                       (with-output-to-string (stream)
+                         (incless:write-object client (abs value) stream))))
+             (comma-length (if colon-p
+                               (max 0 (floor (1- (length string)) comma-interval))
+                               0))
+             (sign-length (if (or at-sign-p (minusp value)) 1 0))
+             (total-length (+ (length string) comma-length sign-length))
+             (pad-length (max 0 (- mincol total-length))))
+        ;; Print the padding.
+        (loop repeat pad-length
+              do (write-char padchar *destination*))
+        ;; Possibliy print a sign.
+        (cond ((minusp value)
+               (write-char #\- *destination*))
+              (at-sign-p
+               (write-char #\+ *destination*))
+              (t nil))
+        ;; Print the string in reverse order
+        (loop for index downfrom (1- (length string)) to 0
+              for c across string
+              do (write-char c *destination*)
+              do (when (and colon-p
+                            (plusp index)
+                            (zerop (mod index comma-interval)))
+                   (write-char commachar *destination*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -78,7 +78,28 @@
 (defparameter *roman-digits*
   '("I" "V" "X" "L" "C" "D" "M"))
 
-(defun print-roman-arg ()
+(deftype roman-number (&optional count)
+  (if count
+      (multiple-value-bind (q r)
+          (floor count 2)
+        `(integer 1
+                  ,(1- (if (zerop r)
+                           (* (expt 10 (1- q)) 9)
+                           (* (expt 10 q) 4)))))
+      '(integer 1)))
+
+(deftype old-roman-number (&optional count)
+  (if count
+      (multiple-value-bind (q r)
+          (floor count 2)
+        `(integer 1
+                  ,(1- (if (zerop r)
+                           (* (expt 10 (1- q)) 9)
+                           (* (expt 10 q) 4)))))
+      '(integer 1)))
+
+(defun write-roman-numeral (value)
+  (declare (type (roman-number 7) value))
   (labels ((write-digit (value digits)
              (multiple-value-bind (q r)
                  (floor value 10)
@@ -98,19 +119,10 @@
                       (write-string (cadr digits) *destination*))
                     (loop repeat r1
                           do (write-string (car digits) *destination*))))))))
-    (let ((digit-count (list-length *roman-digits*)))
-      (write-digit (pop-argument
-                    (if digit-count
-                        (multiple-value-bind (q r)
-                            (floor digit-count 2)
-                          `(integer 1
-                                    ,(1- (if (zerop r)
-                                             (* (expt 10 (1- q)) 9)
-                                             (* (expt 10 q) 4)))))
-                        '(integer 1)))
-                   *roman-digits*))))
+    (write-digit value *roman-digits*)))
 
-(defun print-old-roman-arg ()
+(defun write-old-roman-numeral (value)
+  (declare (type (old-roman-number 7) value))
   (labels ((write-digit (value digits)
              (multiple-value-bind (q r)
                  (floor value 10)
@@ -122,52 +134,7 @@
                    (write-string (cadr digits) *destination*))
                  (loop repeat r1
                        do (write-string (car digits) *destination*))))))
-    (let ((digit-count (list-length *roman-digits*)))
-      (write-digit (pop-argument
-                    (if digit-count
-                        (multiple-value-bind (q r)
-                            (floor digit-count 2)
-                          `(integer 1
-                                    ,(1- (* (expt 10 q)
-                                            (if (zerop r) 1 5)))))
-                        '(integer 1)))
-                   *roman-digits*))))
-
-#+(or)(defun print-roman-arg (old-roman-p)
-  (labels ((write-digit (value digits)
-             (multiple-value-bind (q r)
-                 (floor value 10)
-               (unless (zerop q)
-                 (write-digit q (cddr digits)))
-               (cond ((and (not old-roman-p) (= r 9))
-                      (write-string (car digits) *destination*)
-                      (write-string (caddr digits) *destination*))
-                     ((and (not old-roman-p) (= r 4))
-                      (write-string (car digits) *destination*)
-                      (write-string (cadr digits) *destination*))
-                     (t
-                      (multiple-value-bind (q1 r1)
-                          (floor r 5)
-                        (unless (zerop q1)
-                          (write-string (cadr digits) *destination*))
-                        (loop repeat r1
-                              do (write-string (car digits) *destination*))))))))
-    (let ((digit-count (list-length *roman-digits*)))
-      (write-digit (pop-argument
-                    (if digit-count
-                        (multiple-value-bind (q r)
-                            (floor digit-count 2)
-                          `(integer 1
-                                    ,(1- (cond ((and (zerop r) old-roman-p)
-                                                (expt 10 q))
-                                               ((zerop r)
-                                                (* (expt 10 (1- q)) 9))
-                                               (old-roman-p
-                                                (* (expt 10 q) 5))
-                                               (t
-                                                (* (expt 10 q) 4))))))
-                        '(integer 1)))
-                   *roman-digits*))))
+    (write-digit value *roman-digits*)))
 
 (defparameter *cardinal-ones*
   #(nil "one" "two" "three" "four" "five" "six" "seven" "eight" "nine"))
@@ -188,7 +155,7 @@
     "septendecillion" "octodecillion" "novemdecillion" "vigintillion"))
 
 ;;; Print a cardinal number between 1 and 99.
-(defun print-cardinal-tenths (n)
+(defun write-cardinal-tenths (n)
   (cond ((< n 10)
          (write-string (aref *cardinal-ones* n) *destination*))
         ((< n 20)
@@ -201,40 +168,43 @@
              (write-string (aref *cardinal-ones* ones) *destination*))))))
 
 ;;; Print a cardinal number between 1 and 999.
-(defun print-cardinal-hundreds (n)
+(defun write-cardinal-hundreds (n)
   (cond ((< n 100)
-         (print-cardinal-tenths n))
+         (write-cardinal-tenths n))
         (t
          (multiple-value-bind (hundreds rest) (floor n 100)
            (write-string (aref *cardinal-ones* hundreds) *destination*)
            (write-string " hundred" *destination*)
            (unless (zerop rest)
              (write-char #\Space *destination*)
-             (print-cardinal-tenths rest))))))
+             (write-cardinal-tenths rest))))))
 
 ;;; Print a cardinal number n such that 0 < n < 10^65.
-(defun print-cardinal-non-zero (n magnitude)
+(defun write-cardinal-non-zero (n magnitude)
   (multiple-value-bind (thousands rest) (floor n 1000)
     (unless (zerop thousands)
-      (print-cardinal-non-zero thousands (1+ magnitude)))
+      (write-cardinal-non-zero thousands (1+ magnitude)))
     (unless (or (zerop thousands) (zerop rest))
       (write-char #\Space *destination*))
     (unless (zerop rest)
-      (print-cardinal-hundreds rest)
+      (write-cardinal-hundreds rest)
       (unless (zerop magnitude)
         (write-char #\Space *destination*)
         (write-string (aref *groups-of-three* magnitude) *destination*)))))
 
+(deftype english-number ()
+  `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
+
 ;;; Print a cardinal number n such that - 10^65 < n < 10^65.
-(defun print-cardinal-arg ()
-  (let ((n (pop-argument `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))))
-    (cond ((minusp n)
-           (write-string "negative " *destination*)
-           (print-cardinal-non-zero (- n) 0))
-          ((zerop n)
-           (write-string "zero" *destination*))
-          (t
-           (print-cardinal-non-zero n 0)))))
+(defun write-cardinal-numeral (n)
+  (declare (type english-number n))
+  (cond ((minusp n)
+         (write-string "negative " *destination*)
+         (write-cardinal-non-zero (- n) 0))
+        ((zerop n)
+         (write-string "zero" *destination*))
+        (t
+         (write-cardinal-non-zero n 0))))
 
 (defparameter *ordinal-ones*
   #(nil "first" "second" "third" "fourth" "fifth" "sixth" "seventh" "eighth" "ninth"))
@@ -248,7 +218,7 @@
     "fiftieth" "sixtieth" "seventieth" "eightieth" "ninetieth"))
 
 ;;; Print an ordinal number between 1 and 99.
-(defun print-ordinal-tenths (n)
+(defun write-ordinal-tenths (n)
   (cond ((< n 10)
          (write-string (aref *ordinal-ones* n) *destination*))
         ((< n 20)
@@ -263,9 +233,9 @@
                   (write-string (aref *ordinal-ones* ones) *destination*)))))))
 
 ;;; Print an ordinal number n such that 0 < n < 1000.
-(defun print-ordinal-hundreds (n)
+(defun write-ordinal-hundreds (n)
   (cond ((< n 100)
-         (print-ordinal-tenths n))
+         (write-ordinal-tenths n))
         (t
          (multiple-value-bind (hundreds rest) (floor n 100)
            (write-string (aref *cardinal-ones* hundreds) *destination*)
@@ -274,33 +244,33 @@
                   (write-string "th" *destination*))
                  (t
                   (write-char #\Space *destination*)
-                  (print-ordinal-tenths rest)))))))
+                  (write-ordinal-tenths rest)))))))
 
 ;;; Print an ordinal number n such that 0 < n < 10^65.
-(defun print-ordinal-non-zero (n)
+(defun write-ordinal-non-zero (n)
   (multiple-value-bind (hundreds rest) (floor n 100)
     (cond ((zerop rest)
            ;; Hudreds is nonzero.
-           (print-cardinal-non-zero n 0)
+           (write-cardinal-non-zero n 0)
            (write-string "th" *destination*))
           ((zerop hundreds)
-           (print-ordinal-hundreds rest))
+           (write-ordinal-hundreds rest))
           (t
            ;; They are both nonzero.
-           (print-cardinal-non-zero (* 100 hundreds) 0)
+           (write-cardinal-non-zero (* 100 hundreds) 0)
            (write-char #\Space *destination*)
-           (print-ordinal-tenths rest)))))
+           (write-ordinal-tenths rest)))))
 
 ;;; Print an ordinal number n such that - 10^65 < n < 10^65.
-(defun print-ordinal-arg ()
-  (let ((n (pop-argument `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))))
-    (cond ((minusp n)
-           (write-string "negative " *destination*)
-           (print-ordinal-non-zero (- n)))
-          ((zerop n)
-           (write-string "zeroth" *destination*))
-          (t
-           (print-ordinal-non-zero n)))))
+(defun write-ordinal-numeral (n)
+  (declare (type english-number n))
+  (cond ((minusp n)
+         (write-string "negative " *destination*)
+         (write-ordinal-non-zero (- n)))
+        ((zerop n)
+         (write-string "zeroth" *destination*))
+        (t
+         (write-ordinal-non-zero n))))
 
 (defmethod interpret-item (client (directive radix-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
@@ -308,15 +278,15 @@
       directive
     (let ((radix (car parameters)))
       (cond (radix
-             (apply #'print-radix-arg client colon-p at-sign-p parameters))
+             (apply #'write-radix-numeral client (pop-argument) colon-p at-sign-p parameters))
             ((and at-sign-p colon-p)
-             (print-old-roman-arg))
+             (write-old-roman-numeral (pop-argument)))
             (at-sign-p
-             (print-roman-arg))
+             (write-roman-numeral (pop-argument)))
             (colon-p
-             (print-ordinal-arg))
+             (write-ordinal-numeral (pop-argument)))
             (t
-             (print-cardinal-arg))))))
+             (write-cardinal-numeral (pop-argument)))))))
 
 (defmethod compile-item (client (directive radix-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
@@ -324,29 +294,29 @@
       directive
     (let ((radix (car parameters)))
       (cond ((numberp radix)
-             `((print-radix-arg ,(trinsic:client-form client)
-                                ,colon-p ,at-sign-p ,@parameters)))
+             `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form)
+                                    ,colon-p ,at-sign-p ,@parameters)))
             ((null radix)
              (cond ((and at-sign-p colon-p)
-                    `((print-old-roman-arg)))
+                    `((write-old-roman-numeral ,(pop-argument-form))))
                    (at-sign-p
-                    `((print-roman-arg)))
+                    `((write-roman-numeral ,(pop-argument-form))))
                    (colon-p
-                    `((print-ordinal-arg)))
+                    `((write-ordinal-numeral ,(pop-argument-form))))
                    (t
-                    `((print-cardinal-arg)))))
+                    `((write-cardinal-numeral ,(pop-argument-form))))))
             (t
              `((if ,radix
-                   (print-radix-arg ,(trinsic:client-form client)
-                                    ,colon-p ,at-sign-p ,@parameters)
+                   (write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form)
+                                        ,colon-p ,at-sign-p ,@parameters)
                    ,(cond ((and at-sign-p colon-p)
-                           `(print-old-roman-arg))
+                           `(write-old-roman-numeral ,(pop-argument-form)))
                           (at-sign-p
-                           `(print-roman-arg))
+                           `(write-roman-numeral ,(pop-argument-form)))
                           (colon-p
-                           `(print-ordinal-arg))
+                           `(write-ordinal-numeral ,(pop-argument-form)))
                           (t
-                           `(print-cardinal-arg))))))))))
+                           `(write-cardinal-numeral ,(pop-argument-form)))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -360,10 +330,10 @@
   (change-class directive 'decimal-radix-directive))
 
 (defmethod interpret-item (client (directive decimal-radix-directive) &optional parameters)
-  (apply #'print-radix-arg client (colon-p directive) (at-sign-p directive) 10 parameters))
+  (apply #'write-radix-numeral client (pop-argument) (colon-p directive) (at-sign-p directive) 10 parameters))
 
 (defmethod compile-item (client (directive decimal-radix-directive) &optional parameters)
-  `((print-radix-arg ,(trinsic:client-form client) ,(colon-p directive) ,(at-sign-p directive) 10 ,@parameters)))
+  `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form) ,(colon-p directive) ,(at-sign-p directive) 10 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -377,10 +347,10 @@
   (change-class directive 'binary-radix-directive))
 
 (defmethod interpret-item (client (directive binary-radix-directive) &optional parameters)
-  (apply #'print-radix-arg client (colon-p directive) (at-sign-p directive) 2 parameters))
+  (apply #'write-radix-numeral client (pop-argument) (colon-p directive) (at-sign-p directive) 2 parameters))
 
 (defmethod compile-item (client (directive binary-radix-directive) &optional parameters)
-  `((print-radix-arg ,(trinsic:client-form client) ,(colon-p directive) ,(at-sign-p directive) 2 ,@parameters)))
+  `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form) ,(colon-p directive) ,(at-sign-p directive) 2 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -394,10 +364,10 @@
   (change-class directive 'octal-radix-directive))
 
 (defmethod interpret-item (client (directive octal-radix-directive) &optional parameters)
-  (apply #'print-radix-arg client (colon-p directive) (at-sign-p directive) 8 parameters))
+  (apply #'write-radix-numeral client (pop-argument) (colon-p directive) (at-sign-p directive) 8 parameters))
 
 (defmethod compile-item (client (directive octal-radix-directive) &optional parameters)
-  `((print-radix-arg ,(trinsic:client-form client) ,(colon-p directive) ,(at-sign-p directive) 8 ,@parameters)))
+  `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form) ,(colon-p directive) ,(at-sign-p directive) 8 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -412,8 +382,8 @@
 
 (defmethod interpret-item
     (client (directive hexadecimal-radix-directive) &optional parameters)
-  (apply #'print-radix-arg client (colon-p directive) (at-sign-p directive) 16 parameters))
+  (apply #'write-radix-numeral client (pop-argument) (colon-p directive) (at-sign-p directive) 16 parameters))
 
 (defmethod compile-item
     (client (directive hexadecimal-radix-directive) &optional parameters)
-  `((print-radix-arg ,(trinsic:client-form client) ,(colon-p directive) ,(at-sign-p directive) 16 ,@parameters)))
+  `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form) ,(colon-p directive) ,(at-sign-p directive) 16 ,@parameters)))

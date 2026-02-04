@@ -4,37 +4,36 @@
 
 (in-package #:invistra)
 
-(defun print-float-arg (client func)
-  (let ((value (pop-argument)))
-    (if (or (complexp value)
-            (and (floatp value)
-                 #+abcl
-                 (or (system:float-infinity-p value)
-                     (system:float-nan-p value))
-                 #+allegro
-                 (or (excl:infinityp value)
-                     (excl:nanp value))
-                 #+ccl
-                 (ccl::nan-or-infinity-p value)
-                 #+(or clasp cmucl ecl)
-                 (or (ext:float-infinity-p value)
-                     (ext:float-nan-p value))
-                 #+mezzano
-                 (or (mezzano.extensions:float-infinity-p value)
-                     (mezzano.extensions:float-nan-p value))
-                 #+sbcl (or (sb-ext:float-infinity-p value)
-                            (sb-ext:float-nan-p value)))
-            (not (numberp value)))
-        (let ((*print-base* 10)
-              (*print-escape* nil)
-              (*print-readably* nil))
-          (incless:write-object client value *destination*))
-        (let ((coerced-value (if (floatp value)
-                                 value
-                                 (coerce value 'single-float))))
-          (multiple-value-call func
-            client coerced-value
-            (quaviver:float-triple client 10 coerced-value))))))
+(defun print-float-arg (client value func)
+  (if (or (complexp value)
+          (and (floatp value)
+               #+abcl
+               (or (system:float-infinity-p value)
+                   (system:float-nan-p value))
+               #+allegro
+               (or (excl:infinityp value)
+                   (excl:nanp value))
+               #+ccl
+               (ccl::nan-or-infinity-p value)
+               #+(or clasp cmucl ecl)
+               (or (ext:float-infinity-p value)
+                   (ext:float-nan-p value))
+               #+mezzano
+               (or (mezzano.extensions:float-infinity-p value)
+                   (mezzano.extensions:float-nan-p value))
+               #+sbcl (or (sb-ext:float-infinity-p value)
+                          (sb-ext:float-nan-p value)))
+          (not (numberp value)))
+      (let ((*print-base* 10)
+            (*print-escape* nil)
+            (*print-readably* nil))
+        (incless:write-object client value *destination*))
+      (let ((coerced-value (if (floatp value)
+                               value
+                               (coerce value 'single-float))))
+        (multiple-value-call func
+          client coerced-value
+          (quaviver:float-triple client 10 coerced-value)))))
 
 (defun round-away-from-zero (x n)
   (multiple-value-bind (q r)
@@ -151,7 +150,7 @@
              t)))))
 
 (defmethod interpret-item (client (directive f-directive) &optional parameters)
-  (print-float-arg client
+  (print-float-arg client (pop-argument)
                    (lambda (client value digits exponent sign)
                      (apply #'print-fixed-arg
                             client value digits exponent sign
@@ -159,7 +158,7 @@
                             parameters))))
 
 (defmethod compile-item (client (directive f-directive) &optional parameters)
-  `((print-float-arg ,(trinsic:client-form client)
+  `((print-float-arg ,(trinsic:client-form client) ,(pop-argument-form)
                      (lambda (client value digits exponent sign)
                        (print-fixed-arg client value digits exponent sign
                                         ,(colon-p directive) ,(at-sign-p directive)
@@ -267,7 +266,7 @@
                    do (write-char overflowchar *destination*)))))))
 
 (defmethod interpret-item (client (directive e-directive) &optional parameters)
-  (print-float-arg client
+  (print-float-arg client (pop-argument)
                    (lambda (client value digits exponent sign)
                      (apply #'print-exponent-arg
                             client value digits exponent sign
@@ -275,7 +274,7 @@
                             parameters))))
 
 (defmethod compile-item (client (directive e-directive) &optional parameters)
-  `((print-float-arg ,(trinsic:client-form client)
+  `((print-float-arg ,(trinsic:client-form client) ,(pop-argument-form)
                      (lambda (client value digits exponent sign)
                        (print-exponent-arg client value digits exponent sign
                                            ,(colon-p directive) ,(at-sign-p directive)
@@ -324,7 +323,7 @@
                                overflowchar padchar exponentchar)))))
 
 (defmethod interpret-item (client (directive g-directive) &optional parameters)
-  (print-float-arg client
+  (print-float-arg client (pop-argument)
                    (lambda (client value significand exponent sign)
                      (apply #'print-general-arg
                             client value significand exponent sign
@@ -332,7 +331,7 @@
                             parameters))))
 
 (defmethod compile-item (client (directive g-directive) &optional parameters)
-  `((print-float-arg ,(trinsic:client-form client)
+  `((print-float-arg ,(trinsic:client-form client) ,(pop-argument-form)
                      (lambda (client value significand exponent sign)
                        (print-general-arg client value significand exponent sign
                                           ,(colon-p directive) ,(at-sign-p directive)
@@ -388,7 +387,7 @@
                                     :fractional-marker #\.))))))
 
 (defmethod interpret-item (client (directive monetary-directive) &optional parameters)
-  (print-float-arg client
+  (print-float-arg client (pop-argument)
                    (lambda (client value digits exponent sign)
                      (apply #'print-monetary-arg
                             client value digits exponent sign
@@ -396,7 +395,7 @@
                             parameters))))
 
 (defmethod compile-item (client (directive monetary-directive) &optional parameters)
-  `((print-float-arg ,(trinsic:client-form client)
+  `((print-float-arg ,(trinsic:client-form client) ,(pop-argument-form)
                      (lambda (client value digits exponent sign)
                        (print-monetary-arg client value digits exponent sign
                                            ,(colon-p directive) ,(at-sign-p directive)
