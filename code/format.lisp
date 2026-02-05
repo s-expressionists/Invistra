@@ -158,6 +158,17 @@
                               (return-from ,block-name nil))))
          ,@body))))
 
+(defmacro with-dynamic-arguments (&body body)
+  `(let ((*argument-index-hook* nil)
+         (*pop-argument-hook* nil)
+         (*pop-remaining-arguments-hook* nil)
+         (*go-to-argument-hook* nil)
+         (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
+         (*outer-exit* *inner-exit*)
+         (*inner-exit-if-exhausted* nil)
+         (*inner-exit* nil))
+     ,@body))
+
 ;;; The directive interpreter.
 
 (defun pop-argument (&optional (type t))
@@ -179,10 +190,12 @@
 (defun go-to-argument (index &optional absolute)
   (funcall *go-to-argument-hook* index absolute))
 
-(defun go-to-argument-form (index &optional absolute)
-  (if *go-to-argument-hook*
-      (funcall *go-to-argument-hook* index absolute)
-      `(funcall *go-to-argument-hook* index absolute)))
+(defun go-to-argument-forms (index &optional absolute)
+  (cond (*go-to-argument-hook*
+         (funcall *go-to-argument-hook* index absolute)
+         nil)
+        (t
+         `((funcall *go-to-argument-hook* index absolute)))))
 
 (defun remaining-argument-count ()
   (- *argument-count*

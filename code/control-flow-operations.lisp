@@ -155,11 +155,11 @@
                    (clauses clauses))
       directive
     (cond (at-sign-p
-           `((when (pop-argument)
-               (go-to-argument -1)
+           `((when ,(pop-argument-form)
+               ,@(go-to-argument-forms -1)
                ,@(compile-items client (aref clauses 0)))))
           (colon-p
-           `((cond ((pop-argument)
+           `((cond (,(pop-argument-form)
                     ,@(compile-items client (aref clauses 1)))
                    (t
                     ,@(compile-items client (aref clauses 0))))))
@@ -167,8 +167,8 @@
            (let ((n (car parameters)))
              (cond ((not (numberp n))
                     `((case ,(if (null n)
-                                 '(pop-argument 'integer)
-                                 `(or ,n (pop-argument 'integer)))
+                                 (pop-argument-form 'integer)
+                                 `(or ,n ,(pop-argument-form 'integer)))
                         ,@(loop for i from 0
                                 for j downfrom (1- (length clauses))
                                 for clause across clauses
@@ -457,7 +457,7 @@
                                      '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                      '(do (funcall *inner-exit-if-exhausted*)))
                                do (interpret-items ,(trinsic:client-form client) items))))))))
-        (let ((compiled-items (compile-items client items)))
+        (let ((compiled-items (with-dynamic-arguments (compile-items client items))))
           (cond ((and colon-p at-sign-p)
                  ;; The remaining arguments should be lists.  Each argument
                  ;; is used in a different iteration.
@@ -474,16 +474,18 @@
                 (colon-p
                  ;; We use one argument, and that should be a list of sublists.
                  ;; Each sublist is used as arguments for one iteration.
-                 `((let ((iteration-limit ,iteration-limit))
-                     (with-arguments (,(trinsic:client-form client) (pop-argument))
-                       (loop for index from 0
-                             while (or (null iteration-limit)
-                                       (< index iteration-limit))
-                             ,@(if oncep
-                                   '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
-                                   '(do (funcall *inner-exit-if-exhausted*)))
-                             do (with-arguments (,(trinsic:client-form client) (pop-argument))
-                                  ,@compiled-items))))))
+                 (let ((arg-form (pop-argument-form)))
+                   (with-dynamic-arguments
+                     `((let ((iteration-limit ,iteration-limit))
+                         (with-arguments (,(trinsic:client-form client) ,argument-form)
+                           (loop for index from 0
+                                 while (or (null iteration-limit)
+                                           (< index iteration-limit))
+                                 ,@(if oncep
+                                       '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
+                                       '(do (funcall *inner-exit-if-exhausted*)))
+                                 do (with-arguments (,(trinsic:client-form client) (pop-argument))
+                                      ,@compiled-items))))))))
                 (at-sign-p
                  `((let ((iteration-limit ,iteration-limit))
                      (with-remaining-arguments
@@ -499,16 +501,18 @@
                  ;; no modifiers
                  ;; We use one argument, and that should be a list.
                  ;; The elements of that list are used by the iteration.
-                 `((let ((iteration-limit ,iteration-limit))
-                     (with-arguments (,(trinsic:client-form client) (pop-argument))
-                       (loop for index from 0
-                             while (or (null iteration-limit)
-                                       (< index iteration-limit))
-                             ,@(if oncep
-                                   '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
-                                   '(do (funcall *inner-exit-if-exhausted*)))
-                             ,@(when compiled-items
-                                 (list* 'do compiled-items))))))))))))
+                 (let ((arg-form (pop-argument-form)))
+                   (with-dynamic-arguments
+                       `((let ((iteration-limit ,iteration-limit))
+                           (with-arguments (,(trinsic:client-form client) ,arg-form)
+                             (loop for index from 0
+                                   while (or (null iteration-limit)
+                                             (< index iteration-limit))
+                                   ,@(if oncep
+                                         '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
+                                         '(do (funcall *inner-exit-if-exhausted*)))
+                                   ,@(when compiled-items
+                                       (list* 'do compiled-items))))))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -539,7 +543,7 @@
       ;; reuse the arguments from the parent control-string
       `((with-remaining-arguments
           (format-with-runtime-arguments ,(trinsic:client-form client)
-                                         (pop-argument 'string))))
+                                         ,(pop-argument-form 'string))))
       ;;
       `((let ((control (pop-argument 'string)))
           (with-arguments (,(trinsic:client-form client) (pop-argument))

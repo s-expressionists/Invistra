@@ -21,4 +21,9 @@
            #:parameter-specifications
            #:parse-directive-suffix
            #:specialize-directive
-           #:standard-client))
+           #:standard-client
+           #:write-radix-numeral
+           #:write-roman-numeral
+           #:write-old-roman-numeral
+           #:write-cardinal-numeral
+           #:write-ordinal-numeral))

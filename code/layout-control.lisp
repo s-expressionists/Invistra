@@ -48,7 +48,8 @@
                (ngray:stream-advance-to-column *destination* colnum))
               ((plusp colinc)
                (ngray:stream-advance-to-column *destination*
-                                               (+ cur (- colinc (rem (- cur colnum) colinc)))))))))
+                                               (+ cur
+                                                  (- colinc (rem (- cur colnum) colinc)))))))))
 
 (defmethod interpret-item (client (directive tabulate-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
@@ -104,13 +105,6 @@
      (end-directive end-justification-directive))
   (change-class directive 'justification-directive))
 
-#+(or)(defmethod specialize-directive
-    ((client standard-client) (char (eql #\<)) directive (end-directive t))
-  (error 'unmatched-directive
-         :directive directive
-         :control-string (control-string directive)
-         :tilde-position (start directive)))
-
 (defmethod parameter-specifications
     ((client t) (directive justification-directive))
   '((:name mincol
@@ -127,7 +121,8 @@
      :default #\Space)))
 
 (defmethod layout-requirements :around ((item justification-directive))
-  (merge-layout-requirements (list (if (colon-p (aref (aref (clauses item) 0) (1- (length (aref (clauses item) 0)))))
+  (merge-layout-requirements (list (if (colon-p (aref (aref (clauses item) 0)
+                                                      (1- (length (aref (clauses item) 0)))))
                                        :justify-dynamic
                                        :justify))
                              (call-next-method)
