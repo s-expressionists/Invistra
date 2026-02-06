@@ -122,12 +122,14 @@
                                                (if (= (length (clauses directive)) 1)
                                                    0
                                                    1)))
-                 (let* ((*argument-count* (dotted-list-length object))
-                        (previous-arguments (make-array *argument-count*
+                 (let* ((argument-count (dotted-list-length object))
+                        (previous-arguments (make-array argument-count
                                                         :adjustable t :fill-pointer 0))
                         (position 0)
                         (*argument-index-hook*
                           (lambda () position))
+                        (*remaining-argument-count-hook*
+                          (lambda () (- argument-count position)))
                         (*pop-argument-hook*
                           (lambda (&optional (type t))
                             (let ((value (if (< position (length previous-arguments))
@@ -143,10 +145,10 @@
                           (lambda (index absolutep)
                             (unless absolutep
                               (incf index position))
-                            (cond ((not (< -1 index *argument-count*))
+                            (cond ((not (< -1 index argument-count))
                                    (error 'go-to-out-of-bounds
                                           :what-argument index
-                                          :max-arguments *argument-count*))
+                                          :max-arguments argument-count))
                                   ((<= index position)
                                    (setf position index))
                                   (t
@@ -206,18 +208,23 @@
                                           :prefix ,prefix :suffix ,suffix
                                           :per-line-prefix-p ,per-line-prefix-p))
         `((let* ((object ,(pop-argument-form))
-                 (*remaining-argument-count* (dotted-list-length object))
-                 (*previous-arguments* (make-array *remaining-argument-count*
+                 (argument-count (dotted-list-length object))
+                 (*previous-arguments* (make-array argument-count
                                                    :adjustable t :fill-pointer 0))
                  (*previous-argument-index* 0))
             (inravina:execute-logical-block ,(trinsic:client-form client) *destination*
                                             object
                                             (lambda (*destination* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
-                                              (let ((*pop-argument-hook* (lambda (&optional (type t))
-                                                                           (let ((value (funcall pop-argument-hook)))
-                                                                             (unless (typep value type)
-                                                                               (error 'type-error :datum value :expected-type type))
-                                                                             value))))
+                                              (let* ((*remaining-argument-count-hook* (lambda ()
+                                                                                       (- argument-count position)))
+                                                     (position 0)
+                                                     (*argument-index-hook* (lambda ()
+                                                                              position))
+                                                     (*pop-argument-hook* (lambda (&optional (type t))
+                                                                            (let ((value (funcall pop-argument-hook)))
+                                                                              (unless (typep value type)
+                                                                                (error 'type-error :datum value :expected-type type))
+                                                                              value))))
 
                                                 ,@(compile-items client (aref (clauses directive)
                                                                               (if (= (length (clauses directive)) 1)

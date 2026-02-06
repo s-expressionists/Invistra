@@ -47,11 +47,11 @@
 
 (defparameter *newline-kind* nil)
 
-(defvar *argument-count* nil)
-
 (defvar *more-arguments-p-hook* nil)
 
 (defvar *argument-index-hook* nil)
+
+(defvar *remaining-argument-count-hook* nil)
 
 (defvar *pop-argument-hook* nil)
 
@@ -71,9 +71,10 @@
   (error 'type-error :datum object :expected-type 'list))
 
 (defmethod make-argument-cursor ((client standard-client) (object null))
-  (values 0
-          (lambda ()
+  (values (lambda ()
             nil)
+          (lambda ()
+            0)
           (lambda ()
             0)
           (lambda (&optional type)
@@ -90,12 +91,14 @@
 
 (defmethod make-argument-cursor ((client standard-client) (object cons))
   (let ((head object)
-        (position 0))
-    (values (length object)
-            (lambda ()
+        (position 0)
+        (len (list-length object)))
+    (values (lambda ()
               head)
             (lambda ()
               position)
+            (lambda ()
+              (- len position))
             (lambda (&optional (type t))
               (cond (head
                      (unless (typep (car head) type)
@@ -131,7 +134,7 @@
 (defmacro with-arguments ((client arguments) &body body)
   (let ((block-name (gensym)))
     `(block ,block-name
-       (multiple-value-bind (*argument-count* more-arguments-p-hook *argument-index-hook*
+       (multiple-value-bind (more-arguments-p-hook *argument-index-hook* *remaining-argument-count-hook*
                              *pop-argument-hook* *pop-remaining-arguments-hook*
                              *go-to-argument-hook*)
            (make-argument-cursor ,client ,arguments)
@@ -198,15 +201,32 @@
          `((funcall *go-to-argument-hook* index absolute)))))
 
 (defun remaining-argument-count ()
-  (- *argument-count*
-     (funcall *argument-index-hook*)))
+  (funcall *remaining-argument-count-hook*))
 
 (defun remaining-argument-count-form ()
-  (if (and *argument-count* *argument-index-hook*)
-      (- *argument-count*
-         (funcall *argument-index-hook*))
-      `(- *argument-count*
-          (funcall *argument-index-hook*))))
+  (if *remaining-argument-count-hook*
+      (funcall *remaining-argument-count-hook*)
+      `(funcall *remaining-argument-count-hook*)))
+
+(defun inner-exit-forms ()
+  (if *inner-exit*
+      (funcall *inner-exit*)
+      `((funcall *inner-exit*))))
+
+(defun outer-exit-forms ()
+  (if *outer-exit*
+      (funcall *outer-exit*)
+      `((funcall *outer-exit*))))
+
+(defun inner-exit-if-exhausted-forms ()
+  (if *inner-exit-if-exhausted*
+      (funcall *inner-exit-if-exhausted*)
+      `((funcall *inner-exit-if-exhausted*))))
+
+(defun outer-exit-if-exhausted-forms ()
+  (if *outer-exit-if-exhausted*
+      (funcall *outer-exit-if-exhausted*)
+      `((funcall *outer-exit-if-exhausted*))))
 
 (defmethod interpret-parameter ((parameter argument-reference-parameter))
   (or (pop-argument `(or null ,(parameter-type parameter)))

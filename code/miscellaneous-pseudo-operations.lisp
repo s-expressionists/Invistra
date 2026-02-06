@@ -102,23 +102,29 @@
       directive
     (destructuring-bind (p1 p2 p3)
         parameters
-      (cond ((null p1)
-             `((funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*))))
-            ((null p2)
-             `((cond ((null ,p1)
-                      (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
-                     ((eql 0 ,p1)
-                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*))))))
+      (let ((exit-forms (if colon-p
+                            (outer-exit-forms)
+                            (inner-exit-forms)))
+            (exit-if-exhausted-forms (if colon-p
+                                         (outer-exit-if-exhausted-forms)
+                                         (inner-exit-if-exhausted-forms))))
+        (cond ((null p1)
+               exit-if-exhausted-forms)
+              ((null p2)
+               `((cond ((null ,p1)
+                        ,@exit-if-exhausted-forms)
+                       ((eql 0 ,p1)
+                        ,@exit-forms))))
             ((null p3)
              `((cond ((and (null ,p1) (null ,p2))
-                      (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
+                      ,@exit-if-exhausted-forms)
                      ((or (and (null ,p1) (eql 0 ,p2))
                           (and (eql 0 ,p1) (null ,p2))
                           (and ,p1 ,p2 (eql ,p1 ,p2)))
-                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*))))))
+                      ,@exit-forms))))
             (t
              `((cond ((and (null ,p1) (null ,p2) (null ,p3))
-                      (funcall ,(if colon-p '*outer-exit-if-exhausted* '*inner-exit-if-exhausted*)))
+                      ,@exit-if-exhausted-forms)
                      ((or (and (null ,p1) (null ,p2) (eql 0 ,p3))
                           (and (null ,p1) (eql 0 ,p2) (null ,p3))
                           (and (eql 0 ,p1) (null ,p2) (null ,p3))
@@ -126,7 +132,7 @@
                           (and (null ,p2) ,p1 ,p3 (eql ,p1 ,p3))
                           (and (null ,p3) ,p1 ,p2 (eql ,p1 ,p2))
                           (and ,p1 ,p2 ,p3 (<= ,p1 ,p2 ,p3)))
-                      (funcall ,(if colon-p '*outer-exit* '*inner-exit*))))))))))
+                      ,@exit-forms)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

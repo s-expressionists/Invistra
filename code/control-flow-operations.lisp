@@ -367,9 +367,9 @@
                                while (or (null iteration-limit)
                                          (< index iteration-limit))
                                ,@(if oncep
-                                     '(when (plusp index)
-                                         do (funcall *inner-exit-if-exhausted*))
-                                     '(do (funcall *inner-exit-if-exhausted*)))
+                                     `(when (plusp index)
+                                         do ,@(inner-exit-if-exhausted-forms))
+                                     `(do ,@(inner-exit-if-exhausted-forms)))
                                do (apply control *destination* (pop-argument 'list)))
                          (loop with items = (parse-control-string ,(trinsic:client-form client)
                                                                   control)
@@ -377,9 +377,9 @@
                                while (or (null iteration-limit)
                                          (< index iteration-limit))
                                ,@(if oncep
-                                     '(when (plusp index)
-                                         do (funcall *inner-exit-if-exhausted*))
-                                     '(do (funcall *inner-exit-if-exhausted*)))
+                                     `(when (plusp index)
+                                         do ,@(inner-exit-if-exhausted-forms))
+                                     `(do ,@(inner-exit-if-exhausted-forms)))
                                do (with-arguments (,(trinsic:client-form client) (pop-argument))
                                     (interpret-items ,(trinsic:client-form client) items))))))))
               (colon-p
@@ -393,9 +393,9 @@
                                while (or (null iteration-limit)
                                          (< index iteration-limit))
                                ,@(if oncep
-                                     '(when (plusp index)
-                                         do (funcall *inner-exit-if-exhausted*))
-                                     '(do (funcall *inner-exit-if-exhausted*)))
+                                     `(when (plusp index)
+                                         do ,@(inner-exit-if-exhausted-forms))
+                                     `(do ,@(inner-exit-if-exhausted-forms)))
                                do (apply control *destination* (pop-argument 'list)))
                          (loop with items = (parse-control-string ,(trinsic:client-form client)
                                                                   control)
@@ -403,9 +403,9 @@
                                while (or (null iteration-limit)
                                          (< index iteration-limit))
                                ,@(if oncep
-                                     '(when (plusp index)
-                                         do (funcall *inner-exit-if-exhausted*))
-                                     '(do (funcall *inner-exit-if-exhausted*)))
+                                     `(when (plusp index)
+                                         do ,@(inner-exit-if-exhausted-forms))
+                                     `(do ,@(inner-exit-if-exhausted-forms)))
                                do (with-arguments (,(trinsic:client-form client) (pop-argument))
                                   (interpret-items ,(trinsic:client-form client) items))))))))
               (at-sign-p
@@ -418,7 +418,7 @@
                                         ,(if oncep
                                              '(or (zerop index) args)
                                              'args))
-                             do (funcall *inner-exit-if-exhausted*)
+                             do ,@(inner-exit-if-exhausted-forms)
                                 (go-to-argument (- (length (apply control *destination*
                                                                   (pop-remaining-arguments))))))
                        (with-remaining-arguments
@@ -428,9 +428,9 @@
                                while (or (null iteration-limit)
                                          (< index iteration-limit))
                                ,@(if oncep
-                                     '(when (plusp index)
-                                         do (funcall *inner-exit-if-exhausted*))
-                                     '(do (funcall *inner-exit-if-exhausted*)))
+                                     `(when (plusp index)
+                                         do ,@(inner-exit-if-exhausted-forms))
+                                     `(do ,@(inner-exit-if-exhausted-forms)))
                                do (interpret-items ,(trinsic:client-form client) items)))))))
               (t
                ;; no modifiers
@@ -454,8 +454,8 @@
                                while (or (null iteration-limit)
                                          (< index iteration-limit))
                                ,@(if oncep
-                                     '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
-                                     '(do (funcall *inner-exit-if-exhausted*)))
+                                     `(when (plusp index) do ,@(inner-exit-if-exhausted-forms))
+                                     `(do ,@(inner-exit-if-exhausted-forms)))
                                do (interpret-items ,(trinsic:client-form client) items))))))))
         (let ((compiled-items (with-dynamic-arguments (compile-items client items))))
           (cond ((and colon-p at-sign-p)
@@ -467,8 +467,8 @@
                              while (or (null iteration-limit)
                                        (< index iteration-limit))
                              ,@(if oncep
-                                   '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
-                                   '(do (funcall *inner-exit-if-exhausted*)))
+                                   `(when (plusp index) do ,@(inner-exit-if-exhausted-forms))
+                                   `(do ,@(inner-exit-if-exhausted-forms)))
                              do (with-arguments (,(trinsic:client-form client) (pop-argument))
                                   ,@compiled-items))))))
                 (colon-p
@@ -477,13 +477,13 @@
                  (let ((arg-form (pop-argument-form)))
                    (with-dynamic-arguments
                      `((let ((iteration-limit ,iteration-limit))
-                         (with-arguments (,(trinsic:client-form client) ,argument-form)
+                         (with-arguments (,(trinsic:client-form client) ,arg-form)
                            (loop for index from 0
                                  while (or (null iteration-limit)
                                            (< index iteration-limit))
                                  ,@(if oncep
-                                       '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
-                                       '(do (funcall *inner-exit-if-exhausted*)))
+                                       `(when (plusp index) do ,@(inner-exit-if-exhausted-forms))
+                                       `(do ,@(inner-exit-if-exhausted-forms)))
                                  do (with-arguments (,(trinsic:client-form client) (pop-argument))
                                       ,@compiled-items))))))))
                 (at-sign-p
@@ -493,8 +493,8 @@
                              while (or (null iteration-limit)
                                        (< index iteration-limit))
                              ,@(if oncep
-                                   '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
-                                   '(do (funcall *inner-exit-if-exhausted*)))
+                                   `(when (plusp index) do ,@(inner-exit-if-exhausted-forms))
+                                   `(do ,@(inner-exit-if-exhausted-forms)))
                              ,@(when compiled-items
                                  (list* 'do compiled-items)))))))
                 (t
@@ -509,8 +509,8 @@
                                    while (or (null iteration-limit)
                                              (< index iteration-limit))
                                    ,@(if oncep
-                                         '(when (plusp index) do (funcall *inner-exit-if-exhausted*))
-                                         '(do (funcall *inner-exit-if-exhausted*)))
+                                         `(when (plusp index) do ,@(inner-exit-if-exhausted-forms))
+                                         `(do ,@(inner-exit-if-exhausted-forms)))
                                    ,@(when compiled-items
                                        (list* 'do compiled-items))))))))))))))
 
