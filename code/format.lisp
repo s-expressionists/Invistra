@@ -161,13 +161,13 @@
                               (return-from ,block-name nil))))
          ,@body))))
 
-(defmacro with-dynamic-arguments (&body body)
+(defmacro with-dynamic-arguments ((&key outer) &body body)
   `(let ((*argument-index-hook* nil)
          (*pop-argument-hook* nil)
          (*pop-remaining-arguments-hook* nil)
          (*go-to-argument-hook* nil)
-         (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
-         (*outer-exit* *inner-exit*)
+         (*outer-exit-if-exhausted* ,(when outer '*inner-exit-if-exhausted*))
+         (*outer-exit* ,(when outer '*inner-exit*))
          (*inner-exit-if-exhausted* nil)
          (*inner-exit* nil))
      ,@body))
@@ -198,7 +198,7 @@
          (funcall *go-to-argument-hook* index absolute)
          nil)
         (t
-         `((funcall *go-to-argument-hook* index absolute)))))
+         `((funcall *go-to-argument-hook* ,index ,absolute)))))
 
 (defun remaining-argument-count ()
   (funcall *remaining-argument-count-hook*))

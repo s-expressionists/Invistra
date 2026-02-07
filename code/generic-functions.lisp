@@ -51,3 +51,8 @@
     character))
 
 (defgeneric make-argument-cursor (client object))
+
+(defgeneric outer-iteration-p (item)
+  (:method (item)
+    (declare (ignore item))
+    nil))

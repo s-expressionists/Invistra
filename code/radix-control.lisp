@@ -93,9 +93,8 @@
       (multiple-value-bind (q r)
           (floor count 2)
         `(integer 1
-                  ,(1- (if (zerop r)
-                           (* (expt 10 (1- q)) 9)
-                           (* (expt 10 q) 4)))))
+                  ,(1- (* (expt 10 q)
+                          (if (zerop r) 1 5)))))
       '(integer 1)))
 
 (defun write-roman-numeral (value)
@@ -292,31 +291,32 @@
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
-    (let ((radix (car parameters)))
+    (let ((radix (car parameters))
+          (arg-form (pop-argument-form)))
       (cond ((numberp radix)
-             `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form)
+             `((write-radix-numeral ,(trinsic:client-form client) ,arg-form
                                     ,colon-p ,at-sign-p ,@parameters)))
             ((null radix)
              (cond ((and at-sign-p colon-p)
-                    `((write-old-roman-numeral ,(pop-argument-form))))
+                    `((write-old-roman-numeral ,arg-form)))
                    (at-sign-p
-                    `((write-roman-numeral ,(pop-argument-form))))
+                    `((write-roman-numeral ,arg-form)))
                    (colon-p
-                    `((write-ordinal-numeral ,(pop-argument-form))))
+                    `((write-ordinal-numeral ,arg-form)))
                    (t
-                    `((write-cardinal-numeral ,(pop-argument-form))))))
+                    `((write-cardinal-numeral ,arg-form)))))
             (t
              `((if ,radix
-                   (write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form)
+                   (write-radix-numeral ,(trinsic:client-form client) ,arg-form
                                         ,colon-p ,at-sign-p ,@parameters)
                    ,(cond ((and at-sign-p colon-p)
-                           `(write-old-roman-numeral ,(pop-argument-form)))
+                           `(write-old-roman-numeral ,arg-form))
                           (at-sign-p
-                           `(write-roman-numeral ,(pop-argument-form)))
+                           `(write-roman-numeral ,arg-form))
                           (colon-p
-                           `(write-ordinal-numeral ,(pop-argument-form)))
+                           `(write-ordinal-numeral ,arg-form))
                           (t
-                           `(write-cardinal-numeral ,(pop-argument-form)))))))))))
+                           `(write-cardinal-numeral ,arg-form))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

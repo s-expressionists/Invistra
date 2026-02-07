@@ -167,6 +167,9 @@
                                       :per-line-prefix-p per-line-prefix-p
                                       :suffix suffix))))
 
+(defmethod outer-iteration-p ((item logical-block-directive))
+  t)
+
 (defmethod compile-item (client (directive logical-block-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
@@ -195,7 +198,7 @@
                         "")))
          (per-line-prefix-p (and (> (length (clauses directive)) 1)
                                  (at-sign-p (aref (aref (clauses directive) 0)
-                                            (1- (length (aref (clauses directive) 0))))))))
+                                                  (1- (length (aref (clauses directive) 0))))))))
     (if at-sign-p
         `((inravina:execute-logical-block ,(trinsic:client-form client) *destination*
                                           nil
@@ -207,31 +210,33 @@
                                                                               1))))
                                           :prefix ,prefix :suffix ,suffix
                                           :per-line-prefix-p ,per-line-prefix-p))
-        `((let* ((object ,(pop-argument-form))
-                 (argument-count (dotted-list-length object))
-                 (*previous-arguments* (make-array argument-count
-                                                   :adjustable t :fill-pointer 0))
-                 (*previous-argument-index* 0))
-            (inravina:execute-logical-block ,(trinsic:client-form client) *destination*
-                                            object
-                                            (lambda (*destination* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
-                                              (let* ((*remaining-argument-count-hook* (lambda ()
-                                                                                       (- argument-count position)))
-                                                     (position 0)
-                                                     (*argument-index-hook* (lambda ()
-                                                                              position))
-                                                     (*pop-argument-hook* (lambda (&optional (type t))
-                                                                            (let ((value (funcall pop-argument-hook)))
-                                                                              (unless (typep value type)
-                                                                                (error 'type-error :datum value :expected-type type))
-                                                                              value))))
+        (let ((arg-form (pop-argument-form)))
+          (with-dynamic-arguments ()
+            `((let* ((object ,arg-form)
+                     (argument-count (dotted-list-length object))
+                     (*previous-arguments* (make-array argument-count
+                                                       :adjustable t :fill-pointer 0))
+                     (*previous-argument-index* 0))
+                (inravina:execute-logical-block ,(trinsic:client-form client) *destination*
+                                                object
+                                                (lambda (*destination* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
+                                                  (let* ((*remaining-argument-count-hook* (lambda ()
+                                                                                            (- argument-count position)))
+                                                         (position 0)
+                                                         (*argument-index-hook* (lambda ()
+                                                                                  position))
+                                                         (*pop-argument-hook* (lambda (&optional (type t))
+                                                                                (let ((value (funcall pop-argument-hook)))
+                                                                                  (unless (typep value type)
+                                                                                    (error 'type-error :datum value :expected-type type))
+                                                                                  value))))
 
-                                                ,@(compile-items client (aref (clauses directive)
-                                                                              (if (= (length (clauses directive)) 1)
-                                                                                  0
-                                                                                  1)))))
-                                            :prefix ,prefix :suffix ,suffix
-                                            :per-line-prefix-p ,per-line-prefix-p))))))
+                                                    ,@(compile-items client (aref (clauses directive)
+                                                                                  (if (= (length (clauses directive)) 1)
+                                                                                      0
+                                                                                      1)))))
+                                                :prefix ,prefix :suffix ,suffix
+                                                :per-line-prefix-p ,per-line-prefix-p))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

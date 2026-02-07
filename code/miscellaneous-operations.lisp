@@ -97,7 +97,7 @@
                    (at-sign-p at-sign-p))
       directive
     `(,@(when colon-p
-          `((go-to-argument -1)))
+          (go-to-argument-forms -1))
       ,(if at-sign-p
            `(write-string (if (eql ,(pop-argument-form) 1)
                               "y"
