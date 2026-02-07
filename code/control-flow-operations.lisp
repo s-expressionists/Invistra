@@ -137,6 +137,9 @@
              :directive directive))
     (setf (last-clause-is-default-p directive) (and pos t))))
 
+(defmethod outer-iteration-p ((directive conditional-directive))
+  t)
+
 (defmethod interpret-item (client (directive conditional-directive) &optional parameters)
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p)

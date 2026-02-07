@@ -166,6 +166,7 @@
          (*pop-argument-hook* nil)
          (*pop-remaining-arguments-hook* nil)
          (*go-to-argument-hook* nil)
+         (*remaining-argument-count-hook* nil)
          (*outer-exit-if-exhausted* ,(when outer '*inner-exit-if-exhausted*))
          (*outer-exit* ,(when outer '*inner-exit*))
          (*inner-exit-if-exhausted* nil)

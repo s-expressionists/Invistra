@@ -220,9 +220,9 @@
                 (inravina:execute-logical-block ,(trinsic:client-form client) *destination*
                                                 object
                                                 (lambda (*destination* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
-                                                  (let* ((*remaining-argument-count-hook* (lambda ()
+                                                  (let* ((position 0)
+                                                         (*remaining-argument-count-hook* (lambda ()
                                                                                             (- argument-count position)))
-                                                         (position 0)
                                                          (*argument-index-hook* (lambda ()
                                                                                   position))
                                                          (*pop-argument-hook* (lambda (&optional (type t))
