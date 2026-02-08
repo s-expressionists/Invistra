@@ -116,7 +116,7 @@
                                  (at-sign-p (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0)))))))
          (object (unless at-sign-p (pop-argument))))
-    (flet ((interpret-body (*format-output* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
+    (flet ((interpret-body (*format-output* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p*)
              (if at-sign-p
                  (interpret-items client (aref (clauses directive)
                                                (if (= (length (clauses directive)) 1)
@@ -126,11 +126,11 @@
                         (previous-arguments (make-array argument-count
                                                         :adjustable t :fill-pointer 0))
                         (position 0)
-                        (*argument-index-hook*
+                        (*argument-index*
                           (lambda () position))
-                        (*remaining-argument-count-hook*
+                        (*remaining-argument-count*
                           (lambda () (- argument-count position)))
-                        (*pop-argument-hook*
+                        (my-pop-argument-hook
                           (lambda (&optional (type t))
                             (let ((value (if (< position (length previous-arguments))
                                              (aref previous-arguments position)
@@ -139,9 +139,10 @@
                               (unless (typep value type)
                                 (error 'type-error :datum value :expected-type type))
                               (incf position))))
-                        (*pop-remaining-arguments-hook*
+                        (*pop-argument* my-pop-argument-hook)
+                        (*pop-remaining-arguments*
                           (lambda () nil))
-                        (*go-to-argument-hook*
+                        (*go-to-argument*
                           (lambda (index absolutep)
                             (unless absolutep
                               (incf index position))
@@ -155,7 +156,7 @@
                                    (tagbody
                                     next
                                       (when (< position index)
-                                        (funcall *pop-argument-hook*)
+                                        (funcall my-pop-argument-hook)
                                         (go next))))))))
                    (interpret-items client (aref (clauses directive)
                                                  (if (= (length (clauses directive)) 1)
@@ -219,13 +220,13 @@
                      (*previous-argument-index* 0))
                 (inravina:execute-logical-block ,(trinsic:client-form client) *format-output*
                                                 object
-                                                (lambda (*format-output* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
+                                                (lambda (*format-output* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p*)
                                                   (let* ((position 0)
-                                                         (*remaining-argument-count-hook* (lambda ()
+                                                         (*remaining-argument-count* (lambda ()
                                                                                             (- argument-count position)))
-                                                         (*argument-index-hook* (lambda ()
+                                                         (*argument-index* (lambda ()
                                                                                   position))
-                                                         (*pop-argument-hook* (lambda (&optional (type t))
+                                                         (*pop-argument* (lambda (&optional (type t))
                                                                                 (let ((value (funcall pop-argument-hook)))
                                                                                   (unless (typep value type)
                                                                                     (error 'type-error :datum value :expected-type type))

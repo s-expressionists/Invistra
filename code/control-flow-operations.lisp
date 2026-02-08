@@ -249,7 +249,7 @@
           (cond ((and colon-p at-sign-p)
                  ;; The remaining arguments should be lists.  Each argument
                  ;; is used in a different iteration.
-                 (with-remaining-arguments
+                 (with-remaining-arguments ()
                    (if (functionp control)
                        (loop for index from 0
                              while (or (null iteration-limit)
@@ -299,7 +299,7 @@
                            while (and (or (null iteration-limit)
                                           (< index iteration-limit))
                                       (or (and oncep (zerop index)) args)))
-                     (with-remaining-arguments
+                     (with-remaining-arguments ()
                        (loop for index from 0
                              while (or (null iteration-limit)
                                        (< index iteration-limit))
@@ -327,7 +327,7 @@
         (cond ((and colon-p at-sign-p)
                ;; The remaining arguments should be lists.  Each argument
                ;; is used in a different iteration.
-               (with-remaining-arguments
+               (with-remaining-arguments ()
                  (loop for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
@@ -347,7 +347,7 @@
                        do (with-arguments (client (pop-argument))
                             (interpret-items client items)))))
               (at-sign-p
-               (with-remaining-arguments
+               (with-remaining-arguments ()
                  (loop for index from 0
                        while (or (null iteration-limit)
                                  (< index iteration-limit))
@@ -380,7 +380,7 @@
                ;; is used in a different iteration.
                `((let ((iteration-limit ,iteration-limit)
                        (control (pop-argument '(or function string))))
-                   (with-remaining-arguments
+                   (with-remaining-arguments ()
                      (if (functionp control)
                          (loop for index from 0
                                while (or (null iteration-limit)
@@ -399,14 +399,14 @@
                                      `(when (plusp index)
                                         do (funcall *inner-exit-if-exhausted*))
                                      `(do (funcall *inner-exit-if-exhausted*)))
-                               do (with-arguments (,(trinsic:client-form client) (pop-argument))
+                               do (with-arguments (,(trinsic:client-form client) (pop-argument) :outer t)
                                     (interpret-items ,(trinsic:client-form client) items))))))))
               (colon-p
                ;; We use one argument, and that should be a list of sublists.
                ;; Each sublist is used as arguments for one iteration.
                (let ((control-form (pop-argument-form '(or function string)))
                      (args-form (pop-argument-form)))
-                 (with-dynamic-arguments (:outer t)
+                 (with-dynamic-arguments ()
                    `((let ((iteration-limit ,iteration-limit)
                            (control ,control-form))
                        (with-arguments (,(trinsic:client-form client) ,args-form)
@@ -428,7 +428,7 @@
                                          `(when (plusp index)
                                             do (funcall *inner-exit-if-exhausted*))
                                          `(do (funcall *inner-exit-if-exhausted*)))
-                                   do (with-arguments (,(trinsic:client-form client) (pop-argument))
+                                   do (with-arguments (,(trinsic:client-form client) (pop-argument) :outer t)
                                         (interpret-items ,(trinsic:client-form client) items))))))))))
               (at-sign-p
                `((let ((iteration-limit ,iteration-limit)
@@ -443,7 +443,7 @@
                                         ,(if oncep
                                              '(or (zerop index) args)
                                              'args)))
-                       (with-remaining-arguments
+                       (with-remaining-arguments ()
                          (loop with items = (parse-control-string ,(trinsic:client-form client)
                                                                   control)
                                for index from 0
@@ -487,14 +487,14 @@
                ;; is used in a different iteration.
                (let ((compiled-items (compile-items client items)))
                  `((let ((iteration-limit ,iteration-limit))
-                     (with-remaining-arguments
+                     (with-remaining-arguments ()
                        (loop for index from 0
                              while (or (null iteration-limit)
                                        (< index iteration-limit))
                              ,@(if oncep
                                    `(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                    `(do (funcall *inner-exit-if-exhausted*)))
-                             do (with-arguments (,(trinsic:client-form client) (pop-argument))
+                             do (with-arguments (,(trinsic:client-form client) (pop-argument) :outer t)
                                   ,@compiled-items)))))))
               (colon-p
                ;; We use one argument, and that should be a list of sublists.
@@ -510,12 +510,12 @@
                                  ,@(if oncep
                                        `(when (plusp index) do (funcall *inner-exit-if-exhausted*))
                                        `(do (funcall *inner-exit-if-exhausted*)))
-                                 do (with-arguments (,(trinsic:client-form client) (funcall *pop-argument-hook*))
+                                 do (with-arguments (,(trinsic:client-form client) (pop-argument) :outer t)
                                       ,@compiled-items)))))))))
               (at-sign-p
                (let ((compiled-items (compile-items client items)))
                  `((let ((iteration-limit ,iteration-limit))
-                     (with-remaining-arguments
+                     (with-remaining-arguments ()
                        (loop for index from 0
                              while (or (null iteration-limit)
                                        (< index iteration-limit))
@@ -562,7 +562,7 @@
   (let ((control (pop-argument 'string)))
     (if (at-sign-p directive)
         ;; reuse the arguments from the parent control-string
-        (with-remaining-arguments
+        (with-remaining-arguments ()
             (format-with-runtime-arguments client control))
         ;;
         (with-arguments (client (pop-argument))
@@ -572,7 +572,7 @@
   (declare (ignore parameters))
   (if (at-sign-p directive)
       ;; reuse the arguments from the parent control-string
-      `((with-remaining-arguments
+      `((with-remaining-arguments ()
           (format-with-runtime-arguments ,(trinsic:client-form client)
                                          (pop-argument 'string))))
       ;;

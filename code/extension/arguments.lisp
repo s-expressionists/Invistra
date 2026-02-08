@@ -7,16 +7,20 @@
 
 (defmethod invistra::make-argument-cursor ((client extension-client) (object sequence))
   (let ((position 0))
-    (values (length object)
-            (lambda ()
+    (values (lambda ()
               (< position (length object)))
             (lambda ()
               position)
             (lambda ()
+              (- (length object) position))
+            (lambda (&optional (type t))
               (if (< position (length object))
-                  (prog1 (elt object position)
-                    (incf position))
-                  (error 'no-more-arguments)))
+                  (let ((value (elt object position)))
+                    (unless (typep value type)
+                      (error 'type-error :datum value :expected-type type))
+                    (incf position)
+                    value)
+                  (error 'invistra::no-more-arguments)))
             (lambda ()
               (loop for p from position below (length object)
                     collect (elt object p)))
@@ -24,6 +28,6 @@
               (unless absolutep
                 (incf position index))
               (unless (< -1 position (length object))
-                (error 'go-to-out-of-bounds
+                (error 'invistra::go-to-out-of-bounds
                        :what-argument position
                        :max-arguments (length object)))))))

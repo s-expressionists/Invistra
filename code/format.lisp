@@ -47,17 +47,17 @@
 
 (defparameter *newline-kind* nil)
 
-(defvar *more-arguments-p-hook* nil)
+(defvar *more-arguments-p* nil)
 
-(defvar *argument-index-hook* nil)
+(defvar *argument-index* nil)
 
-(defvar *remaining-argument-count-hook* nil)
+(defvar *remaining-argument-count* nil)
 
-(defvar *pop-argument-hook* nil)
+(defvar *pop-argument* nil)
 
-(defvar *go-to-argument-hook* nil)
+(defvar *go-to-argument* nil)
 
-(defvar *pop-remaining-arguments-hook* nil)
+(defvar *pop-remaining-arguments* nil)
 
 (defvar *inner-exit-if-exhausted* nil)
 
@@ -131,16 +131,16 @@
                      (setf position (+ position index)
                            head (nthcdr index head))))))))
 
-(defmacro with-arguments ((client arguments) &body body)
+(defmacro with-arguments ((client arguments &key outer) &body body)
   (let ((block-name (gensym)))
     `(block ,block-name
-       (multiple-value-bind (more-arguments-p-hook *argument-index-hook* *remaining-argument-count-hook*
-                             *pop-argument-hook* *pop-remaining-arguments-hook*
-                             *go-to-argument-hook*)
+       (multiple-value-bind (more-arguments-p-hook *argument-index* *remaining-argument-count*
+                             *pop-argument* *pop-remaining-arguments*
+                             *go-to-argument*)
            (make-argument-cursor ,client ,arguments)
-         (let* ((*more-arguments-p-hook* more-arguments-p-hook)
-                (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
-                (*outer-exit* *inner-exit*)
+         (let* ((*more-arguments-p* more-arguments-p-hook)
+                (*outer-exit-if-exhausted* ,(when outer '*inner-exit-if-exhausted*))
+                (*outer-exit* ,(when outer '*inner-exit*))
                 (*inner-exit-if-exhausted* (lambda ()
                                              (unless (funcall more-arguments-p-hook)
                                                (return-from ,block-name nil))))
@@ -148,12 +148,12 @@
                                 (return-from ,block-name nil))))
            ,@body)))))
 
-(defmacro with-remaining-arguments (&body body)
+(defmacro with-remaining-arguments ((&key outer) &body body)
   (let ((block-name (gensym)))
     `(block ,block-name
-       (let* ((more-arguments-p-hook *more-arguments-p-hook*)
-              (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
-              (*outer-exit* *inner-exit*)
+       (let* ((more-arguments-p-hook *more-arguments-p*)
+              (*outer-exit-if-exhausted* ,(when outer '*inner-exit-if-exhausted*))
+              (*outer-exit* ,(when outer '*inner-exit*))
               (*inner-exit-if-exhausted* (lambda ()
                                            (unless (funcall more-arguments-p-hook)
                                              (return-from ,block-name nil))))
@@ -162,11 +162,11 @@
          ,@body))))
 
 (defmacro with-dynamic-arguments ((&key outer) &body body)
-  `(let ((*argument-index-hook* nil)
-         (*pop-argument-hook* nil)
-         (*pop-remaining-arguments-hook* nil)
-         (*go-to-argument-hook* nil)
-         (*remaining-argument-count-hook* nil)
+  `(let ((*argument-index* nil)
+         (*pop-argument* nil)
+         (*pop-remaining-arguments* nil)
+         (*go-to-argument* nil)
+         (*remaining-argument-count* nil)
          (*outer-exit-if-exhausted* ,(when outer '*inner-exit-if-exhausted*))
          (*outer-exit* ,(when outer '*inner-exit*))
          (*inner-exit-if-exhausted* nil)
@@ -175,54 +175,69 @@
 
 ;;; The directive interpreter.
 
+(declaim (inline pop-argument pop-remaining-arguments go-to-argument remaining-argument-count
+                 inner-exit outer-exit inner-exit-if-exhausted outer-exit-if-exhausted))
+
 (defun pop-argument (&optional (type t))
-  (funcall *pop-argument-hook* type))
+  (funcall *pop-argument* type))
 
 (defun pop-argument-form (&optional (type t))
-  (if *pop-argument-hook*
-      (funcall *pop-argument-hook* type)
-      `(funcall *pop-argument-hook* ',type)))
+  (if *pop-argument*
+      (funcall *pop-argument* type)
+      `(funcall *pop-argument* ',type)))
 
 (defun pop-remaining-arguments ()
-  (funcall *pop-remaining-arguments-hook*))
+  (funcall *pop-remaining-arguments*))
 
 (defun pop-remaining-arguments-form ()
-  (if *pop-remaining-arguments-hook*
-      (funcall *pop-remaining-arguments-hook*)
-      `(funcall *pop-remaining-arguments-hook*)))
+  (if *pop-remaining-arguments*
+      (funcall *pop-remaining-arguments*)
+      `(funcall *pop-remaining-arguments*)))
 
 (defun go-to-argument (index &optional absolute)
-  (funcall *go-to-argument-hook* index absolute))
+  (funcall *go-to-argument* index absolute))
 
 (defun go-to-argument-forms (index &optional absolute)
-  (cond (*go-to-argument-hook*
-         (funcall *go-to-argument-hook* index absolute)
+  (cond (*go-to-argument*
+         (funcall *go-to-argument* index absolute)
          nil)
         (t
-         `((funcall *go-to-argument-hook* ,index ,absolute)))))
+         `((funcall *go-to-argument* ,index ,absolute)))))
 
 (defun remaining-argument-count ()
-  (funcall *remaining-argument-count-hook*))
+  (funcall *remaining-argument-count*))
 
 (defun remaining-argument-count-form ()
-  (if *remaining-argument-count-hook*
-      (funcall *remaining-argument-count-hook*)
-      `(funcall *remaining-argument-count-hook*)))
+  (if *remaining-argument-count*
+      (funcall *remaining-argument-count*)
+      `(funcall *remaining-argument-count*)))
+
+(defun inner-exit ()
+  (funcall *inner-exit*))
 
 (defun inner-exit-forms ()
   (if *inner-exit*
       (funcall *inner-exit*)
       `((funcall *inner-exit*))))
 
+(defun outer-exit ()
+  (funcall *outer-exit*))
+
 (defun outer-exit-forms ()
   (if *outer-exit*
       (funcall *outer-exit*)
       `((funcall *outer-exit*))))
 
+(defun inner-exit-if-exhausted ()
+  (funcall *inner-exit-if-exhausted*))
+
 (defun inner-exit-if-exhausted-forms ()
   (if *inner-exit-if-exhausted*
       (funcall *inner-exit-if-exhausted*)
       `((funcall *inner-exit-if-exhausted*))))
+
+(defun outer-exit-if-exhausted ()
+  (funcall *outer-exit-if-exhausted*))
 
 (defun outer-exit-if-exhausted-forms ()
   (if *outer-exit-if-exhausted*

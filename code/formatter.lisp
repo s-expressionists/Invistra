@@ -19,13 +19,13 @@
                  (guts (let* ((pos 0)
                               (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
                               (*outer-exit* *inner-exit*)
-                              (*more-arguments-p-hook* (lambda () t))
-                              (*argument-index-hook* (lambda () pos))
-                              (*remaining-argument-count-hook* (lambda () `(- ,count
+                              (*more-arguments-p* (lambda () t))
+                              (*argument-index* (lambda () pos))
+                              (*remaining-argument-count* (lambda () `(- ,count
                                                                               ,(loop for arg across args
                                                                                      repeat pos
                                                                                      count (not (lambda-argument-namep arg))))))
-                              (*pop-argument-hook* (lambda (&optional (type t))
+                              (*pop-argument* (lambda (&optional (type t))
                                                      (if (< pos (length args))
                                                          (let ((arg (aref args pos)))
                                                            (when (subtypep type (lambda-argument-type arg))
@@ -44,8 +44,8 @@
                                                                                  collect (lambda-argument-name (aref args i)))
                                                                            (list rest))
                                                                     rest)))
-                              (*pop-remaining-arguments-hook* pop-remaining-arguments-hook)
-                              (*go-to-argument-hook* (lambda (index &optional absolutep)
+                              (*pop-remaining-arguments* pop-remaining-arguments-hook)
+                              (*go-to-argument* (lambda (index &optional absolutep)
                                                        (setf pos (if absolutep index (+ index pos)))
                                                        (loop for i from (length args) to pos
                                                              do (vector-push-extend (make-lambda-argument) args))))

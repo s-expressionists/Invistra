@@ -185,7 +185,7 @@
         with *extra-space* = nil
         with *line-length* = nil
         for clause across (clauses directive)
-        for segment = (with-remaining-arguments
+        for segment = (with-remaining-arguments ()
                         (with-output-to-string (*format-output*)
                           (interpret-items client clause)))
         for index from 0
@@ -204,7 +204,7 @@
 (defmethod compile-item (client (directive justification-directive) &optional parameters)
   `((let (newline-segment segments
           *extra-space* *line-length*)
-      (with-remaining-arguments
+      (with-remaining-arguments ()
         ,@(loop for clause across (clauses directive)
                 for segment = `(with-output-to-string (*format-output*)
                                  ,@(compile-items client clause))
