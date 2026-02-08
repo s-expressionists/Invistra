@@ -24,7 +24,7 @@
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
-    (inravina:pprint-newline client *destination*
+    (inravina:pprint-newline client *format-output*
                              (cond ((and colon-p at-sign-p) :mandatory)
                                    (colon-p :fill)
                                    (at-sign-p :miser)
@@ -37,7 +37,7 @@
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
-    `((inravina:pprint-newline ,(trinsic:client-form client) *destination*
+    `((inravina:pprint-newline ,(trinsic:client-form client) *format-output*
                                ,(cond ((and colon-p at-sign-p) :mandatory)
                                       (colon-p :fill)
                                       (at-sign-p :miser)
@@ -116,7 +116,7 @@
                                  (at-sign-p (aref (aref (clauses directive) 0)
                                             (1- (length (aref (clauses directive) 0)))))))
          (object (unless at-sign-p (pop-argument))))
-    (flet ((interpret-body (*destination* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
+    (flet ((interpret-body (*format-output* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
              (if at-sign-p
                  (interpret-items client (aref (clauses directive)
                                                (if (= (length (clauses directive)) 1)
@@ -161,7 +161,7 @@
                                                  (if (= (length (clauses directive)) 1)
                                                      0
                                                      1)))))))
-      (inravina:execute-logical-block client *destination*
+      (inravina:execute-logical-block client *format-output*
                                       object #'interpret-body
                                       :prefix prefix
                                       :per-line-prefix-p per-line-prefix-p
@@ -200,9 +200,9 @@
                                  (at-sign-p (aref (aref (clauses directive) 0)
                                                   (1- (length (aref (clauses directive) 0))))))))
     (if at-sign-p
-        `((inravina:execute-logical-block ,(trinsic:client-form client) *destination*
+        `((inravina:execute-logical-block ,(trinsic:client-form client) *format-output*
                                           nil
-                                          (lambda (*destination* escape-hook pop-argument-hook more-arguments-p-hook)
+                                          (lambda (*format-output* escape-hook pop-argument-hook more-arguments-p-hook)
                                             (declare (ignore escape-hook pop-argument-hook))
                                             ,@(compile-items client (aref (clauses directive)
                                                                           (if (= (length (clauses directive)) 1)
@@ -217,9 +217,9 @@
                      (*previous-arguments* (make-array argument-count
                                                        :adjustable t :fill-pointer 0))
                      (*previous-argument-index* 0))
-                (inravina:execute-logical-block ,(trinsic:client-form client) *destination*
+                (inravina:execute-logical-block ,(trinsic:client-form client) *format-output*
                                                 object
-                                                (lambda (*destination* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
+                                                (lambda (*format-output* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p-hook*)
                                                   (let* ((position 0)
                                                          (*remaining-argument-count-hook* (lambda ()
                                                                                             (- argument-count position)))
@@ -257,14 +257,14 @@
 (defmethod interpret-item (client (directive i-directive) &optional parameters)
   (declare (ignorable client parameters))
   #-sicl
-  (inravina:pprint-indent client *destination*
+  (inravina:pprint-indent client *format-output*
                           (if (colon-p directive) :current :block)
                           (car parameters)))
 
 (defmethod compile-item (client (directive i-directive) &optional parameters)
   (declare (ignorable client parameters))
   #-sicl
-  `((inravina:pprint-indent ,(trinsic:client-form client) *destination*
+  `((inravina:pprint-indent ,(trinsic:client-form client) *format-output*
                             ,(if (colon-p directive) :current :block)
                             ,(car parameters))))
 
@@ -354,7 +354,7 @@
 
 (defmethod interpret-item (client (directive call-function-directive) &optional parameters)
   (apply (coerce-function-designator client (function-name directive))
-         *destination*
+         *format-output*
          (pop-argument)
          (colon-p directive)
          (at-sign-p directive)
@@ -362,7 +362,7 @@
 
 (defmethod compile-item (client (directive call-function-directive) &optional parameters)
   `((funcall (coerce-function-designator ,(trinsic:client-form client) ',(function-name directive))
-             *destination*
+             *format-output*
              ,(pop-argument-form)
              ,(colon-p directive)
              ,(at-sign-p directive)

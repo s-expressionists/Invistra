@@ -41,14 +41,14 @@
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
-    (let ((*destination* (cond ((and colon-p at-sign-p)
-                                (make-instance 'upcase-stream :target *destination*))
+    (let ((*format-output* (cond ((and colon-p at-sign-p)
+                                (make-instance 'upcase-stream :target *format-output*))
                                (colon-p
-                                (make-instance 'capitalize-stream :target *destination*))
+                                (make-instance 'capitalize-stream :target *format-output*))
                                (at-sign-p
-                                (make-instance 'first-capitalize-stream :target *destination*))
+                                (make-instance 'first-capitalize-stream :target *format-output*))
                                (t
-                                (make-instance 'downcase-stream :target *destination*)))))
+                                (make-instance 'downcase-stream :target *format-output*)))))
       (interpret-items client (aref (clauses directive) 0)))))
 
 (defmethod compile-item (client (directive case-conversion-directive) &optional parameters)
@@ -56,14 +56,14 @@
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
-    `((let ((*destination* ,(cond ((and colon-p at-sign-p)
-                                   '(make-instance 'upcase-stream :target *destination*))
+    `((let ((*format-output* ,(cond ((and colon-p at-sign-p)
+                                   '(make-instance 'upcase-stream :target *format-output*))
                                   (colon-p
-                                   '(make-instance 'capitalize-stream :target *destination*))
+                                   '(make-instance 'capitalize-stream :target *format-output*))
                                   (at-sign-p
-                                   '(make-instance 'first-capitalize-stream :target *destination*))
+                                   '(make-instance 'first-capitalize-stream :target *format-output*))
                                   (t
-                                   '(make-instance 'downcase-stream :target *destination*)))))
+                                   '(make-instance 'downcase-stream :target *format-output*)))))
         ,@(compile-items client (aref (clauses directive) 0))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -87,9 +87,9 @@
         (write-string (if (eql (pop-argument) 1)
                           "y"
                           "ies")
-                      *destination*)
+                      *format-output*)
         (unless (eql (pop-argument) 1)
-          (write-char #\s *destination*)))))
+          (write-char #\s *format-output*)))))
 
 (defmethod compile-item (client (directive plural-directive) &optional parameters)
   (declare (ignore parameters))
@@ -102,6 +102,6 @@
            `(write-string (if (eql ,(pop-argument-form) 1)
                               "y"
                               "ies")
-                          *destination*)
+                          *format-output*)
            `(unless (eql ,(pop-argument-form) 1)
-              (write-char #\s *destination*))))))
+              (write-char #\s *format-output*))))))

@@ -4,7 +4,7 @@
            #:formatter)
   #+sicl
   (:local-nicknames (:trivial-gray-streams :cyclosis))
-  (:export #:*destination*
+  (:export #:*format-output*
            #:*roman-digits*
            #:at-sign-p
            #:check-directive-syntax

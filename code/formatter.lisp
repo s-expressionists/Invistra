@@ -11,7 +11,7 @@
     (let ((items (parse-control-string client control-string)))
       (if (loop for item across items
                 thereis (outer-iteration-p item))
-          `(lambda (*destination* &rest ,rest)
+          `(lambda (*format-output* &rest ,rest)
              (with-arguments (,(trinsic:client-form client) ,rest)
                ,@(compile-items client items)
                (pop-remaining-arguments)))
@@ -77,7 +77,7 @@
                                      for type = (lambda-argument-type arg)
                                      unless (eq type t)
                                        collect `(type ,type ,(lambda-argument-name arg)))))
-            `(lambda (*destination*
+            `(lambda (*format-output*
                       ,@lambda-args
                       &rest ,rest
                       &aux (,count (+ ,(loop for arg across args

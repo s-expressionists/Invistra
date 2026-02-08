@@ -124,7 +124,7 @@
 
 (defmethod invistra::interpret-item (client (directive call-function-directive) &optional parameters)
   (apply (invistra::coerce-function-designator client (function-name directive))
-         invistra::*destination*
+         invistra::*format-output*
          (invistra::pop-argument)
          (invistra::colon-p directive)
          (invistra::at-sign-p directive)
@@ -132,7 +132,7 @@
 
 (defmethod invistra::compile-item (client (directive call-function-directive) &optional parameters)
   `((funcall (invistra::coerce-function-designator ,(trinsic:client-form client) ',(function-name directive))
-             *destination*
+             *format-output*
              (invistra::pop-argument)
              ,(invistra::colon-p directive)
              ,(invistra::at-sign-p directive)

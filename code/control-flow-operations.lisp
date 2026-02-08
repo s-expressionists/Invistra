@@ -256,7 +256,7 @@
                                        (< index iteration-limit))
                              when (or (not oncep) (plusp index))
                                do (funcall *inner-exit-if-exhausted*)
-                             do (apply control *destination* (pop-argument 'list)))
+                             do (apply control *format-output* (pop-argument 'list)))
                        (loop with items = (parse-control-string client control)
                              for index from 0
                              while (or (null iteration-limit)
@@ -272,10 +272,10 @@
                      (let ((arg (pop-argument 'list)))
                        (if (null iteration-limit)
                            (loop for args in arg ; a bit unusual naming perhaps
-                                 do (apply control *destination* args))
+                                 do (apply control *format-output* args))
                            (loop for args in arg ; a bit unusual naming perhaps
                                  repeat iteration-limit
-                                 do (apply control *destination* args))))
+                                 do (apply control *format-output* args))))
                      (let ((arg (pop-argument 'list)))
                        (flet ((one-iteration (args)
                                 (unless (listp args)
@@ -293,7 +293,7 @@
                 (at-sign-p
                  (if (functionp control)
                      (loop for args = (pop-remaining-arguments)
-                             then (apply control *destination* args)
+                             then (apply control *format-output* args)
                            for index from 0
                            finally (go-to-argument (- (length args)))
                            while (and (or (null iteration-limit)
@@ -312,7 +312,7 @@
                  ;; The elements of that list are used by the iteration.
                  (if (functionp control)
                      (loop for args = (pop-argument 'list)
-                             then (apply control *destination* args)
+                             then (apply control *format-output* args)
                            for index from 0
                            while (and (or (null iteration-limit)
                                           (< index iteration-limit))
@@ -389,7 +389,7 @@
                                      `(when (plusp index)
                                         do (funcall *inner-exit-if-exhausted*))
                                      `(do (funcall *inner-exit-if-exhausted*)))
-                               do (apply control *destination* (pop-argument 'list)))
+                               do (apply control *format-output* (pop-argument 'list)))
                          (loop with items = (parse-control-string ,(trinsic:client-form client)
                                                                   control)
                                for index from 0
@@ -418,7 +418,7 @@
                                          `(when (plusp index)
                                             do (funcall *inner-exit-if-exhausted*))
                                          `(do (funcall *inner-exit-if-exhausted*)))
-                                   do (apply control *destination* (pop-argument 'list)))
+                                   do (apply control *format-output* (pop-argument 'list)))
                              (loop with items = (parse-control-string ,(trinsic:client-form client)
                                                                       ,control-form)
                                    for index from 0
@@ -435,7 +435,7 @@
                        (control (pop-argument '(or function string))))
                    (if (functionp control)
                        (loop for args = (pop-remaining-arguments)
-                               then (apply control *destination* args)
+                               then (apply control *format-output* args)
                              for index from 0
                              finally (go-to-argument (- (length args)))
                              while (and (or (null iteration-limit)
@@ -465,7 +465,7 @@
                            (control ,control-form))
                        (if (functionp control)
                            (loop for args = ,args-form
-                                   then (apply control *destination* args)
+                                   then (apply control *format-output* args)
                                  for index from 0
                                  while (and (or (null iteration-limit)
                                                 (< index iteration-limit))

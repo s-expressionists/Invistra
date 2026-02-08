@@ -70,8 +70,8 @@
            (push (string comma-part) parts)))
        (go repeat))
      (setf result (apply #'concatenate 'string parts)
-           pad-length (max 0 (- mincol (inravina:stream-measure-string invistra:*destination* result))))
-     (write-string result invistra:*destination*)))
+           pad-length (max 0 (- mincol (inravina:stream-measure-string invistra:*format-output* result))))
+     (write-string result invistra:*format-output*)))
 
 (defmethod invistra:interpret-item (client (directive numeral-directive) &optional parameters)
   (apply #'print-numeral-arg client

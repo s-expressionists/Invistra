@@ -27,7 +27,7 @@
       (let ((*print-base* 10)
             (*print-escape* nil)
             (*print-readably* nil))
-        (incless:write-object client value *destination*))
+        (incless:write-object client value *format-output*))
       (let ((coerced-value (if (floatp value)
                                value
                                (coerce value 'single-float))))
@@ -136,17 +136,17 @@
                  (<= (compute-width) w))
              (when w
                (loop repeat (max 0 (- w (compute-width)))
-                     do (write-char padchar *destination*)))
+                     do (write-char padchar *format-output*)))
              (when sign-char
-               (write-char sign-char *destination*))
-             (quaviver:write-digits 10 my-significand *destination*
+               (write-char sign-char *format-output*))
+             (quaviver:write-digits 10 my-significand *format-output*
                                     :leading-zeros leading-zeros
                                     :fractional-position fractional-position
                                     :fractional-marker #\.)
              nil)
             (t
              (loop repeat w
-                   do (write-char overflowchar *destination*))
+                   do (write-char overflowchar *format-output*))
              t)))))
 
 (defmethod interpret-item (client (directive f-directive) &optional parameters)
@@ -242,10 +242,10 @@
                  (<= (compute-width) w))
              (when w
                (loop repeat (max 0 (- w (compute-width)))
-                     do (write-char padchar *destination*)))
+                     do (write-char padchar *format-output*)))
              (when sign-char
-               (write-char sign-char *destination*))
-             (quaviver:write-digits 10 my-significand *destination*
+               (write-char sign-char *format-output*))
+             (quaviver:write-digits 10 my-significand *format-output*
                                     :leading-zeros leading-zeros
                                     :fractional-position fractional-position
                                     :fractional-marker #\.)
@@ -257,13 +257,13 @@
                                    (single-float #+abcl #\F #-abcl #\f)
                                    (double-float #+abcl #\D #-abcl #\d)
                                    (long-float #+abcl #\L #-abcl #\l))))
-                         *destination*)
-             (write-char (if (minusp my-exponent) #\- #\+) *destination*)
-             (quaviver:write-digits 10 (abs my-exponent) *destination*
+                         *format-output*)
+             (write-char (if (minusp my-exponent) #\- #\+) *format-output*)
+             (quaviver:write-digits 10 (abs my-exponent) *format-output*
                                     :leading-zeros leading-exp-zeros))
             (t
              (loop repeat w
-                   do (write-char overflowchar *destination*)))))))
+                   do (write-char overflowchar *format-output*)))))))
 
 (defmethod interpret-item (client (directive e-directive) &optional parameters)
   (print-float-arg client (pop-argument)
@@ -316,7 +316,7 @@
                                             overflowchar padchar)
                            overflowchar
                            #\space)))
-             (dotimes (i ee) (write-char char *destination*))))
+             (dotimes (i ee) (write-char char *format-output*))))
           (t
            (print-exponent-arg client value significand exponent sign
                                colon-p at-sign-p w d e k
@@ -375,13 +375,13 @@
                                  #\Space padchar nil))
             (t
              (when (and colon-p sign-char)
-               (write-char sign-char *destination*))
+               (write-char sign-char *format-output*))
              (when w
                (loop repeat (max 0 (- w (compute-width)))
-                     do (write-char padchar *destination*)))
+                     do (write-char padchar *format-output*)))
              (when (and (not colon-p) sign-char)
-               (write-char sign-char *destination*))
-             (quaviver:write-digits 10 my-significand *destination*
+               (write-char sign-char *format-output*))
+             (quaviver:write-digits 10 my-significand *format-output*
                                     :leading-zeros leading-zeros
                                     :fractional-position fractional-position
                                     :fractional-marker #\.))))))

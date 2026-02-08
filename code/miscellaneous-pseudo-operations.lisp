@@ -155,10 +155,10 @@
   (declare (ignore parameters))
   (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
-         (write-string (subseq (control-string directive) (suffix-start directive) (end directive)) *destination*))
+         (write-string (subseq (control-string directive) (suffix-start directive) (end directive)) *format-output*))
         ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
-         (terpri *destination*))
+         (terpri *format-output*))
         (t
          ;; Ignore both the newline and the following whitespace.
          nil)))
@@ -167,10 +167,10 @@
   (declare (ignore parameters))
   (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
-         `((write-string ,(subseq (control-string directive) (suffix-start directive) (end directive)) *destination*)))
+         `((write-string ,(subseq (control-string directive) (suffix-start directive) (end directive)) *format-output*)))
         ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
-         `((terpri *destination*)))
+         `((terpri *format-output*)))
         (t
          ;; Ignore both the newline and the following whitespace.
          nil)))

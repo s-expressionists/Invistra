@@ -28,7 +28,7 @@
       (let ((*print-base* radix)
             (*print-escape* nil)
             (*print-readably* nil))
-        (incless:write-object client value *destination*))
+        (incless:write-object client value *format-output*))
       (let* ((string (let ((*print-base* radix)
                            (*print-radix* nil)
                            (*print-escape* nil)
@@ -43,21 +43,21 @@
              (pad-length (max 0 (- mincol total-length))))
         ;; Print the padding.
         (loop repeat pad-length
-              do (write-char padchar *destination*))
+              do (write-char padchar *format-output*))
         ;; Possibliy print a sign.
         (cond ((minusp value)
-               (write-char #\- *destination*))
+               (write-char #\- *format-output*))
               (at-sign-p
-               (write-char #\+ *destination*))
+               (write-char #\+ *format-output*))
               (t nil))
         ;; Print the string in reverse order
         (loop for index downfrom (1- (length string)) to 0
               for c across string
-              do (write-char c *destination*)
+              do (write-char c *format-output*)
               do (when (and colon-p
                             (plusp index)
                             (zerop (mod index comma-interval)))
-                   (write-char commachar *destination*))))))
+                   (write-char commachar *format-output*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -106,18 +106,18 @@
                  (write-digit q (cddr digits)))
                (case r
                  (9
-                  (write-string (car digits) *destination*)
-                  (write-string (caddr digits) *destination*))
+                  (write-string (car digits) *format-output*)
+                  (write-string (caddr digits) *format-output*))
                  (4
-                  (write-string (car digits) *destination*)
-                  (write-string (cadr digits) *destination*))
+                  (write-string (car digits) *format-output*)
+                  (write-string (cadr digits) *format-output*))
                  (otherwise
                   (multiple-value-bind (q1 r1)
                       (floor r 5)
                     (unless (zerop q1)
-                      (write-string (cadr digits) *destination*))
+                      (write-string (cadr digits) *format-output*))
                     (loop repeat r1
-                          do (write-string (car digits) *destination*))))))))
+                          do (write-string (car digits) *format-output*))))))))
     (write-digit value *roman-digits*)))
 
 (defun write-old-roman-numeral (value)
@@ -130,9 +130,9 @@
                (multiple-value-bind (q1 r1)
                    (floor r 5)
                  (unless (zerop q1)
-                   (write-string (cadr digits) *destination*))
+                   (write-string (cadr digits) *format-output*))
                  (loop repeat r1
-                       do (write-string (car digits) *destination*))))))
+                       do (write-string (car digits) *format-output*))))))
     (write-digit value *roman-digits*)))
 
 (defparameter *cardinal-ones*
@@ -156,15 +156,15 @@
 ;;; Print a cardinal number between 1 and 99.
 (defun write-cardinal-tenths (n)
   (cond ((< n 10)
-         (write-string (aref *cardinal-ones* n) *destination*))
+         (write-string (aref *cardinal-ones* n) *format-output*))
         ((< n 20)
-         (write-string (aref *cardinal-teens* (- n 10)) *destination*))
+         (write-string (aref *cardinal-teens* (- n 10)) *format-output*))
         (t
          (multiple-value-bind (tens ones) (floor n 10)
-           (write-string (aref *cardinal-tens* tens) *destination*)
+           (write-string (aref *cardinal-tens* tens) *format-output*)
            (unless (zerop ones)
-             (write-char #\- *destination*)
-             (write-string (aref *cardinal-ones* ones) *destination*))))))
+             (write-char #\- *format-output*)
+             (write-string (aref *cardinal-ones* ones) *format-output*))))))
 
 ;;; Print a cardinal number between 1 and 999.
 (defun write-cardinal-hundreds (n)
@@ -172,10 +172,10 @@
          (write-cardinal-tenths n))
         (t
          (multiple-value-bind (hundreds rest) (floor n 100)
-           (write-string (aref *cardinal-ones* hundreds) *destination*)
-           (write-string " hundred" *destination*)
+           (write-string (aref *cardinal-ones* hundreds) *format-output*)
+           (write-string " hundred" *format-output*)
            (unless (zerop rest)
-             (write-char #\Space *destination*)
+             (write-char #\Space *format-output*)
              (write-cardinal-tenths rest))))))
 
 ;;; Print a cardinal number n such that 0 < n < 10^65.
@@ -184,12 +184,12 @@
     (unless (zerop thousands)
       (write-cardinal-non-zero thousands (1+ magnitude)))
     (unless (or (zerop thousands) (zerop rest))
-      (write-char #\Space *destination*))
+      (write-char #\Space *format-output*))
     (unless (zerop rest)
       (write-cardinal-hundreds rest)
       (unless (zerop magnitude)
-        (write-char #\Space *destination*)
-        (write-string (aref *groups-of-three* magnitude) *destination*)))))
+        (write-char #\Space *format-output*)
+        (write-string (aref *groups-of-three* magnitude) *format-output*)))))
 
 (deftype english-number ()
   `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
@@ -198,10 +198,10 @@
 (defun write-cardinal-numeral (n)
   (declare (type english-number n))
   (cond ((minusp n)
-         (write-string "negative " *destination*)
+         (write-string "negative " *format-output*)
          (write-cardinal-non-zero (- n) 0))
         ((zerop n)
-         (write-string "zero" *destination*))
+         (write-string "zero" *format-output*))
         (t
          (write-cardinal-non-zero n 0))))
 
@@ -219,17 +219,17 @@
 ;;; Print an ordinal number between 1 and 99.
 (defun write-ordinal-tenths (n)
   (cond ((< n 10)
-         (write-string (aref *ordinal-ones* n) *destination*))
+         (write-string (aref *ordinal-ones* n) *format-output*))
         ((< n 20)
-         (write-string (aref *ordinal-teens* (- n 10)) *destination*))
+         (write-string (aref *ordinal-teens* (- n 10)) *format-output*))
         (t
          (multiple-value-bind (tens ones) (floor n 10)
            (cond ((zerop ones)
-                  (write-string (aref *ordinal-tens* tens) *destination*))
+                  (write-string (aref *ordinal-tens* tens) *format-output*))
                  (t
-                  (write-string (aref *cardinal-tens* tens) *destination*)
-                  (write-char #\- *destination*)
-                  (write-string (aref *ordinal-ones* ones) *destination*)))))))
+                  (write-string (aref *cardinal-tens* tens) *format-output*)
+                  (write-char #\- *format-output*)
+                  (write-string (aref *ordinal-ones* ones) *format-output*)))))))
 
 ;;; Print an ordinal number n such that 0 < n < 1000.
 (defun write-ordinal-hundreds (n)
@@ -237,12 +237,12 @@
          (write-ordinal-tenths n))
         (t
          (multiple-value-bind (hundreds rest) (floor n 100)
-           (write-string (aref *cardinal-ones* hundreds) *destination*)
-           (write-string " hundred" *destination*)
+           (write-string (aref *cardinal-ones* hundreds) *format-output*)
+           (write-string " hundred" *format-output*)
            (cond ((zerop rest)
-                  (write-string "th" *destination*))
+                  (write-string "th" *format-output*))
                  (t
-                  (write-char #\Space *destination*)
+                  (write-char #\Space *format-output*)
                   (write-ordinal-tenths rest)))))))
 
 ;;; Print an ordinal number n such that 0 < n < 10^65.
@@ -251,23 +251,23 @@
     (cond ((zerop rest)
            ;; Hudreds is nonzero.
            (write-cardinal-non-zero n 0)
-           (write-string "th" *destination*))
+           (write-string "th" *format-output*))
           ((zerop hundreds)
            (write-ordinal-hundreds rest))
           (t
            ;; They are both nonzero.
            (write-cardinal-non-zero (* 100 hundreds) 0)
-           (write-char #\Space *destination*)
+           (write-char #\Space *format-output*)
            (write-ordinal-tenths rest)))))
 
 ;;; Print an ordinal number n such that - 10^65 < n < 10^65.
 (defun write-ordinal-numeral (n)
   (declare (type english-number n))
   (cond ((minusp n)
-         (write-string "negative " *destination*)
+         (write-string "negative " *format-output*)
          (write-ordinal-non-zero (- n)))
         ((zerop n)
-         (write-string "zeroth" *destination*))
+         (write-string "zeroth" *format-output*))
         (t
          (write-ordinal-non-zero n))))
 

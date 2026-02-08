@@ -33,7 +33,7 @@
 
 ;;; During runtime, this variable is bound to a stream to which
 ;;; all the output goes.
-(defvar *destination*)
+(defvar *format-output*)
 
 (defun interpret-items (client items)
   (loop for item across items
@@ -270,7 +270,7 @@
   (interpret-items client (parse-control-string client control-string)))
 
 (defun format (client destination control &rest args)
-  (let ((*destination* (cond ((or (streamp destination)
+  (let ((*format-output* (cond ((or (streamp destination)
                                   #-sicl (inravina:pretty-stream-p client destination)
                                   (and (stringp destination)
                                        (array-has-fill-pointer-p destination)))
@@ -283,11 +283,11 @@
                               (error 'invalid-destination
                                      :destination destination)))))
     (if (functionp control)
-        (apply control *destination* args)
+        (apply control *format-output* args)
         (with-arguments (client args)
           (format-with-runtime-arguments client control)))
     (if (null destination)
-        (get-output-stream-string *destination*)
+        (get-output-stream-string *format-output*)
         nil)))
 
 (defmethod interpret-item (client (item string) &optional parameters)
@@ -298,15 +298,15 @@
             for char across item
             for index from 0
             for blankp = (and (find char #(#\Space #\Tab #\Page #\Return)) t)
-            finally (write-string (subseq item start) *destination*)
+            finally (write-string (subseq item start) *format-output*)
                     #-sicl (when in-blank-p
-                             (inravina:pprint-newline client *destination* *newline-kind*))
+                             (inravina:pprint-newline client *format-output* *newline-kind*))
             when (and in-blank-p (not blankp))
-              do (write-string (subseq item start index) *destination*)
-                 #-sicl (inravina:pprint-newline client *destination* *newline-kind*)
+              do (write-string (subseq item start index) *format-output*)
+                 #-sicl (inravina:pprint-newline client *format-output* *newline-kind*)
                  (setf start index)
             do (setf in-blank-p blankp))
-      (write-string item *destination*)))
+      (write-string item *format-output*)))
 
 (defmethod compile-item (client (item string) &optional parameters)
   (declare (ignore parameters))
@@ -314,20 +314,20 @@
       #+sicl nil #-sicl
       (loop with start = 0
             with in-blank-p = nil
-            with pprint-newline = `(inravina:pprint-newline ,(trinsic:client-form client) *destination* ,*newline-kind*)
+            with pprint-newline = `(inravina:pprint-newline ,(trinsic:client-form client) *format-output* ,*newline-kind*)
             for char across item
             for index from 0
             for blankp = (and (find char #(#\Space #\Tab #\Page #\Return)) t)
             finally (return (nconc forms
-                                   `((write-string ,(subseq item start) *destination*))
+                                   `((write-string ,(subseq item start) *format-output*))
                                    (when in-blank-p
                                      (list pprint-newline))))
             when (and in-blank-p (not blankp))
-              collect `(write-string ,(subseq item start index) *destination*) into forms and
+              collect `(write-string ,(subseq item start index) *format-output*) into forms and
               collect pprint-newline into forms and
               do (setf start index)
             do (setf in-blank-p blankp))
-      `((write-string ,item *destination*))))
+      `((write-string ,item *format-output*))))
 
 (defmethod interpret-item :around (client (item directive) &optional parameters)
   (declare (ignore parameters))

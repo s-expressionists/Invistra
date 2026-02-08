@@ -30,24 +30,24 @@
     (list :logical-block)))
 
 (defun format-relative-tab (client colnum colinc)
-  (if #+sicl nil #-sicl (inravina:pretty-stream-p client *destination*)
-      #+sicl nil #-sicl (inravina:pprint-tab client *destination* :line-relative colnum colinc)
-      (let* ((cur (ngray:stream-line-column *destination*)))
-        (ngray:stream-advance-to-column *destination*
+  (if #+sicl nil #-sicl (inravina:pretty-stream-p client *format-output*)
+      #+sicl nil #-sicl (inravina:pprint-tab client *format-output* :line-relative colnum colinc)
+      (let* ((cur (ngray:stream-line-column *format-output*)))
+        (ngray:stream-advance-to-column *format-output*
                                         (if (and cur (plusp colinc))
                                             (* (ceiling (+ cur colnum) colinc) colinc)
                                             colnum)))))
 
 (defun format-absolute-tab (client colnum colinc)
-  (if #+sicl nil #-sicl (inravina:pretty-stream-p client *destination*)
-      #+sicl nil #-sicl (inravina:pprint-tab client *destination* :line colnum colinc)
-      (let ((cur (ngray:stream-line-column *destination*)))
+  (if #+sicl nil #-sicl (inravina:pretty-stream-p client *format-output*)
+      #+sicl nil #-sicl (inravina:pprint-tab client *format-output* :line colnum colinc)
+      (let ((cur (ngray:stream-line-column *format-output*)))
         (cond ((null cur)
-               (write-string "  " *destination*))
+               (write-string "  " *format-output*))
               ((< cur colnum)
-               (ngray:stream-advance-to-column *destination* colnum))
+               (ngray:stream-advance-to-column *format-output* colnum))
               ((plusp colinc)
-               (ngray:stream-advance-to-column *destination*
+               (ngray:stream-advance-to-column *format-output*
                                                (+ cur
                                                   (- colinc (rem (- cur colnum) colinc)))))))))
 
@@ -58,7 +58,7 @@
     (cond (colon-p
            #-sicl
            (apply #'inravina:pprint-tab
-                  client *destination*
+                  client *format-output*
                   (if at-sign-p :section-relative :section)
                   parameters))
           (at-sign-p
@@ -72,7 +72,7 @@
       directive
     (cond (colon-p
            #-sicl
-           `((inravina:pprint-tab ,(trinsic:client-form client) *destination*
+           `((inravina:pprint-tab ,(trinsic:client-form client) *format-output*
                                   ,(if at-sign-p :section-relative :section)
                                   ,@parameters)))
           (at-sign-p
@@ -151,11 +151,11 @@
                            mincol))
          (padding (- total-length chars)))
     (when (and newline-segment
-               (> (+ (or (ngray:stream-line-column *destination*) 0)
+               (> (+ (or (ngray:stream-line-column *format-output*) 0)
                      total-length (or extra-space 0))
                   (or line-len
-                      (str-line-length *destination*))))
-      (write-string newline-segment *destination*))
+                      (str-line-length *format-output*))))
+      (write-string newline-segment *format-output*))
     (when pad-left
       (incf pad-count))
     (when pad-right
@@ -169,14 +169,14 @@
                (decf pad-count)
                (when interiorp
                  (incf pad-len minpad))
-               (dotimes (i pad-len) (write-char padchar *destination*)))))
+               (dotimes (i pad-len) (write-char padchar *format-output*)))))
       (when pad-left
         (write-padding nil))
       (when segments
-        (write-string (car segments) *destination*)
+        (write-string (car segments) *format-output*)
         (dolist (segment (cdr segments))
           (write-padding t)
-          (write-string segment *destination*)))
+          (write-string segment *format-output*)))
       (when pad-right
         (write-padding nil)))))
 
@@ -186,7 +186,7 @@
         with *line-length* = nil
         for clause across (clauses directive)
         for segment = (with-remaining-arguments
-                        (with-output-to-string (*destination*)
+                        (with-output-to-string (*format-output*)
                           (interpret-items client clause)))
         for index from 0
         finally (apply #'print-justification client
@@ -206,7 +206,7 @@
           *extra-space* *line-length*)
       (with-remaining-arguments
         ,@(loop for clause across (clauses directive)
-                for segment = `(with-output-to-string (*destination*)
+                for segment = `(with-output-to-string (*format-output*)
                                  ,@(compile-items client clause))
                 for index from 0
                 while segment

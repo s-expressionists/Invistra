@@ -29,22 +29,22 @@
            ;; The definition of "printing char" is a graphic character
            ;; other than space.
            (if (and (graphic-char-p char) (not (eql char #\Space)))
-               (write-char char *destination*)
-               (write-string (char-name char) *destination*))
+               (write-char char *format-output*)
+               (write-string (char-name char) *format-output*))
            (when at-sign-p
              ;; Allow client specific key sequence for at sign modifier.
-             (print-key-sequence client char *destination*)))
+             (print-key-sequence client char *format-output*)))
           (at-sign-p
            ;; We have only an at-sign modifier.
            ;; The HyperSpec says to print it the way the Lisp
            ;; reader can understand, which I take to mean "use PRIN1".
            ;; It also says to bind *PRINT-ESCAPE* to t.
            (let ((*print-escape* t))
-             (incless:write-object client char *destination*)))
+             (incless:write-object client char *format-output*)))
           (t
            ;; Neither colon nor at-sign.
            ;; The HyperSpec says to do what WRITE-CHAR does.
-           (write-char char *destination*))))))
+           (write-char char *format-output*))))))
 
 (defmethod compile-item (client (directive c-directive) &optional parameters)
   (declare (ignore parameters))
@@ -54,16 +54,16 @@
     (cond (colon-p
            `((let ((char ,(pop-argument-form 'character)))
                (if (and (graphic-char-p char) (not (eql char #\Space)))
-                   (write-char char *destination*)
-                   (write-string (char-name char) *destination*))
+                   (write-char char *format-output*)
+                   (write-string (char-name char) *format-output*))
                ,@(when at-sign-p
                    `((print-key-sequence ,(trinsic:client-form client) char
-                                         *destination*))))))
+                                         *format-output*))))))
           (at-sign-p
            `((let ((*print-escape* t))
-               (incless:write-object ,(trinsic:client-form client) ,(pop-argument-form 'character) *destination*))))
+               (incless:write-object ,(trinsic:client-form client) ,(pop-argument-form 'character) *format-output*))))
           (t
-           `((write-char ,(pop-argument-form 'character) *destination*))))))
+           `((write-char ,(pop-argument-form 'character) *format-output*))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -86,18 +86,18 @@
 
 (defmethod interpret-item (client (directive percent-directive) &optional parameters)
   (loop repeat (car parameters)
-        do (terpri *destination*)))
+        do (terpri *format-output*)))
 
 (defmethod compile-item (client (directive percent-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 '())
-      (1 '((terpri *destination*)))
-      (2 '((terpri *destination*)
-           (terpri *destination*)))
+      (1 '((terpri *format-output*)))
+      (2 '((terpri *format-output*)
+           (terpri *format-output*)))
       (otherwise
        `((loop repeat ,n
-               do (terpri *destination*)))))))
+               do (terpri *format-output*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -121,26 +121,26 @@
 (defmethod interpret-item (client (item ampersand-directive) &optional parameters)
   (let ((how-many (car parameters)))
     (unless (zerop how-many)
-      (fresh-line *destination*)
+      (fresh-line *format-output*)
       (loop repeat (1- how-many)
-            do (terpri *destination*)))))
+            do (terpri *format-output*)))))
 
 (defmethod compile-item (client (item ampersand-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 nil)
-      (1 `((fresh-line *destination*)))
-      (2 `((fresh-line *destination*)
-           (terpri *destination*)))
+      (1 `((fresh-line *format-output*)))
+      (2 `((fresh-line *format-output*)
+           (terpri *format-output*)))
       (otherwise
        (if (numberp n)
-           `((fresh-line *destination*)
+           `((fresh-line *format-output*)
              (loop repeat ,(1- n)
-                   do (terpri *destination*)))
+                   do (terpri *format-output*)))
            `((unless (zerop ,n)
-               (fresh-line *destination*)
+               (fresh-line *format-output*)
                (loop repeat (1- ,n)
-                     do (terpri *destination*)))))))))
+                     do (terpri *format-output*)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -164,18 +164,18 @@
 
 (defmethod interpret-item (client (directive vertical-bar-directive) &optional parameters)
   (loop repeat (car parameters)
-        do (write-char #\Page *destination*)))
+        do (write-char #\Page *format-output*)))
 
 (defmethod compile-item (client (directive vertical-bar-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 nil)
-      (1 `((write-char #\Page *destination*)))
-      (2 `((write-char #\Page *destination*)
-           (write-char #\Page *destination*)))
+      (1 `((write-char #\Page *format-output*)))
+      (2 `((write-char #\Page *format-output*)
+           (write-char #\Page *format-output*)))
       (otherwise
        `((loop repeat ,n
-               do (write-char #\Page *destination*)))))))
+               do (write-char #\Page *format-output*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -198,15 +198,15 @@
 
 (defmethod interpret-item (client (directive tilde-directive) &optional parameters)
   (loop repeat (car parameters)
-        do (write-char #\~ *destination*)))
+        do (write-char #\~ *format-output*)))
 
 (defmethod compile-item (client (directive tilde-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 nil)
-      (1 `((write-char #\~ *destination*)))
-      (2 `((write-char #\~ *destination*)
-           (write-char #\~ *destination*)))
+      (1 `((write-char #\~ *format-output*)))
+      (2 `((write-char #\~ *format-output*)
+           (write-char #\~ *format-output*)))
       (otherwise
        `((loop repeat ,n
-               do (write-char #\~ *destination*)))))))
+               do (write-char #\~ *format-output*)))))))
