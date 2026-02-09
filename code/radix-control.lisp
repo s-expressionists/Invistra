@@ -22,6 +22,11 @@
      :type integer
      :default 3)))
 
+(defmethod calculate-argument-position (position (directive base-radix-directive))
+  (setf position (call-next-method))
+  (when position
+    (1+ position)))
+
 (defun write-radix-numeral
     (client value colon-p at-sign-p radix mincol padchar commachar comma-interval)
   (if (not (integerp value))

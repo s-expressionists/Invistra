@@ -16,6 +16,11 @@
   (declare (ignore end-directive))
   (change-class directive 'c-directive))
 
+(defmethod calculate-argument-position (position (item c-directive))
+  (setf position (call-next-method))
+  (when position
+    (1+ position)))
+
 (defmethod interpret-item (client (directive c-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)

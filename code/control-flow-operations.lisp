@@ -18,6 +18,17 @@
 (defmethod parameter-specifications ((client t) (directive go-to-directive))
   '((:name n :type (or null (integer 0)) :default nil)))
 
+(defmethod calculate-argument-position (position (item go-to-directive))
+  (when (and position
+             (typep (car (parameters item)) 'literal-parameter))
+    (let ((n (parameter-value (car (parameters item)))))
+      (cond ((colon-p item)
+             (- position (or n 1)))
+            ((at-sign-p item)
+             (or n 0))
+            (t
+             (+ position (or n 1)))))))
+
 (defmethod outer-iteration-p ((directive go-to-directive))
   (not (typep (car (parameters directive)) 'literal-parameter)))
 
@@ -102,6 +113,50 @@
     ((client t) (directive conditional-directive))
   '((:name n :type (or null integer) :default nil)))
 
+(defmethod calculate-argument-position (position (directive conditional-directive))
+  (setf position (call-next-method))
+  (when position
+    (cond ((at-sign-p directive)
+           ;; consequent must consume 1 argument.
+           (when (eql (1+ position)
+                      (reduce #'calculate-argument-position (aref (clauses directive) 0)
+                              :initial-value position))
+             (1+ position)))
+          ((colon-p directive)
+           ;; alternative and consequent must consume the same number of arguments.
+           (incf position)
+           (let ((pos0 (reduce #'calculate-argument-position (aref (clauses directive) 0)
+                               :initial-value position))
+                 (pos1 (reduce #'calculate-argument-position (aref (clauses directive) 1)
+                               :initial-value position)))
+             (when (eql pos0 pos1)
+               pos0)))
+          ((typep (car (parameters directive)) 'argument-reference-parameter)
+           nil)
+          ((and (typep (car (parameters directive)) 'literal-parameter)
+                (parameter-value (car (parameters directive))))
+           (let ((value (parameter-value (car (parameters directive)))))
+             (cond ((< -1 value (length (clauses directive)))
+                    (calculate-argument-position position (aref (clauses directive) value)))
+                   ((last-clause-is-default-p directive)
+                    (calculate-argument-position position (aref (clauses directive)
+                                                                (1- (length (clauses directive))))))
+                   (t
+                    position))))
+          (t
+           (when (typep (car (parameters directive)) 'literal-parameter)
+             (incf position))
+           (let ((new-position (if (last-clause-is-default-p directive)
+                                   (reduce #'calculate-argument-position (aref (clauses directive) 0)
+                                           :initial-value position)
+                                   position)))
+             (when (every (lambda (clauses)
+                            (eql new-position
+                                 (reduce #'calculate-argument-position clauses
+                                         :initial-value position)))
+                          (clauses directive))
+                      new-position))))))
+
 (defmethod check-directive-syntax progn (client (directive conditional-directive))
   (declare (ignore client))
   ;; Check that, if a parameter is given, then there are
@@ -182,9 +237,12 @@
           (t
            (let ((n (car parameters)))
              (cond ((not (numberp n))
-                    `((case ,(if (null n)
-                                 (pop-argument-form 'integer)
-                                 `(or ,n ,(pop-argument-form 'integer)))
+                    `((case ,(cond ((null n)
+                                    (pop-argument-form 'integer))
+                                   ((typep (car (parameters directive)) 'remaining-argument-count-parameter)
+                                    n)
+                                   (t
+                                    `(or ,n ,(pop-argument-form 'integer))))
                         ,@(loop for i from 0
                                 for j downfrom (1- (length clauses))
                                 for clause across clauses
@@ -232,6 +290,10 @@
 (defmethod parameter-specifications
             ((client t) (directive iteration-directive))
    '((:name n :type (or null (integer 0)) :default nil)))
+
+(defmethod calculate-argument-position (position (directive iteration-directive))
+  (unless (at-sign-p directive)
+    (1+ position)))
 
 (defmethod outer-iteration-p ((item iteration-directive))
   (at-sign-p item))
@@ -553,6 +615,10 @@
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\?)) directive (end-directive t))
   (change-class directive 'recursive-processing-directive))
+
+(defmethod calculate-argument-position (position (directive recursive-processing-directive))
+  (unless (at-sign-p directive)
+    (1+ position)))
 
 (defmethod outer-iteration-p ((item recursive-processing-directive))
   (at-sign-p item))

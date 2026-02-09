@@ -21,6 +21,7 @@
            #:inner-exit-if-exhausted
            #:inner-exit-if-exhausted-forms
            #:interpret-item
+           #:make-argument-cursor
            #:outer-exit
            #:outer-exit-forms
            #:outer-exit-if-exhausted

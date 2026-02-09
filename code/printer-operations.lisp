@@ -8,19 +8,24 @@
 ;;;
 ;;; 22.3.4.1 ~a Aesthetic.
 
-(defclass a-directive (directive) nil)
+(defclass aesthetic-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\A)) directive (end-directive t))
-  (change-class directive 'a-directive))
+  (change-class directive 'aesthetic-directive))
 
-(defmethod parameter-specifications ((client t) (directive a-directive))
+(defmethod parameter-specifications ((client t) (directive aesthetic-directive))
   '((:name mincol :type integer :default 0)
     (:name colinc :type (integer 0) :default 1)
     (:name minpad :type integer :default 0)
     (:name padchar :type character :default #\Space)))
 
-(defmethod interpret-item (client (directive a-directive) &optional parameters)
+(defmethod calculate-argument-position (position (directive aesthetic-directive))
+  (setf position (call-next-method))
+  (when position
+    (1+ position)))
+
+(defmethod interpret-item (client (directive aesthetic-directive) &optional parameters)
   (let ((*print-escape* nil)
         (*print-readably* nil)
         (arg (pop-argument)))
@@ -32,7 +37,7 @@
            *format-output*
            (at-sign-p directive) parameters)))
 
-(defmethod compile-item (client (directive a-directive) &optional parameters)
+(defmethod compile-item (client (directive aesthetic-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
@@ -82,19 +87,24 @@
 ;;;
 ;;; 22.3.4.2 ~s Standard.
 
-(defclass s-directive (directive) nil)
+(defclass standard-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\S)) directive (end-directive t))
-  (change-class directive 's-directive))
+  (change-class directive 'standard-directive))
 
-(defmethod parameter-specifications ((client t) (directive s-directive))
+(defmethod parameter-specifications ((client t) (directive standard-directive))
   '((:name mincol :type integer :default 0)
     (:name colinc :type (integer 0) :default 1)
     (:name minpad :type integer :default 0)
     (:name padchar :type character :default #\Space)))
 
-(defmethod interpret-item (client (directive s-directive) &optional parameters)
+(defmethod calculate-argument-position (position (directive standard-directive))
+  (setf position (call-next-method))
+  (when position
+    (1+ position)))
+
+(defmethod interpret-item (client (directive standard-directive) &optional parameters)
   (let ((*print-escape* t)
         (arg (pop-argument)))
     (apply #'write-string-with-padding
@@ -105,7 +115,7 @@
            *format-output*
            (at-sign-p directive) parameters)))
 
-(defmethod compile-item (client (directive s-directive) &optional parameters)
+(defmethod compile-item (client (directive standard-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
@@ -151,16 +161,21 @@
 ;;;
 ;;; 22.3.4.3 ~w Write.
 
-(defclass w-directive (directive) nil)
+(defclass write-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\W)) directive (end-directive t))
-  (change-class directive 'w-directive))
+  (change-class directive 'write-directive))
 
-(defmethod layout-requirements ((item w-directive))
+(defmethod layout-requirements ((item write-directive))
   (list :logical-block))
 
-(defmethod interpret-item (client (directive w-directive) &optional parameters)
+(defmethod calculate-argument-position (position (directive write-directive))
+  (setf position (call-next-method))
+  (when position
+    (1+ position)))
+
+(defmethod interpret-item (client (directive write-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
@@ -181,7 +196,7 @@
             (t
              (incless:write-object client arg *format-output*))))))
 
-(defmethod compile-item (client (directive w-directive) &optional parameters)
+(defmethod compile-item (client (directive write-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))

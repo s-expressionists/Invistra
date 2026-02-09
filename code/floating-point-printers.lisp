@@ -80,6 +80,9 @@
     (:name overflowchar :type (or null character) :default nil)
     (:name padchar :type character :default #\Space)))
 
+(defmethod calculate-argument-position (position (directive f-directive))
+  (1+ (call-next-method)))
+
 (defun print-fixed-arg (client value significand exponent sign
                         colon-p at-sign-p w d k overflowchar padchar)
   (declare (ignore client colon-p))
@@ -182,6 +185,9 @@
     (:name overflowchar :type (or null character) :default nil)
     (:name padchar :type character :default #\Space)
     (:name exponentchar :type (or null character) :default nil)))
+
+(defmethod calculate-argument-position (position (directive e-directive))
+  (1+ (call-next-method)))
 
 (defun print-exponent-arg (client value significand exponent sign
                            colon-p at-sign-p w d e k overflowchar padchar exponentchar)
@@ -299,6 +305,9 @@
     (:name padchar :type character :default #\Space)
     (:name exponentchar :type (or null character) :default nil)))
 
+(defmethod calculate-argument-position (position (directive g-directive))
+  (1+ (call-next-method)))
+
 (defun print-general-arg (client value significand exponent sign
                           colon-p at-sign-p w d e k
                           overflowchar padchar exponentchar)
@@ -353,6 +362,9 @@
     (:name n :type integer :default 1)
     (:name w :type (or null integer) :default nil)
     (:name padchar :type character :default #\Space)))
+
+(defmethod calculate-argument-position (position (directive monetary-directive))
+  (1+ (call-next-method)))
 
 (defun print-monetary-arg (client value significand exponent sign
                            colon-p at-sign-p d n w padchar)

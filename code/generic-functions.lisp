@@ -56,3 +56,8 @@
   (:method (item)
     (declare (ignore item))
     nil))
+
+(defgeneric calculate-argument-position (position item)
+  (:method (position item)
+    (declare (ignore item))
+    position))

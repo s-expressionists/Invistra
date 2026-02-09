@@ -2,10 +2,10 @@
 
 (defclass extension-client (invistra:standard-client) ())
 
-(defmethod make-argument-cursor ((client extension-client) object)
+(defmethod invistra:make-argument-cursor ((client extension-client) object)
   (error 'type-error :datum object :expected-type 'sequence))
 
-(defmethod invistra::make-argument-cursor ((client extension-client) (object sequence))
+(defmethod invistra:make-argument-cursor ((client extension-client) (object sequence))
   (let ((position 0))
     (values (lambda ()
               (< position (length object)))

@@ -9,12 +9,7 @@
   (check-type control-string string)
   (with-unique-names (block rest count)
     (let ((items (parse-control-string client control-string)))
-      (if (loop for item across items
-                thereis (outer-iteration-p item))
-          `(lambda (*format-output* &rest ,rest)
-             (with-arguments (,(trinsic:client-form client) ,rest)
-               ,@(compile-items client items)
-               (pop-remaining-arguments)))
+      (if (reduce #'calculate-argument-position items :initial-value 0)
           (let* ((args (make-array 8 :adjustable t :fill-pointer 0 :element-type 'lambda-argument))
                  (guts (let* ((pos 0)
                               (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
@@ -86,7 +81,11 @@
                (declare (ignorable ,@(map 'list #'lambda-argument-name args) ,count ,rest)
                         ,@declarations)
                (block ,block
-                 ,@guts)))))))
+                 ,@guts)))
+          `(lambda (*format-output* &rest ,rest)
+             (with-arguments (,(trinsic:client-form client) ,rest)
+               ,@(compile-items client items)
+               (pop-remaining-arguments)))))))
 
 (defun format-compiler-macro (client form destination control-string args)
   (declare (ignore form))

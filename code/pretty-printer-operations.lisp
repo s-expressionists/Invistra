@@ -65,6 +65,15 @@
          :control-string (control-string directive)
          :tilde-position (start directive)))
 
+(defmethod calculate-argument-position (position (directive logical-block-directive))
+  (setf position (call-next-method))
+  (cond ((at-sign-p directive)
+         (reduce #'calculate-argument-position (aref (clauses directive)
+                                                     (if (< (length (clauses directive)) 2) 0 1))
+                 :initial-value position))
+        (position
+         (1+ position))))
+
 (defmethod layout-requirements :around ((item logical-block-directive))
   (merge-layout-requirements (list :logical-block)
                              (call-next-method)

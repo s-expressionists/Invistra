@@ -128,6 +128,13 @@
                              (call-next-method)
                              t))
 
+(defmethod calculate-argument-position (position (directive justification-directive))
+  nil
+  #+(or)(reduce (lambda (position clauses)
+            (reduce #'calculate-argument-position clauses :initial-value position))
+          (clauses directive)
+          :initial-value (call-next-method)))
+
 (defun str-line-length (stream)
   (or *print-right-margin*
       #+gray-streams-line-length (ngray:stream-line-length stream)

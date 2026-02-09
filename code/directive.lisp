@@ -67,6 +67,10 @@
 (defclass argument-reference-parameter (parameter)
   ())
 
+(defmethod calculate-argument-position (position (item argument-reference-parameter))
+  (when position
+    (1+ position)))
+
 (defclass remaining-argument-count-parameter (parameter)
   ())
 
@@ -131,6 +135,9 @@
                           (merge-layout-requirements (layout-requirements it)
                                                      requirements
                                                      nil)))))
+
+(defmethod calculate-argument-position (position (item directive))
+  (reduce #'calculate-argument-position (parameters item) :initial-value position))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

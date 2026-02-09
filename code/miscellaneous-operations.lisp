@@ -36,6 +36,10 @@
          :control-string (control-string directive)
          :tilde-position (start directive)))
 
+(defmethod calculate-argument-position (position (directive case-conversion-directive))
+  (reduce #'calculate-argument-position (aref (clauses directive) 0)
+          :initial-value (call-next-method)))
+
 (defmethod interpret-item (client (directive case-conversion-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
@@ -75,6 +79,11 @@
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\P)) directive (end-directive t))
   (change-class directive 'plural-directive))
+
+(defmethod calculate-argument-position (position (directive plural-directive))
+  (if (or (colon-p directive) (null position))
+      position
+      (1+ position)))
 
 (defmethod interpret-item (client (directive plural-directive) &optional parameters)
   (declare (ignore parameters))
