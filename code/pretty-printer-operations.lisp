@@ -8,16 +8,16 @@
 ;;;
 ;;; 22.3.5.1 ~_ Conditional newline
 
-(defclass underscore-directive (directive) nil)
+(defclass conditional-newline-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\_)) directive (end-directive t))
-  (change-class directive 'underscore-directive))
+  (change-class directive 'conditional-newline-directive))
 
-(defmethod layout-requirements ((item underscore-directive))
+(defmethod layout-requirements ((item conditional-newline-directive))
   (list :logical-block))
 
-(defmethod interpret-item (client (directive underscore-directive) &optional parameters)
+(defmethod interpret-item (client (directive conditional-newline-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -30,7 +30,7 @@
                                    (at-sign-p :miser)
                                    (t :linear)))))
 
-(defmethod compile-item (client (directive underscore-directive) &optional parameters)
+(defmethod compile-item (client (directive conditional-newline-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -252,26 +252,26 @@
 ;;;
 ;;; 22.3.5.3 ~i Indent
 
-(defclass i-directive (directive) nil)
+(defclass indent-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\I)) directive (end-directive t))
-  (change-class directive 'i-directive))
+  (change-class directive 'indent-directive))
 
-(defmethod parameter-specifications ((client t) (directive i-directive))
+(defmethod parameter-specifications ((client t) (directive indent-directive))
   '((:type integer :default 0)))
 
-(defmethod layout-requirements ((item i-directive))
+(defmethod layout-requirements ((item indent-directive))
   (list :logical-block))
 
-(defmethod interpret-item (client (directive i-directive) &optional parameters)
+(defmethod interpret-item (client (directive indent-directive) &optional parameters)
   (declare (ignorable client parameters))
   #-sicl
   (inravina:pprint-indent client *format-output*
                           (if (colon-p directive) :current :block)
                           (car parameters)))
 
-(defmethod compile-item (client (directive i-directive) &optional parameters)
+(defmethod compile-item (client (directive indent-directive) &optional parameters)
   (declare (ignorable client parameters))
   #-sicl
   `((inravina:pprint-indent ,(trinsic:client-form client) *format-output*

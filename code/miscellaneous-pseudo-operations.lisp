@@ -12,14 +12,14 @@
 ;;;
 ;;; 22.3.9.1 ~; Clause separator
 
-(defclass semicolon-directive (directive) nil)
+(defclass clause-eparator-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\;)) directive (end-directive t))
-  (change-class directive 'semicolon-directive))
+  (change-class directive 'clause-eparator-directive))
 
 (defmethod parameter-specifications
-    ((client t) (directive semicolon-directive))
+    ((client t) (directive clause-eparator-directive))
   '((:name *extra-space*
      :type (or null integer)
      :bind nil)
@@ -27,10 +27,10 @@
      :type (or null integer)
      :bind nil)))
 
-(defmethod structured-separator-p ((directive semicolon-directive))
+(defmethod structured-separator-p ((directive clause-eparator-directive))
   t)
 
-(defmethod interpret-item (client (directive semicolon-directive) &optional parameters)
+(defmethod interpret-item (client (directive clause-eparator-directive) &optional parameters)
   (let ((extra-space (car parameters))
         (line-length (cadr parameters)))
     (when extra-space
@@ -38,7 +38,7 @@
     (when line-length
       (setf *line-length* line-length))))
 
-(defmethod compile-item (client (directive semicolon-directive) &optional parameters)
+(defmethod compile-item (client (directive clause-eparator-directive) &optional parameters)
   (let ((extra-space (car parameters))
         (line-length (cadr parameters)))
     `(,@(cond ((numberp extra-space)
@@ -56,20 +56,20 @@
 ;;;
 ;;; 22.3.9.2 ~^ Escape upward
 
-(defclass circumflex-directive (directive) nil)
+(defclass escape-upward-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\^)) directive (end-directive t))
-  (change-class directive 'circumflex-directive))
+  (change-class directive 'escape-upward-directive))
 
 (defmethod parameter-specifications
-    ((client t) (directive circumflex-directive))
+    ((client t) (directive escape-upward-directive))
   '((:name p1 :type (or null character integer))
     (:name p2 :type (or null character integer))
     (:name p3 :type (or null character integer))))
 
 (defmethod check-directive-syntax progn
-    (client (directive circumflex-directive))
+    (client (directive escape-upward-directive))
   (declare (ignore client))
   (let ((parameters (parameters directive)))
     (when (and (second parameters) (not (first parameters)))
@@ -81,7 +81,7 @@
              :parameter2 2
              :parameter3 3))))
 
-(defmethod interpret-item (client (directive circumflex-directive) &optional parameters)
+(defmethod interpret-item (client (directive escape-upward-directive) &optional parameters)
   (with-accessors ((colon-p colon-p))
       directive
     (destructuring-bind (p1 p2 p3)
@@ -97,7 +97,7 @@
                  (and p1 p2 p3 (<= p1 p2 p3)))
              (funcall (if colon-p *outer-exit* *inner-exit*)))))))
 
-(defmethod compile-item (client (directive circumflex-directive) &optional parameters)
+(defmethod compile-item (client (directive escape-upward-directive) &optional parameters)
   (with-accessors ((colon-p colon-p))
       directive
     (destructuring-bind (p1 p2 p3)
@@ -138,12 +138,12 @@
 ;;;
 ;;; 22.3.9.3 ~Newline Igored newline
 
-(defclass newline-directive
+(defclass ignored-newline-directive
     (directive at-most-one-modifier-mixin) nil)
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\Newline)) directive (end-directive t))
-  (change-class directive 'newline-directive))
+  (change-class directive 'ignored-newline-directive))
 
 (defmethod parse-directive-suffix ((client standard-client) (directive-character (eql #\Newline)) control-string start end)
   (or (position-if (lambda (char)
@@ -151,7 +151,7 @@
                    control-string :start start :end end)
       end))
 
-(defmethod interpret-item (client (directive newline-directive) &optional parameters)
+(defmethod interpret-item (client (directive ignored-newline-directive) &optional parameters)
   (declare (ignore parameters))
   (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
@@ -163,7 +163,7 @@
          ;; Ignore both the newline and the following whitespace.
          nil)))
 
-(defmethod compile-item (client (directive newline-directive) &optional parameters)
+(defmethod compile-item (client (directive ignored-newline-directive) &optional parameters)
   (declare (ignore parameters))
   (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.

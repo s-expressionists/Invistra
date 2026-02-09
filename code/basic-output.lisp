@@ -8,20 +8,20 @@
 ;;;
 ;;; 22.3.1.1 ~c Character
 
-(defclass c-directive (directive)
+(defclass character-directive (directive)
   ())
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\C)) directive end-directive)
   (declare (ignore end-directive))
-  (change-class directive 'c-directive))
+  (change-class directive 'character-directive))
 
-(defmethod calculate-argument-position (position (item c-directive))
+(defmethod calculate-argument-position (position (item character-directive))
   (setf position (call-next-method))
   (when position
     (1+ position)))
 
-(defmethod interpret-item (client (directive c-directive) &optional parameters)
+(defmethod interpret-item (client (directive character-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
@@ -51,7 +51,7 @@
            ;; The HyperSpec says to do what WRITE-CHAR does.
            (write-char char *format-output*))))))
 
-(defmethod compile-item (client (directive c-directive) &optional parameters)
+(defmethod compile-item (client (directive character-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p))
@@ -74,26 +74,26 @@
 ;;;
 ;;; 22.3.1.2 ~% Newline.
 
-(defclass percent-directive (directive no-modifiers-mixin)
+(defclass newline-directive (directive no-modifiers-mixin)
   ())
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\%)) directive end-directive)
   (declare (ignore end-directive))
-  (change-class directive 'percent-directive))
+  (change-class directive 'newline-directive))
 
-(defmethod parameter-specifications (client (directive percent-directive))
+(defmethod parameter-specifications (client (directive newline-directive))
   (declare (ignore client))
   '((:name n
      :type (integer 0)
      :bind nil
      :default 1)))
 
-(defmethod interpret-item (client (directive percent-directive) &optional parameters)
+(defmethod interpret-item (client (directive newline-directive) &optional parameters)
   (loop repeat (car parameters)
         do (terpri *format-output*)))
 
-(defmethod compile-item (client (directive percent-directive) &optional parameters)
+(defmethod compile-item (client (directive newline-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 '())
@@ -108,29 +108,29 @@
 ;;;
 ;;; 22.3.1.3 ~& Fresh line and newlines.
 
-(defclass ampersand-directive (directive no-modifiers-mixin)
+(defclass fresh-line-directive (directive no-modifiers-mixin)
   ())
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\&)) directive end-directive)
   (declare (ignore end-directive))
-  (change-class directive 'ampersand-directive))
+  (change-class directive 'fresh-line-directive))
 
 (defmethod parameter-specifications
-    (client (directive ampersand-directive))
+    (client (directive fresh-line-directive))
   (declare (ignore client))
   '((:name n
      :type (integer 0)
      :default 1)))
 
-(defmethod interpret-item (client (item ampersand-directive) &optional parameters)
+(defmethod interpret-item (client (item fresh-line-directive) &optional parameters)
   (let ((how-many (car parameters)))
     (unless (zerop how-many)
       (fresh-line *format-output*)
       (loop repeat (1- how-many)
             do (terpri *format-output*)))))
 
-(defmethod compile-item (client (item ampersand-directive) &optional parameters)
+(defmethod compile-item (client (item fresh-line-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 nil)
@@ -151,27 +151,27 @@
 ;;;
 ;;; 22.3.1.4 ~| Page separators.
 
-(defclass vertical-bar-directive (directive no-modifiers-mixin)
+(defclass page-directive (directive no-modifiers-mixin)
   ())
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\|)) directive end-directive)
   (declare (ignore end-directive))
-  (change-class directive 'vertical-bar-directive))
+  (change-class directive 'page-directive))
 
 (defmethod parameter-specifications
-    (client (directive vertical-bar-directive))
+    (client (directive page-directive))
   (declare (ignore client))
   '((:name n
      :type (integer 0)
      :bind nil
      :default 1)))
 
-(defmethod interpret-item (client (directive vertical-bar-directive) &optional parameters)
+(defmethod interpret-item (client (directive page-directive) &optional parameters)
   (loop repeat (car parameters)
         do (write-char #\Page *format-output*)))
 
-(defmethod compile-item (client (directive vertical-bar-directive) &optional parameters)
+(defmethod compile-item (client (directive page-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 nil)

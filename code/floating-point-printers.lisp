@@ -67,20 +67,20 @@
 ;;;
 ;;; 22.3.3.1 ~f Fixed-format floating point.
 
-(defclass f-directive (directive) nil)
+(defclass fixed-format-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\F)) directive (end-directive t))
-  (change-class directive 'f-directive))
+  (change-class directive 'fixed-format-directive))
 
-(defmethod parameter-specifications ((client t) (directive f-directive))
+(defmethod parameter-specifications ((client t) (directive fixed-format-directive))
   '((:name w :type (or null integer) :default nil)
     (:name d :type (or null integer) :default nil)
     (:name k :type (or null integer) :default 0)
     (:name overflowchar :type (or null character) :default nil)
     (:name padchar :type character :default #\Space)))
 
-(defmethod calculate-argument-position (position (directive f-directive))
+(defmethod calculate-argument-position (position (directive fixed-format-directive))
   (1+ (call-next-method)))
 
 (defun print-fixed-arg (client value significand exponent sign
@@ -152,7 +152,7 @@
                    do (write-char overflowchar *format-output*))
              t)))))
 
-(defmethod interpret-item (client (directive f-directive) &optional parameters)
+(defmethod interpret-item (client (directive fixed-format-directive) &optional parameters)
   (print-float-arg client (pop-argument)
                    (lambda (client value digits exponent sign)
                      (apply #'print-fixed-arg
@@ -160,7 +160,7 @@
                             (colon-p directive) (at-sign-p directive)
                             parameters))))
 
-(defmethod compile-item (client (directive f-directive) &optional parameters)
+(defmethod compile-item (client (directive fixed-format-directive) &optional parameters)
   `((print-float-arg ,(trinsic:client-form client) ,(pop-argument-form)
                      (lambda (client value digits exponent sign)
                        (print-fixed-arg client value digits exponent sign
@@ -171,13 +171,13 @@
 ;;;
 ;;; 22.3.3.2 ~e Exponential floating point.
 
-(defclass e-directive (directive) ())
+(defclass exponential-directive (directive) ())
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\E)) directive (end-directive t))
-  (change-class directive 'e-directive))
+  (change-class directive 'exponential-directive))
 
-(defmethod parameter-specifications ((client t) (directive e-directive))
+(defmethod parameter-specifications ((client t) (directive exponential-directive))
   '((:name w :type (or null integer) :default nil)
     (:name d :type (or null integer) :default nil)
     (:name e :type (or null integer) :default nil)
@@ -186,7 +186,7 @@
     (:name padchar :type character :default #\Space)
     (:name exponentchar :type (or null character) :default nil)))
 
-(defmethod calculate-argument-position (position (directive e-directive))
+(defmethod calculate-argument-position (position (directive exponential-directive))
   (1+ (call-next-method)))
 
 (defun print-exponent-arg (client value significand exponent sign
@@ -271,7 +271,7 @@
              (loop repeat w
                    do (write-char overflowchar *format-output*)))))))
 
-(defmethod interpret-item (client (directive e-directive) &optional parameters)
+(defmethod interpret-item (client (directive exponential-directive) &optional parameters)
   (print-float-arg client (pop-argument)
                    (lambda (client value digits exponent sign)
                      (apply #'print-exponent-arg
@@ -279,7 +279,7 @@
                             (colon-p directive) (at-sign-p directive)
                             parameters))))
 
-(defmethod compile-item (client (directive e-directive) &optional parameters)
+(defmethod compile-item (client (directive exponential-directive) &optional parameters)
   `((print-float-arg ,(trinsic:client-form client) ,(pop-argument-form)
                      (lambda (client value digits exponent sign)
                        (print-exponent-arg client value digits exponent sign
@@ -290,13 +290,13 @@
 ;;;
 ;;; 22.3.3.3 ~g General floating point.
 
-(defclass g-directive (directive) ())
+(defclass general-directive (directive) ())
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\G)) directive (end-directive t))
-  (change-class directive 'g-directive))
+  (change-class directive 'general-directive))
 
-(defmethod parameter-specifications ((client t) (directive g-directive))
+(defmethod parameter-specifications ((client t) (directive general-directive))
   '((:name w :type (or null integer) :default nil)
     (:name d :type (or null integer) :default nil)
     (:name e :type (or null integer) :default nil)
@@ -305,7 +305,7 @@
     (:name padchar :type character :default #\Space)
     (:name exponentchar :type (or null character) :default nil)))
 
-(defmethod calculate-argument-position (position (directive g-directive))
+(defmethod calculate-argument-position (position (directive general-directive))
   (1+ (call-next-method)))
 
 (defun print-general-arg (client value significand exponent sign
@@ -331,7 +331,7 @@
                                colon-p at-sign-p w d e k
                                overflowchar padchar exponentchar)))))
 
-(defmethod interpret-item (client (directive g-directive) &optional parameters)
+(defmethod interpret-item (client (directive general-directive) &optional parameters)
   (print-float-arg client (pop-argument)
                    (lambda (client value significand exponent sign)
                      (apply #'print-general-arg
@@ -339,7 +339,7 @@
                             (colon-p directive) (at-sign-p directive)
                             parameters))))
 
-(defmethod compile-item (client (directive g-directive) &optional parameters)
+(defmethod compile-item (client (directive general-directive) &optional parameters)
   `((print-float-arg ,(trinsic:client-form client) ,(pop-argument-form)
                      (lambda (client value significand exponent sign)
                        (print-general-arg client value significand exponent sign

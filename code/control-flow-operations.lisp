@@ -78,20 +78,20 @@
 ;;;
 ;;; 22.3.7.3 ~] End of conditional expression
 
-(defclass end-conditional-directive
+(defclass end-conditional-expression-directive
     (directive no-modifiers-mixin
      end-structured-directive-mixin)
   nil)
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\])) directive (end-directive t))
-  (change-class directive 'end-conditional-directive))
+  (change-class directive 'end-conditional-expression-directive))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.7.2 ~[ Conditional expression
 
-(defclass conditional-directive
+(defclass conditional-expression-directive
     (directive structured-directive-mixin
      at-most-one-modifier-mixin)
   ((%last-clause-is-default-p :initform nil
@@ -99,8 +99,8 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\[)) directive
-     (end-directive end-conditional-directive))
-  (change-class directive 'conditional-directive))
+     (end-directive end-conditional-expression-directive))
+  (change-class directive 'conditional-expression-directive))
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\[)) directive (end-directive t))
@@ -110,10 +110,10 @@
          :tilde-position (start directive)))
 
 (defmethod parameter-specifications
-    ((client t) (directive conditional-directive))
+    ((client t) (directive conditional-expression-directive))
   '((:name n :type (or null integer) :default nil)))
 
-(defmethod calculate-argument-position (position (directive conditional-directive))
+(defmethod calculate-argument-position (position (directive conditional-expression-directive))
   (setf position (call-next-method))
   (when position
     (cond ((at-sign-p directive)
@@ -157,7 +157,7 @@
                           (clauses directive))
                       new-position))))))
 
-(defmethod check-directive-syntax progn (client (directive conditional-directive))
+(defmethod check-directive-syntax progn (client (directive conditional-expression-directive))
   (declare (ignore client))
   ;; Check that, if a parameter is given, then there are
   ;; no modifiers.
@@ -192,10 +192,10 @@
              :directive directive))
     (setf (last-clause-is-default-p directive) (and pos t))))
 
-(defmethod outer-iteration-p ((directive conditional-directive))
+(defmethod outer-iteration-p ((directive conditional-expression-directive))
   t)
 
-(defmethod interpret-item (client (directive conditional-directive) &optional parameters)
+(defmethod interpret-item (client (directive conditional-expression-directive) &optional parameters)
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p)
                    (clauses clauses))
@@ -220,7 +220,7 @@
                                      (aref clauses
                                            (1- (length clauses)))))))))))
 
-(defmethod compile-item (client (directive conditional-directive) &optional parameters)
+(defmethod compile-item (client (directive conditional-expression-directive) &optional parameters)
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p)
                    (clauses clauses))

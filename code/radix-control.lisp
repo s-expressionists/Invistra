@@ -327,68 +327,68 @@
 ;;;
 ;;; 22.3.2.2 ~d Decimal.
 
-(defclass decimal-radix-directive (base-radix-directive)
+(defclass decimal-directive (base-radix-directive)
   ())
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\D)) directive (end-directive t))
-  (change-class directive 'decimal-radix-directive))
+  (change-class directive 'decimal-directive))
 
-(defmethod interpret-item (client (directive decimal-radix-directive) &optional parameters)
+(defmethod interpret-item (client (directive decimal-directive) &optional parameters)
   (apply #'write-radix-numeral client (pop-argument) (colon-p directive) (at-sign-p directive) 10 parameters))
 
-(defmethod compile-item (client (directive decimal-radix-directive) &optional parameters)
+(defmethod compile-item (client (directive decimal-directive) &optional parameters)
   `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form) ,(colon-p directive) ,(at-sign-p directive) 10 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.2.3 ~b Binary.
 
-(defclass binary-radix-directive (base-radix-directive)
+(defclass binary-directive (base-radix-directive)
   ())
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\B)) directive (end-directive t))
-  (change-class directive 'binary-radix-directive))
+  (change-class directive 'binary-directive))
 
-(defmethod interpret-item (client (directive binary-radix-directive) &optional parameters)
+(defmethod interpret-item (client (directive binary-directive) &optional parameters)
   (apply #'write-radix-numeral client (pop-argument) (colon-p directive) (at-sign-p directive) 2 parameters))
 
-(defmethod compile-item (client (directive binary-radix-directive) &optional parameters)
+(defmethod compile-item (client (directive binary-directive) &optional parameters)
   `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form) ,(colon-p directive) ,(at-sign-p directive) 2 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.2.4 ~o Octal.
 
-(defclass octal-radix-directive (base-radix-directive)
+(defclass octal-directive (base-radix-directive)
   ())
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\O)) directive (end-directive t))
-  (change-class directive 'octal-radix-directive))
+  (change-class directive 'octal-directive))
 
-(defmethod interpret-item (client (directive octal-radix-directive) &optional parameters)
+(defmethod interpret-item (client (directive octal-directive) &optional parameters)
   (apply #'write-radix-numeral client (pop-argument) (colon-p directive) (at-sign-p directive) 8 parameters))
 
-(defmethod compile-item (client (directive octal-radix-directive) &optional parameters)
+(defmethod compile-item (client (directive octal-directive) &optional parameters)
   `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form) ,(colon-p directive) ,(at-sign-p directive) 8 ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; 22.3.2.5 ~x Hexadecimal.
 
-(defclass hexadecimal-radix-directive (base-radix-directive)
+(defclass hexadecimal-directive (base-radix-directive)
   ())
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\X)) directive (end-directive t))
-  (change-class directive 'hexadecimal-radix-directive))
+  (change-class directive 'hexadecimal-directive))
 
 (defmethod interpret-item
-    (client (directive hexadecimal-radix-directive) &optional parameters)
+    (client (directive hexadecimal-directive) &optional parameters)
   (apply #'write-radix-numeral client (pop-argument) (colon-p directive) (at-sign-p directive) 16 parameters))
 
 (defmethod compile-item
-    (client (directive hexadecimal-radix-directive) &optional parameters)
+    (client (directive hexadecimal-directive) &optional parameters)
   `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form) ,(colon-p directive) ,(at-sign-p directive) 16 ,@parameters)))
