@@ -10,7 +10,7 @@
   (with-unique-names (block rest count)
     (let ((items (parse-control-string client control-string)))
       (if (reduce #'calculate-argument-position items :initial-value 0)
-          (let* ((args (make-array 8 :adjustable t :fill-pointer 0 :element-type 'lambda-argument))
+          (let* ((args (make-array 8 :adjustable t :fill-pointer 0))
                  (guts (let* ((pos 0)
                               (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
                               (*outer-exit* *inner-exit*)
@@ -56,18 +56,16 @@
                                                   ,(pop-remaining-arguments-form))))))
                          (nconc (compile-items client items)
                                 (list (pop-remaining-arguments-form)))))
-                 (lambda-args (unless (zerop (length args))
-                                `(&optional
-                                  ,@(loop with l = (length args)
-                                          for arg across args
-                                          for i from 0
-                                          when (lambda-argument-namep arg)
-                                            collect `(,(lambda-argument-name arg) nil ,(lambda-argument-namep arg))
-                                          else
-                                            collect `(,(lambda-argument-name arg)
-                                                      (error 'go-to-out-of-bounds
-                                                             :what-argument ,i
-                                                             :max-arguments ,l))))))
+                 (lambda-args (loop with required = t
+                                    for arg across args
+                                    when (and (lambda-argument-namep arg)
+                                              required)
+                                      collect '&optional
+                                      and do (setf required nil)
+                                    when (lambda-argument-namep arg)
+                                      collect `(,(lambda-argument-name arg) nil ,(lambda-argument-namep arg))
+                                    else
+                                      collect (lambda-argument-name arg)))
                  (declarations (loop for arg across args
                                      for type = (lambda-argument-type arg)
                                      unless (eq type t)
