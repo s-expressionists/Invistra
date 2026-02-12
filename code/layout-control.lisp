@@ -140,9 +140,6 @@
       #+gray-streams-line-length (ngray:stream-line-length stream)
       100))
 
-(defmethod outer-iteration-p ((item justification-directive))
-  t)
-
 (defun print-justification (client pad-left pad-right extra-space line-len
                             newline-segment segments
                             mincol colinc minpad padchar)

@@ -20,7 +20,14 @@
 
 ;;; Check the syntax of a directive.
 (defgeneric check-directive-syntax (client directive)
-  (:method-combination progn :most-specific-last))
+  (:method-combination progn :most-specific-last)
+  (:method progn (client directive)
+    (declare (ignore client directive))))
+
+(defgeneric valid-nesting-p (client child parent)
+  (:method (client child parent)
+    (declare (ignore client child parent))
+    t))
 
 (defgeneric interpret-item (client item &optional parameters)
   (:method (client item &optional parameters)
@@ -51,11 +58,6 @@
     character))
 
 (defgeneric make-argument-cursor (client object))
-
-(defgeneric outer-iteration-p (item)
-  (:method (item)
-    (declare (ignore item))
-    nil))
 
 (defgeneric calculate-argument-position (position item)
   (:method (position item)

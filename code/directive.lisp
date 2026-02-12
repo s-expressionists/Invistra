@@ -143,7 +143,14 @@
 ;;;
 ;;; Checking syntax, interpreting, and compiling directives.
 
-(defmethod check-directive-syntax progn (client directive)
+(defmethod check-directive-syntax progn ((client standard-client) (directive structured-directive-mixin))
+  (loop for items across (clauses directive)
+        do (loop for item across items
+                 unless (valid-nesting-p client item directive)
+                   do (error 'nesting-violation :directive item :parent-directive directive)
+                 do (check-directive-syntax client item))))
+
+(defmethod check-directive-syntax progn ((client standard-client) (directive directive))
   (loop for remaining-parameters = (parameters directive) then (cdr remaining-parameters)
         for parameter = (car remaining-parameters)
         for remaining-specs = (parameter-specifications client directive)

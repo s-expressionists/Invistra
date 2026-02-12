@@ -37,7 +37,8 @@
 ;;; signaled, we have correctly parsed the directive, so we know where
 ;;; in the control string it starts and ends.  
 (define-condition directive-syntax-error (format-error)
-  ((%directive :initarg :directive :reader directive)))
+  ((%directive :reader directive
+               :initarg :directive)))
 
 (define-condition unknown-directive-character (directive-syntax-error)
   ())
@@ -103,17 +104,6 @@
     (directive-syntax-error)
   ())
 
-(define-condition at-least-one-item-required (directive-syntax-error)
-  ())
-
-(define-condition colon-modifier-requires-two-clauses
-    (directive-syntax-error)
-  ())
-
-(define-condition at-sign-modifier-requires-one-clause
-    (directive-syntax-error)
-  ())
-
 (define-condition parameter-omitted (directive-syntax-error)
   ((%parameter1 :initarg :parameter1 :reader parameter1)
    (%parameter2 :initarg :parameter2 :reader parameter2)))
@@ -122,17 +112,22 @@
   ())
 
 (define-condition nesting-violation (directive-syntax-error)
-  ())
+  ((%parent-directive :reader parent-directive
+                      :initarg :parent-directive
+                      :initform nil)))
 
 (define-condition invalid-destination (format-error)
   ((%destination :initarg :destination :reader destination)))
 
-(define-condition illegal-directive (directive-syntax-error)
-  ())
-
-(define-condition logical-block-only-permits-three-clauses
-    (directive-syntax-error)
-  ())
+(define-condition invalid-clause-count (directive-syntax-error)
+  ((%minimum-count :reader minimum-count
+                   :initarg :minimum-count
+                   :initform 1)
+   (%maximum-count :reader maximum-count
+                   :initarg :maximum-count
+                   :initform 1)
+   (%actual-count :reader actual-count
+                  :initarg :actual-count)))
 
 (define-condition incompatible-layout-requirements
     (directive-syntax-error)

@@ -12,14 +12,14 @@
 ;;;
 ;;; 22.3.9.1 ~; Clause separator
 
-(defclass clause-eparator-directive (directive) nil)
+(defclass clause-separator-directive (directive) nil)
 
 (defmethod specialize-directive
     ((client t) (char (eql #\;)) directive (end-directive t))
-  (change-class directive 'clause-eparator-directive))
+  (change-class directive 'clause-separator-directive))
 
 (defmethod parameter-specifications
-    ((client t) (directive clause-eparator-directive))
+    ((client t) (directive clause-separator-directive))
   '((:name *extra-space*
      :type (or null integer)
      :bind nil)
@@ -27,10 +27,23 @@
      :type (or null integer)
      :bind nil)))
 
-(defmethod structured-separator-p ((directive clause-eparator-directive))
+(defmethod structured-separator-p ((directive clause-separator-directive))
   t)
 
-(defmethod interpret-item (client (directive clause-eparator-directive) &optional parameters)
+(defmethod valid-nesting-p ((client standard-client) (child clause-separator-directive) (parent conditional-expression-directive))
+  t)
+
+(defmethod valid-nesting-p ((client standard-client) (child clause-separator-directive) (parent justification-directive))
+  t)
+
+(defmethod valid-nesting-p ((client standard-client) (child clause-separator-directive) (parent logical-block-directive))
+  t)
+
+(defmethod valid-nesting-p ((client standard-client) (child clause-separator-directive) parent)
+  (declare (ignore parent))
+  nil)
+
+(defmethod interpret-item ((client standard-client) (directive clause-separator-directive) &optional parameters)
   (let ((extra-space (car parameters))
         (line-length (cadr parameters)))
     (when extra-space
@@ -38,7 +51,7 @@
     (when line-length
       (setf *line-length* line-length))))
 
-(defmethod compile-item (client (directive clause-eparator-directive) &optional parameters)
+(defmethod compile-item ((client standard-client) (directive clause-separator-directive) &optional parameters)
   (let ((extra-space (car parameters))
         (line-length (cadr parameters)))
     `(,@(cond ((numberp extra-space)
@@ -67,6 +80,13 @@
   '((:name p1 :type (or null character integer))
     (:name p2 :type (or null character integer))
     (:name p3 :type (or null character integer))))
+
+(defmethod valid-nesting-p ((client standard-client) (child escape-upward-directive) parent)
+  (not (colon-p child)))
+
+(defmethod valid-nesting-p ((client standard-client) (child escape-upward-directive) (parent iteration-directive))
+  (or (not (colon-p child))
+      (colon-p parent)))
 
 (defmethod check-directive-syntax progn
     (client (directive escape-upward-directive))

@@ -59,20 +59,25 @@
 (defun parse-parameters (string start end)
   (let ((position (1+ start))
         (parameters '()))
-    (when (find (char string position) "',vV#+-0123456789")
-      (multiple-value-bind (parameter pos)
-          (parse-parameter string position end start)
-        (when parameter
-          (push parameter parameters))
-        (setf position pos))
-      (loop while (and (not (= position end))
-                       (eql (char string position) #\,))
-            do (incf position)
-               (multiple-value-bind (parameter pos)
-                   (parse-parameter string position end start)
-                 (when parameter
-                   (push parameter parameters))
-                 (setf position pos))))
+    (cond ((= position end)
+           (error 'end-of-control-string-error
+                  :control-string string
+                  :tilde-position start
+                  :why "character expected"))
+          ((find (char string position) "',vV#+-0123456789")
+           (multiple-value-bind (parameter pos)
+               (parse-parameter string position end start)
+             (when parameter
+               (push parameter parameters))
+             (setf position pos))
+           (loop while (and (not (= position end))
+                            (eql (char string position) #\,))
+                 do (incf position)
+                    (multiple-value-bind (parameter pos)
+                        (parse-parameter string position end start)
+                      (when parameter
+                        (push parameter parameters))
+                      (setf position pos)))))
     (values (nreverse parameters) position)))
 
 ;;; Parse the modifiers of a format directive.  The colon and at-sign

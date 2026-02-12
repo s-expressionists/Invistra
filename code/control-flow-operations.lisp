@@ -29,9 +29,6 @@
             (t
              (+ position (or n 1)))))))
 
-(defmethod outer-iteration-p ((directive go-to-directive))
-  (not (typep (car (parameters directive)) 'literal-parameter)))
-
 (defmethod interpret-item (client (directive go-to-directive) &optional parameters)
   (declare (ignore client))
   (let ((n (car parameters)))
@@ -169,12 +166,12 @@
   ;; there should be a single clause separator (two clauses).
   (when (and (colon-p directive)
              (/= (length (clauses directive)) 2))
-    (error 'colon-modifier-requires-two-clauses))
+    (error 'invalid-clause-count :directive directive :minimum-count 2 :maximum-count 2))
   ;; Check that, if an at-sign modifier was given, then
   ;; there should be a no clause separators (a single clause).
   (when (and (at-sign-p directive)
              (/= (length (clauses directive)) 1))
-    (error 'at-sign-modifier-requires-one-clause))
+    (error 'invalid-clause-count :directive directive :minimum-count 1 :maximum-count 1))
   (let ((pos (position-if (lambda (items)
                             (let ((last (aref items (1- (length items)))))
                               (and (structured-separator-p last)
@@ -192,8 +189,6 @@
              :directive directive))
     (setf (last-clause-is-default-p directive) (and pos t))))
 
-(defmethod outer-iteration-p ((directive conditional-expression-directive))
-  t)
 
 (defmethod interpret-item (client (directive conditional-expression-directive) &optional parameters)
   (with-accessors ((at-sign-p at-sign-p)
@@ -294,9 +289,6 @@
 (defmethod calculate-argument-position (position (directive iteration-directive))
   (unless (at-sign-p directive)
     (1+ position)))
-
-(defmethod outer-iteration-p ((item iteration-directive))
-  (at-sign-p item))
 
 (defmethod interpret-item (client (directive iteration-directive) &optional parameters)
   ;; eliminate the end-of-iteration directive from the
@@ -619,9 +611,6 @@
 (defmethod calculate-argument-position (position (directive recursive-processing-directive))
   (unless (at-sign-p directive)
     (1+ position)))
-
-(defmethod outer-iteration-p ((item recursive-processing-directive))
-  (at-sign-p item))
 
 (defmethod interpret-item (client (directive recursive-processing-directive) &optional parameters)
   (declare (ignore parameters))

@@ -82,14 +82,13 @@
 (defmethod check-directive-syntax progn (client (directive logical-block-directive))
   (declare (ignore client))
   (flet ((check-fix (items)
-           (when (notevery (lambda (item)
-                             (or (stringp item)
-                                 (structured-end-p item)
-                                 (structured-separator-p item)))
-                           items)
-             (error 'illegal-directive))))
+           (loop for item across items
+                 unless (or (stringp item)
+                            (structured-end-p item)
+                            (structured-separator-p item))
+                   do (error 'nesting-violation :directive item :parent-directive directive))))
     (when (> (length (clauses directive)) 3)
-      (error 'logical-block-only-permits-three-clauses))
+      (error 'invalid-clause-count :directive directive :minimum-count 1 :maximum-count 3))
     (when (> (length (clauses directive)) 1)
       (check-fix (aref (clauses directive) 0)))
     (when (= (length (clauses directive)) 3)
@@ -176,9 +175,6 @@
                                       :prefix prefix
                                       :per-line-prefix-p per-line-prefix-p
                                       :suffix suffix))))
-
-(defmethod outer-iteration-p ((item logical-block-directive))
-  t)
 
 (defmethod compile-item (client (directive logical-block-directive) &optional parameters)
   (declare (ignore parameters)

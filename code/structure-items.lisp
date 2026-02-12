@@ -27,8 +27,13 @@
                     (push (make-group :end item) result))
                    ((structured-separator-p item)
                     (push nil (group-clauses (car result)))))
-             (check-directive-syntax client item)
+             #+(or)(check-directive-syntax client item)
         do (push item (car (group-clauses (car result))))))
 
 (defun parse-control-string (client control-string)
-  (structure-items client (split-control-string client control-string)))
+  (loop with items = (structure-items client (split-control-string client control-string))
+        for item across items
+        finally (return items)
+        unless (valid-nesting-p client item nil)
+          do (error 'nesting-violation :directive item)
+        do (check-directive-syntax client item)))
