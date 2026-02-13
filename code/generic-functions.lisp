@@ -37,6 +37,11 @@
   (:method (client item &optional parameters)
     (declare (ignore client item parameters))))
 
+(defgeneric parse-parameter (client parameter-character control-string start end position)
+  (:method (client directive-character control-string start end position)
+    (declare (ignore client parameter-character control-string start end))
+    (values nil position)))
+
 (defgeneric parse-directive-suffix (client directive-character control-string start end)
   (:method (client directive-character control-string start end)
     (declare (ignore client directive-character control-string end))

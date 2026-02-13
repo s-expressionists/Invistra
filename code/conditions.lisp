@@ -6,11 +6,11 @@
 
 ;;; This is the base class for all parse errors, i.e. error found
 ;;; before we were able to construct a directive object at all.  All
-;;; we know is where the directive start (tilde-position), and the
+;;; we know is where the directive start (start), and the
 ;;; control string.
 (define-condition directive-parse-error (format-error)
   ((%control-string :initarg :control-string :reader control-string)
-   (%tilde-position :initarg :tilde-position :reader tilde-position)))
+   (%start :initarg :start :reader start)))
 
 (define-condition end-of-control-string-error (directive-parse-error)
   ((%why :initarg :why :reader why)))

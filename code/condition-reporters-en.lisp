@@ -6,7 +6,7 @@
           "In the control-string \"~a\",~%~
            in the directive that starts at position ~a,~%"
           (control-string condition)
-          (tilde-position condition)))
+          (start condition)))
 
 (defmethod acclimation:report-condition
     ((condition end-of-control-string-error) stream (language acclimation:english))

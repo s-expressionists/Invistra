@@ -12,7 +12,7 @@
 ;;; next.  If no parameter is found, signal an error.  Return two
 ;;; values, the parameter that was parsed and the position immediately
 ;;; beyond the parameter that was parsed.
-(defun parse-parameter (string start end tilde-position)
+#+(or)(defun parse-parameter (string start end tilde-position)
   (when (= start end)
          (error 'end-of-control-string-error
                 :control-string string
@@ -51,34 +51,120 @@
     (otherwise
      (values nil start))))
 
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\V)) control-string start end position)
+  (declare (ignore control-string start end))
+  (values (make-instance 'argument-reference-parameter)
+          (1+ position)))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\#)) control-string start end position)
+  (declare (ignore control-string start end))
+  (values (make-instance 'remaining-argument-count-parameter)
+          (1+ position)))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\')) control-string start end position)
+  (incf position)
+  (if (< position end)
+      (values (make-instance 'literal-parameter :value (char control-string position))
+              (1+ position))
+      (error 'end-of-control-string-error
+             :control-string control-string
+             :start start
+             :index position
+             :why "character expected")))
+
+(defun parse-integer-parameter (string start end position)
+  (multiple-value-bind (value end-position)
+      (parse-integer string :start position :end end :junk-allowed t)
+    (when (null value)
+      (error 'expected-integer-error
+             :control-string string
+             :start start
+             :index position))
+    (values (make-instance 'literal-parameter :value value)
+            end-position)))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\-)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\+)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\0)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\1)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\2)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\3)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\4)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\5)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\6)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\7)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\8)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
+(defmethod parse-parameter
+    ((client standard-client) (parameter-character (eql #\9)) control-string start end position)
+  (parse-integer-parameter control-string start end position))
+
 ;;; Parse the parameters of a format directive.  STRING is the entire
 ;;; control string START is the position of the tilde character that
 ;;; starts the directive.  END is the length of the control string.
 ;;; Return the list of parameters and the position immediately beyond
 ;;; the last parameter.
-(defun parse-parameters (string start end)
-  (let ((position (1+ start))
-        (parameters '()))
-    (cond ((= position end)
-           (error 'end-of-control-string-error
-                  :control-string string
-                  :tilde-position start
-                  :why "character expected"))
-          ((find (char string position) "',vV#+-0123456789")
-           (multiple-value-bind (parameter pos)
-               (parse-parameter string position end start)
-             (when parameter
-               (push parameter parameters))
-             (setf position pos))
-           (loop while (and (not (= position end))
-                            (eql (char string position) #\,))
-                 do (incf position)
-                    (multiple-value-bind (parameter pos)
-                        (parse-parameter string position end start)
-                      (when parameter
-                        (push parameter parameters))
-                      (setf position pos)))))
-    (values (nreverse parameters) position)))
+(defun parse-parameters (client control-string start end position)
+  (prog (parameter parameters)
+   next
+     (unless (< position end)
+       (error 'end-of-control-string-error
+              :control-string control-string
+              :start start
+              :index position
+              :why "character expected"))
+     (setf (values parameter position)
+           (parse-parameter client (char-upcase (char control-string position)) control-string
+                            start end position))
+     (cond (parameter
+            (push parameter parameters)
+            (when (and (< position end)
+                       (char= #\, (char control-string position)))
+              (incf position)
+              (go next)))
+           ((and (< position end)
+                 (char= #\, (char control-string position)))
+            (push (make-instance 'literal-parameter) parameters)
+            (incf position)
+            (go next))
+           (parameters
+            (push (make-instance 'literal-parameter) parameters)))
+     (return (values (nreverse parameters) position))))
 
 ;;; Parse the modifiers of a format directive.  The colon and at-sign
 ;;; modifiers are optional and can appear in any order.  However, we
@@ -86,7 +172,7 @@
 ;;; boolean indicating whether the colon modifier was found, a boolean
 ;;; indicating whether the at-sign modifier was found, and the first
 ;;; position beyond the modifiers in the string.
-(defun parse-modifiers (string start end tilde-position)
+(defun parse-modifiers (string tilde-position end start)
   (let ((position (position-if-not (lambda (char)
                                      (or (eql char #\@)
                                          (eql char #\:)))
@@ -105,13 +191,13 @@
                     (char string (1+ start)))
                (error 'two-identical-modifiers
                       :control-string string
-                      :tilde-position tilde-position
+                      :start tilde-position
                       :index start)
                (values t t (+ start 2))))
           (t
            (error 'more-than-two-modifiers
                   :control-string string
-                  :tilde-position tilde-position
+                  :start tilde-position
                   :index start)))))
 
 ;;; Parse a format directive.  The string is a format control string.
@@ -124,13 +210,13 @@
 (defun parse-format-directive (client string start)
   (let ((end (length string)))
     (multiple-value-bind (parameters position1)
-        (parse-parameters string start end)
+        (parse-parameters client string start end (1+ start))
       (multiple-value-bind (colon-p at-sign-p position2)
-          (parse-modifiers string position1 end start)
+          (parse-modifiers string start end position1)
         (when (= position2 end)
           (error 'end-of-control-string-error
                  :control-string string
-                 :tilde-position start
+                 :start start
                  :why "expected a letter corresponding to a format directive"))
         ;; We need to handle the special cases of the ~Newline and ~/
         ;; directives, because those directive comprise characters
