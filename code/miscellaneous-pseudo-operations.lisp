@@ -165,11 +165,12 @@
     ((client standard-client) (char (eql #\Newline)) directive (end-directive t))
   (change-class directive 'ignored-newline-directive))
 
-(defmethod parse-directive-suffix ((client standard-client) (directive-character (eql #\Newline)) control-string start end)
+(defmethod parse-suffix ((client standard-client) (directive-character (eql #\Newline)) control-string position start)
+  (declare (ignore start))
   (or (position-if (lambda (char)
                      (not (find char #(#\Space #\Tab #\Page #\Return))))
-                   control-string :start start :end end)
-      end))
+                   control-string :start position)
+      (length control-string)))
 
 (defmethod interpret-item (client (directive ignored-newline-directive) &optional parameters)
   (declare (ignore parameters))

@@ -295,14 +295,14 @@
   (declare (ignore client))
   '((:type (or null character integer) :default nil :rest t)))
 
-(defmethod parse-directive-suffix ((client standard-client) (directive-character (eql #\/)) control-string start end)
+(defmethod parse-suffix ((client standard-client) (directive-character (eql #\/)) control-string position start)
   (let ((position-of-trailing-slash
-          (position #\/ control-string :start start :end end)))
+          (position #\/ control-string :start position)))
     (when (null position-of-trailing-slash)
-      (error 'end-of-control-string-error
+      (error 'end-of-control-string
              :control-string control-string
              :tilde-position start
-             :why "expected a trailing slash"))
+             :index position))
     (1+ position-of-trailing-slash)))
 
 (defmethod check-directive-syntax progn (client (directive call-function-directive))

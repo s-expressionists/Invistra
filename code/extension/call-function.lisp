@@ -11,16 +11,15 @@
   (declare (ignore client))
   '((:type (or null character integer) :default nil :rest t)))
 
-(defmethod invistra:parse-directive-suffix
-    ((client extension-client) (directive-character (eql #\`)) control-string start end)
-  (prog ((position start)
+(defmethod invistra:parse-suffix
+    ((client extension-client) (directive-character (eql #\`)) control-string position start)
+  (prog ((end (length control-string))
          (escape nil))
    next
      (when (= position end)
        (error 'invistra::end-of-control-string-error
               :control-string control-string
-              :tilde-position start
-              :why "expected a trailing backquote"))
+              :tilde-position start))
      (case (char control-string position)
        (#\`
         (if escape

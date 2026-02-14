@@ -95,9 +95,9 @@
    ;; a list of parameters, each one is either an integer or a character
    (%parameters :initarg :parameters :accessor parameters)
    ;; true if and only if the `:' modifier was given
-   (%colon-p :initarg :colon-p :reader colon-p)
+   (%colon-p :initarg :colon-p :reader colon-p :initform nil)
    ;; true if and only if the `@' modifier was given
-   (%at-sign-p :initarg :at-sign-p :reader at-sign-p)))
+   (%at-sign-p :initarg :at-sign-p :reader at-sign-p :initform nil)))
 
 ;;; Mixin class for directives that take no modifiers
 (defclass no-modifiers-mixin () ())

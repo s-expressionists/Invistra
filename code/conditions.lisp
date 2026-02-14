@@ -9,11 +9,13 @@
 ;;; we know is where the directive start (start), and the
 ;;; control string.
 (define-condition directive-parse-error (format-error)
-  ((%control-string :initarg :control-string :reader control-string)
-   (%start :initarg :start :reader start)))
+  ((%control-string :reader control-string
+                    :initarg :control-string)
+   (%start :reader start
+           :initarg :start)))
 
-(define-condition end-of-control-string-error (directive-parse-error)
-  ((%why :initarg :why :reader why)))
+(define-condition end-of-control-string (directive-parse-error)
+  ())
 
 (define-condition found-something-else-error (directive-parse-error)
   ((%index :initarg :index :reader index)))
@@ -24,10 +26,7 @@
 (define-condition expected-parameter-start (found-something-else-error)
   ())
 
-(define-condition two-identical-modifiers (found-something-else-error)
-  ())
-
-(define-condition more-than-two-modifiers (found-something-else-error)
+(define-condition duplicate-modifiers (found-something-else-error)
   ())
 
 (define-condition unknown-format-directive (found-something-else-error)

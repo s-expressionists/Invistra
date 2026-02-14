@@ -3,16 +3,13 @@
 (defmethod acclimation:report-condition :before
     ((condition directive-parse-error) stream (language acclimation:english))
   (cl:format stream
-          "In the control-string \"~a\",~%~
-           in the directive that starts at position ~a,~%"
+          "In the control-string \"~a\" and in the directive that starts at position ~a,"
           (control-string condition)
           (start condition)))
 
 (defmethod acclimation:report-condition
-    ((condition end-of-control-string-error) stream (language acclimation:english))
-  (cl:format stream
-          "~a, but reached the end of the control string."
-          (why condition)))
+    ((condition end-of-control-string) stream (language acclimation:english))
+  (write-string " found an expected end of the control string." stream))
 
 (defmethod acclimation:report-condition
     ((condition expected-integer-error) stream (language acclimation:english))
@@ -30,17 +27,8 @@
           (char (control-string condition) (index condition))))
 
 (defmethod acclimation:report-condition
-    ((condition two-identical-modifiers) stream (language acclimation:english))
-  (cl:format stream
-          "found two identical modifiers `~a' at index ~a."
-          (char (control-string condition) (index condition))
-          (index condition)))
-
-(defmethod acclimation:report-condition
-    ((condition more-than-two-modifiers) stream (language acclimation:english))
-  (cl:format stream
-          "found a sequence of more than two modifiers at index ~a."
-          (index condition)))
+    ((condition duplicate-modifiers) stream (language acclimation:english))
+  (write-string " duplicate modifiers were found." stream))
 
 (defmethod acclimation:report-condition
     ((condition unknown-format-directive) stream (language acclimation:english))

@@ -4,41 +4,25 @@
 ;;; either a string to be printed as it is, or a directive.  The list
 ;;; of components will never contain two consecutive strings.
 (defun split-control-string (client control-string)
-  (loop with start = 0
-        with end = (length control-string)
-        while (< start end)
-        collect (let ((tilde-position (position #\~ control-string :start start)))
-                  (cond ((null tilde-position)
-                         ;; No tilde was found.  The rest of the control string
-                         ;; is just a string to be printed.
-                         (prog1 (subseq control-string start end)
-                           (setf start end)))
-                        ((> tilde-position start)
-                         ;; A tilde was found, but it is not in the
-                         ;; start position.  A prefix of the control
-                         ;; string is therefore a string to be
-                         ;; printed.
-                         (prog1 (subseq control-string start tilde-position)
-                           ;; Make sure we find the tilde at the start position
-                           ;; in the next iteration.
-                           (setf start tilde-position)))
-                        (t
-                         ;; We found a tilde in the start position, so we have
-                         ;; a directive.
-                         (multiple-value-bind (directive-character
-                                               parameters
-                                               colon-p
-                                               at-sign-p
-                                               suffix-start
-                                               end-of-directive-position)
-                             (parse-format-directive client control-string tilde-position)
-                           (prog1 (make-instance 'directive
-                                    :control-string control-string
-                                    :start tilde-position
-                                    :suffix-start suffix-start
-                                    :end end-of-directive-position
-                                    :directive-character (char-upcase directive-character)
-                                    :parameters parameters
-                                    :colon-p colon-p
-                                    :at-sign-p at-sign-p)
-                             (setf start end-of-directive-position))))))))
+  (prog ((start 0)
+         (end 0)
+         (position 0)
+         (items nil)
+         (directive nil))
+   next
+     (when (< position (length control-string))
+       (setf end position
+             (values directive position) (parse-directive client (char control-string position) control-string position))
+       (cond (directive
+              (when (< start end)
+                (push (subseq control-string start end) items))
+              (push directive items)
+              (setf start position
+                    end position))
+             (t
+              (incf position)
+              (setf end position)))
+       (go next))
+     (when (< start end)
+       (push (subseq control-string start end) items))
+     (return (nreverse items))))
