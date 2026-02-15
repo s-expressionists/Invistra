@@ -12,8 +12,9 @@
    next
      (when (< position (length control-string))
        (setf end position
-             (values directive position) (parse-directive client (char control-string position) control-string position))
+             directive (parse-directive client (char control-string position) control-string position))
        (cond (directive
+              (setf position (end directive))
               (when (< start end)
                 (push (subseq control-string start end) items))
               (push directive items)

@@ -84,20 +84,31 @@
 ;;; are handled at compile time anyway.
 (defclass directive ()
   (;; the entire control string in which this directive was found
-   (%control-string :initarg :control-string :reader control-string)
+   (%control-string :accessor control-string
+                    :initarg :control-string)
    ;; the position in the control string of the ~ character.
-   (%start :initarg :start :reader start)
-   (%suffix-start :initarg :suffix-start :reader suffix-start)
+   (%start :accessor start
+           :initarg :start)
+   (%suffix-start :accessor suffix-start
+                  :initarg :suffix-start)
    ;; the first position beyond the directive character
-   (%end :initarg :end :reader end)
+   (%end :accessor end
+         :initarg :end)
    ;; The directive character used.
-   (%directive-character :initarg :directive-character :reader directive-character)
+   (%directive-character :accessor directive-character
+                         :initarg :directive-character)
    ;; a list of parameters, each one is either an integer or a character
-   (%parameters :initarg :parameters :accessor parameters)
+   (%parameters :accessor parameters
+                :initarg :parameters
+                :initform nil)
    ;; true if and only if the `:' modifier was given
-   (%colon-p :initarg :colon-p :reader colon-p :initform nil)
+   (%colon-p :accessor colon-p
+             :initarg :colon-p
+             :initform nil)
    ;; true if and only if the `@' modifier was given
-   (%at-sign-p :initarg :at-sign-p :reader at-sign-p :initform nil)))
+   (%at-sign-p :accessor at-sign-p
+               :initarg :at-sign-p
+               :initform nil)))
 
 ;;; Mixin class for directives that take no modifiers
 (defclass no-modifiers-mixin () ())

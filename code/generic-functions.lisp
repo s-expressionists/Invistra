@@ -5,11 +5,11 @@
 ;;; Return the name of a subclass to be used for a particular
 ;;; directive.  Each particular directive subclass must be accompanied
 ;;; by an eql-specialized method on this generic function.
-(defgeneric specialize-directive (client directive-character directive end-directive))
+(defgeneric specialize-directive (client character directive end-directive))
 
 ;;; For the default case, signal an error.
-(defmethod specialize-directive (client directive-character directive end-directive)
-  (declare (ignore client directive-character end-directive))
+(defmethod specialize-directive (client character directive end-directive)
+  (declare (ignore client character end-directive))
   (error 'unknown-directive-character
          :directive directive))
 
@@ -37,25 +37,25 @@
   (:method (client item &optional parameters)
     (declare (ignore client item parameters))))
 
-(defgeneric parse-parameter (client parameter-character control-string position start)
-  (:method (client directive-character control-string position start)
-    (declare (ignore client parameter-character control-string start))
-    (values nil position)))
+(defgeneric parse-parameter (client character directive control-string)
+  (:method (client character directive control-string)
+    (declare (ignore client character directive control-string))
+    nil))
 
-(defgeneric parse-modifier (client modifier-character control-string position start)
-  (:method (client modifier-character control-string position start)
-    (declare (ignore client modifier-character control-string start))
-    (values nil position)))
+(defgeneric parse-modifier (client character directive control-string)
+  (:method (client character directive control-string)
+    (declare (ignore client character directive control-string))
+    nil))
 
-(defgeneric parse-suffix (client directive-character control-string position start)
-  (:method (client directive-character control-string position start)
-    (declare (ignore client directive-character control-string start))
-    position))
+(defgeneric parse-suffix (client character directive control-string)
+  (:method (client character directive control-string)
+    (declare (ignore client character directive control-string))
+    nil))
 
 (defgeneric parse-directive (client character control-string position)
   (:method (client character control-string position)
-    (declare (ignore client character control-string))
-    (values nil position)))
+    (declare (ignore client character control-string position))
+    nil))
 
 (defgeneric layout-requirements (item)
   (:method (item)

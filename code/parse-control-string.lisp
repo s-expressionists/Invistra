@@ -13,152 +13,169 @@
 ;;; values, the parameter that was parsed and the position immediately
 ;;; beyond the parameter that was parsed.
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\V)) control-string position start)
-  (declare (ignore control-string start))
-  (values (make-instance 'argument-reference-parameter)
-          (1+ position)))
+    ((client standard-client) directive (character (eql #\,)) control-string)
+  (declare (ignore control-string))
+  (setf (parameters directive)
+        (nconc (parameters directive)
+               (list (make-instance 'literal-parameter))))
+  t)
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\#)) control-string position start)
-  (declare (ignore control-string start))
-  (values (make-instance 'remaining-argument-count-parameter)
-          (1+ position)))
+    ((client standard-client) directive (character (eql #\V)) control-string)
+  (declare (ignore control-string))
+  (setf (parameters directive)
+        (nconc (parameters directive)
+               (list (make-instance 'argument-reference-parameter))))
+  (incf (end directive))
+  t)
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\')) control-string position start)
-  (incf position)
-  (if (< position (length control-string))
-      (values (make-instance 'literal-parameter :value (char control-string position))
-              (1+ position))
-      (error 'end-of-control-string
-             :control-string control-string
-             :start start
-             :index position)))
+    ((client standard-client) directive (character (eql #\#)) control-string)
+  (declare (ignore control-string))
+  (setf (parameters directive)
+        (nconc (parameters directive)
+               (list (make-instance 'remaining-argument-count-parameter))))
+  (incf (end directive))
+  t)
 
-(defun parse-integer-parameter (string position start)
+(defmethod parse-parameter
+    ((client standard-client) directive (character (eql #\')) control-string)
+  (declare (ignore))
+  (incf (end directive))
+  (cond ((< (end directive) (length control-string))
+         (setf (parameters directive)
+               (nconc (parameters directive)
+                      (list (make-instance 'literal-parameter
+                                           :value (char control-string (end directive))))))
+         (incf (end directive))
+         t)
+        (t
+         (error 'end-of-control-string
+                :control-string control-string
+                :start (start directive)
+                :index (end directive)))))
+
+(defun parse-integer-parameter (directive string)
   (multiple-value-bind (value end-position)
-      (parse-integer string :start position :end (length string) :junk-allowed t)
+      (parse-integer string :start (end directive) :end (length string) :junk-allowed t)
     (when (null value)
       (error 'expected-integer-error
              :control-string string
-             :start start
-             :index position))
-    (values (make-instance 'literal-parameter :value value)
-            end-position)))
+             :start (start directive)
+             :index (end directive)))
+    (setf (parameters directive)
+          (nconc (parameters directive)
+                 (list (make-instance 'literal-parameter :value value)))
+          (end directive) end-position)
+    t))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\-)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\-)) control-string)
+  (parse-integer-parameter directive control-string))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\+)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\+)) control-string)
+  (parse-integer-parameter directive control-string))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\0)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\0)) control-string)
+  (parse-integer-parameter directive control-string))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\1)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\1)) control-string)
+  (parse-integer-parameter directive control-string))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\2)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\2)) control-string)
+  (parse-integer-parameter directive control-string))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\3)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\3)) control-string)
+  (parse-integer-parameter directive control-string))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\4)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\4)) control-string)
+  (parse-integer-parameter directive control-string))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\5)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\5)) control-string)
+  (parse-integer-parameter directive control-string))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\6)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\6)) control-string)
+  (parse-integer-parameter directive control-string))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\7)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\7)) control-string)
+  (parse-integer-parameter directive control-string))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\8)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\8)) control-string)
+  (parse-integer-parameter directive control-string))
 
 (defmethod parse-parameter
-    ((client standard-client) (parameter-character (eql #\9)) control-string position start)
-  (parse-integer-parameter control-string position start))
+    ((client standard-client) directive (character (eql #\9)) control-string)
+  (parse-integer-parameter directive control-string))
 
 ;;; Parse the parameters of a format directive.  STRING is the entire
 ;;; control string START is the position of the tilde character that
 ;;; starts the directive.  END is the length of the control string.
 ;;; Return the list of parameters and the position immediately beyond
 ;;; the last parameter.
-(defun parse-parameters (client control-string position start)
-  (prog ((parameter nil)
-         (parameters nil)
-         (end (length control-string)))
+(defun parse-parameters (client directive control-string)
+  (prog ((required nil))
    next
-     (unless (< position end)
+     (when (>= (end directive) (length control-string))
        (error 'end-of-control-string
               :control-string control-string
-              :start start
-              :index position))
-     (setf (values parameter position)
-           (parse-parameter client (char-upcase (char control-string position)) control-string
-                            position start))
-     (cond (parameter
-            (push parameter parameters)
-            (when (and (< position end)
-                       (char= #\, (char control-string position)))
-              (incf position)
-              (go next)))
-           ((and (< position end)
-                 (char= #\, (char control-string position)))
-            (push (make-instance 'literal-parameter) parameters)
-            (incf position)
-            (go next))
-           (parameters
-            (push (make-instance 'literal-parameter) parameters)))
-     (return (values (nreverse parameters) position))))
+              :start (start directive)
+              :index (end directive)))
+     (unless (parse-parameter client directive
+                              (char-upcase (char control-string (end directive)))
+                              control-string)
+       (if required
+           (setf (parameters directive)
+                 (nconc (parameters directive)
+                        (list (make-instance 'literal-parameter))))
+           (return nil)))
+     (when (and (< (end directive) (length control-string))
+                (char= #\, (char control-string (end directive))))
+       (incf (end directive))
+       (setf required t)
+       (go next))))
 
 (defmethod parse-modifier
-    ((client standard-client) (modifier-character (eql #\@)) control-string position start)
-  (declare (ignore control-string start))
-  (values :at-sign-p (1+ position)))
+    ((client standard-client) directive (character (eql #\@)) control-string)
+  (when (at-sign-p directive)
+    (error 'duplicate-modifiers
+           :control-string control-string
+           :start (start directive)
+           :index (end directive)))
+  (setf (at-sign-p directive) t)
+  (incf (end directive))
+  t)
 
 (defmethod parse-modifier
-    ((client standard-client) (modifier-character (eql #\:)) control-string position start)
-  (declare (ignore control-string start))
-  (values :colon-p (1+ position)))
+    ((client standard-client) directive (character (eql #\:)) control-string)
+  (when (colon-p directive)
+    (error 'duplicate-modifiers
+           :control-string control-string
+           :start (start directive)
+           :index (end directive)))
+  (setf (colon-p directive) t)
+  (incf (end directive))
+  t)
 
-(defun parse-modifiers (client control-string position start)
-  (prog ((end (length control-string))
-         (modifiers nil)
-         (modifier nil))
+(defun parse-modifiers (client directive control-string)
+  (tagbody
    next
-     (unless (< position end)
+     (unless (< (end directive) (length control-string))
        (error 'end-of-control-string
               :control-string control-string
-              :start start))
-     (setf (values modifier position)
-           (parse-modifier client (char-upcase (char control-string position)) control-string
-                           position start))
-     (cond ((null modifier)
-            (return (values modifiers position)))
-           ((getf modifiers modifier)
-            (error 'duplicate-modifiers
-                   :control-string control-string
-                   :start start
-                   :index position))
-           (t
-            (setf (getf modifiers modifier) t)
-            (go next)))))
+              :start (start directive)))
+     (when (parse-modifier client directive (char-upcase (char control-string (end directive)))
+                           control-string)
+       (go next))))
 
 ;;; Parse a format directive.  The string is a format control string.
 ;;; The start position is the position of the tilde character that
@@ -169,26 +186,19 @@
 ;;; the directive.
 (defmethod parse-directive
     ((client standard-client) (character (eql #\~)) control-string position)
-  (let ((start position)
-        (end (length control-string))
-        parameters
-        modifiers)
-    (incf position)
-    (setf (values parameters position) (parse-parameters client control-string position start)
-          (values modifiers position) (parse-modifiers client control-string position start))
-    (when (= position end)
+  (let ((directive (make-instance 'directive
+                                  :start position
+                                  :end (1+ position)
+                                  :control-string control-string
+                                  :directive-character character)))
+    (parse-parameters client directive control-string)
+    (parse-modifiers client directive control-string)
+    (unless (< (end directive) (length control-string))
       (error 'end-of-control-string
              :control-string control-string
-             :start start))
-    (let ((directive-character (char-upcase (char control-string position)))
-          (suffix-start (incf position)))
-      (setf position (parse-suffix client directive-character control-string suffix-start start))
-      (values (apply #'make-instance 'directive
-                     :control-string control-string
-                     :start start
-                     :suffix-start suffix-start
-                     :end position
-                     :directive-character directive-character
-                     :parameters parameters
-                     modifiers)
-              position))))
+             :start (start directive)))
+    (setf (directive-character directive) (char-upcase (char control-string (end directive))))
+    (incf (end directive))
+    (setf (suffix-start directive) (end directive))
+    (parse-suffix client directive (directive-character directive) control-string)
+    directive))
