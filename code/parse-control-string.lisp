@@ -44,7 +44,7 @@
           (t
            (error 'end-of-control-string
                   :directive directive
-                  :index end)))))
+                  :positions (list end))))))
 
 (defun parse-integer-parameter (directive)
   (with-accessors ((control-string control-string)
@@ -57,7 +57,7 @@
       (when (null value)
         (error 'expected-integer-error
                :directive directive
-               :index end-position))
+               :positions (list end-position)))
       (setf parameters
             (nconc parameters
                    (list (make-instance 'literal-parameter :value value))))
@@ -109,7 +109,7 @@
        (when (>= end (length control-string))
          (error 'end-of-control-string
                 :directive directive
-                :index end))
+                :positions (list end)))
        (unless (parse-parameter client directive
                                 (char-upcase (char control-string end)))
          (if required
@@ -130,7 +130,7 @@
     (when at-sign-p
       (error 'duplicate-modifiers
              :directive directive
-             :index end))
+             :positions (list end)))
     (setf at-sign-p t)
     (incf end)
     t))
@@ -142,7 +142,7 @@
     (when colon-p
       (error 'duplicate-modifiers
              :directive directive
-             :index end))
+             :positions (list end)))
     (setf colon-p t)
     (incf end)
     t))
@@ -156,7 +156,7 @@
        (unless (< end (length control-string))
          (error 'end-of-control-string
                 :directive directive
-                :index end))
+                :positions (list end)))
        (when (parse-modifier client directive (char-upcase (char control-string end)))
          (go next)))))
 
@@ -175,7 +175,7 @@
       (unless (< end (length control-string))
         (error 'end-of-control-string
                :directive directive
-               :index end))
+               :positions (list end)))
       (setf directive-character (char-upcase (char control-string end)))
       (incf end)
       (setf suffix-start end)

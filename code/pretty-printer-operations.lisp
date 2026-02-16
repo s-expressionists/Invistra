@@ -301,7 +301,7 @@
       directive
     (setf end (1+ (or (position #\/ control-string :start end)
                       (error 'end-of-control-string
-                             :index end))))))
+                             :positions (list end)))))))
 
 (defmethod check-directive-syntax progn (client (directive call-function-directive))
   (declare (ignore client))

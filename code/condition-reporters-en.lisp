@@ -1,34 +1,50 @@
 (cl:in-package #:invistra)
 
 (defmethod acclimation:report-condition :after
-    ((condition directive-parse-error) stream (language acclimation:english))
+    ((condition directive-error) stream (language acclimation:english))
   (with-accessors ((directive directive)
-                   (index index))
+                   (positions positions))
       condition
     (with-accessors ((control-string control-string)
                      (start start)
                      (end end))
         directive
-      (cond ((= start index end)
-             (cl:format stream "  ~a~%~vt^" control-string (+ index 2)))
-            ((= start index)
-             (cl:format stream "  ~a~%  ~vt^~vt]" control-string (+ index 2) (+ end 2)))
-            ((= index end)
-             (cl:format stream "  ~a~%  ~vt[~vt^" control-string (+ start 2) (+ index 2)))
-            (t
-             (cl:format stream "  ~a~%  ~vt[~vt^~vt]"
-                        control-string (+ start 2) (+ index 2) (+ end 2)))))))
-
-(defmethod acclimation:report-condition :after
-    ((condition directive-syntax-error) stream (language acclimation:english))
-  (with-accessors ((directive directive))
-      condition
-    (with-accessors ((control-string control-string)
-                     (start start)
-                     (end end))
-        directive
-      (cl:format stream "  ~a~%~vt[~vt]"
-                 control-string (+ start 2) (+ end 2)))))
+      (let ((line-start 0))
+        (flet ((print-markers (position)
+                 (when (and (< line-start position)
+                            (or (and (<= line-start start)
+                                     (< start position))
+                                (and (< line-start end)
+                                     (<= end position))))
+                   (when (zerop line-start)
+                     (write-string "   " stream))
+                   (loop for i from line-start below position
+                         for ch = (let ((ch (char control-string i)))
+                                    (cond ((member i positions)
+                                           #\^)
+                                          ((and (<= start i)
+                                                (< i end))
+                                           #\=)
+                                          ((whitespace-char-p ch)
+                                           ch)
+                                          (t
+                                           #\space)))
+                         do (write-char ch stream)
+                         when (position (char control-string i) "\\\"")
+                           do (write-char ch stream))
+                   (terpri stream))
+                 (setf line-start (1+ position))))
+          (loop for ch across control-string
+                for position from 0
+                  initially (write-string "  \"" stream)
+                finally (write-char #\" stream)
+                        (terpri stream)
+                        (print-markers (length control-string))
+                when (position ch "\\\"")
+                  do (write-char #\\ stream)
+                do (write-char ch stream)
+                when (char= #\newline ch)
+                  do (print-markers position)))))))
 
 (defmethod acclimation:report-condition
     ((condition end-of-control-string) stream (language acclimation:english))

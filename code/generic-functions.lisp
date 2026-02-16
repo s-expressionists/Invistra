@@ -78,3 +78,5 @@
   (:method (position item)
     (declare (ignore item))
     position))
+
+(defgeneric whitespace-char-p (client ch))

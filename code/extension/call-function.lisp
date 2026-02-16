@@ -23,7 +23,7 @@
      (when (= position end)
        (error 'invistra::end-of-control-string-error
               :directive directive
-              :index (invistra::end directive)))
+              :positions (list (invistra::end directive))))
      (case (char control-string position)
        (#\`
         (if escape

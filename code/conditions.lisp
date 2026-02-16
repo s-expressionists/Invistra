@@ -6,13 +6,14 @@
 
 (define-condition directive-error (format-error)
   ((%directive :reader directive
-               :initarg :directive)))
+               :initarg :directive)
+   (%positions :reader positions
+               :initarg :positions
+               :initform nil)))
 
 ;;; This is the base class for all parse errors,
 (define-condition directive-parse-error (directive-error)
-  ((%index :reader index
-           :initarg :index
-           :initform nil)))
+  ())
 
 (define-condition end-of-control-string (directive-parse-error)
   ())
