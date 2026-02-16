@@ -202,27 +202,27 @@
 ;;; Signal an error if a modifier has been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive no-modifiers-mixin))
   (declare (ignore client))
-  (when (or (colon-p directive) (at-sign-p directive))
-    (error 'directive-takes-no-modifiers
-           :directive directive)))
+  (cond ((and (colon-p directive) (at-sign-p directive))
+         (error 'illegal-modifiers :directive directive :modifier-characters '(#\@ #\:)))
+        ((colon-p directive)
+         (error 'illegal-modifiers :directive directive :modifier-characters '(#\:)))
+        ((at-sign-p directive)
+         (error 'illegal-modifiers :directive directive :modifier-characters '(#\@)))))
 
 ;;; Signal an error if an at-sign has been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive only-colon-mixin))
   (declare (ignore client))
   (when (at-sign-p directive)
-    (error 'directive-takes-only-colon
-           :directive directive)))
+    (error 'illegal-modifiers :directive directive :modifier-characters '(#\@))))
 
 ;;; Signal an error if a colon has been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive only-at-sign-mixin))
   (declare (ignore client))
   (when (colon-p directive)
-    (error 'directive-takes-only-at-sign
-           :directive directive)))
+    (error 'illegal-modifiers :directive directive :modifier-characters '(#\:))))
 
 ;;; Signal an error if both modifiers have been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive at-most-one-modifier-mixin))
   (declare (ignore client))
   (when (and (colon-p directive) (at-sign-p directive))
-    (error 'directive-takes-at-most-one-modifier
-           :directive directive)))
+    (error 'illegal-modifiers :directive directive :modifier-characters '(#\@ #\:) :conflicting t)))

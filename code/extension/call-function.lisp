@@ -12,14 +12,18 @@
   '((:type (or null character integer) :default nil :rest t)))
 
 (defmethod invistra:parse-suffix
-    ((client extension-client) (directive-character (eql #\`)) control-string position start)
+    ((client extension-client) directive (directive-character (eql #\`)))
+    (with-accessors ((control-string control-string)
+                   (end end))
+      directive
+
   (prog ((end (length control-string))
          (escape nil))
    next
      (when (= position end)
        (error 'invistra::end-of-control-string-error
-              :control-string control-string
-              :tilde-position start))
+              :directive directive
+              :index (invistra::end directive)))
      (case (char control-string position)
        (#\`
         (if escape

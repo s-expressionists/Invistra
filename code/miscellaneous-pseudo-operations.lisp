@@ -165,12 +165,29 @@
     ((client standard-client) (char (eql #\Newline)) directive (end-directive t))
   (change-class directive 'ignored-newline-directive))
 
-(defmethod parse-suffix ((client standard-client) directive (directive-character (eql #\Newline)) control-string)
-  (setf (end directive)
-        (or (position-if (lambda (char)
-                           (not (find char #(#\Space #\Tab #\Page #\Return))))
-                         control-string :start (end directive))
-            (length control-string))))
+(defmethod whitespace-char-p ((client standard-client) ch)
+  #+ccl (ccl::whitespacep ch)
+  #+clasp
+    (eq (core:syntax-type *readtable* ch) :whitespace)
+  #+cmucl (lisp::whitespacep ch)
+  #+(and ecl (not bytecode))
+    (ffi::c-inline (ch) (t) :bool
+                   "ecl_readtable_get(ecl_current_readtable(), ECL_CHAR_CODE(#0), NULL) == cat_whitespace"
+                            :one-liner t)
+  #+sicl (eq (eclector.readtable:syntax-type *readtable* ch) :whitespace)
+  #+sbcl (sb-impl::whitespace[2]p ch *readtable*)
+  #-(or ccl clasp cmucl (and ecl (not bytecode)) sbcl)
+    (and (member ch '(#\tab #\newline #\linefeed #\page #\return #\space))
+         t))
+
+(defmethod parse-suffix ((client standard-client) directive (directive-character (eql #\Newline)))
+  (with-accessors ((control-string control-string)
+                   (end end))
+      directive
+    (loop while (and (< end (length control-string))
+                     (char/= #\newline (char control-string end))
+                     (whitespace-char-p client (char control-string end)))
+          do (incf end))))
 
 (defmethod interpret-item (client (directive ignored-newline-directive) &optional parameters)
   (declare (ignore parameters))

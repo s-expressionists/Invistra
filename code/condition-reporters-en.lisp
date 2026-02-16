@@ -1,24 +1,44 @@
 (cl:in-package #:invistra)
 
-(defmethod acclimation:report-condition :before
+(defmethod acclimation:report-condition :after
     ((condition directive-parse-error) stream (language acclimation:english))
-  (cl:format stream
-          "In the control-string \"~a\" and in the directive that starts at position ~a,"
-          (control-string condition)
-          (start condition)))
+  (with-accessors ((directive directive)
+                   (index index))
+      condition
+    (with-accessors ((control-string control-string)
+                     (start start)
+                     (end end))
+        directive
+      (cond ((= start index end)
+             (cl:format stream "  ~a~%~vt^" control-string (+ index 2)))
+            ((= start index)
+             (cl:format stream "  ~a~%  ~vt^~vt]" control-string (+ index 2) (+ end 2)))
+            ((= index end)
+             (cl:format stream "  ~a~%  ~vt[~vt^" control-string (+ start 2) (+ index 2)))
+            (t
+             (cl:format stream "  ~a~%  ~vt[~vt^~vt]"
+                        control-string (+ start 2) (+ index 2) (+ end 2)))))))
+
+(defmethod acclimation:report-condition :after
+    ((condition directive-syntax-error) stream (language acclimation:english))
+  (with-accessors ((directive directive))
+      condition
+    (with-accessors ((control-string control-string)
+                     (start start)
+                     (end end))
+        directive
+      (cl:format stream "  ~a~%~vt[~vt]"
+                 control-string (+ start 2) (+ end 2)))))
 
 (defmethod acclimation:report-condition
     ((condition end-of-control-string) stream (language acclimation:english))
-  (write-string " found an expected end of the control string." stream))
+  (write-line "Unexpected end of the control string." stream))
 
 (defmethod acclimation:report-condition
     ((condition expected-integer-error) stream (language acclimation:english))
-  (cl:format stream
-          "expected an integer at index ~a,~% but found the character `~a' instead."
-          (index condition)
-          (char (control-string condition) (index condition))))
+  (write-line "Expected an integer parameter in control string." stream))
 
-(defmethod acclimation:report-condition
+#+(or)(defmethod acclimation:report-condition
     ((condition expected-parameter-start) stream (language acclimation:english))
   (cl:format stream
           "expected one of ', +, -, or a decimal digit at index ~a,~%~
@@ -28,16 +48,16 @@
 
 (defmethod acclimation:report-condition
     ((condition duplicate-modifiers) stream (language acclimation:english))
-  (write-string " duplicate modifiers were found." stream))
+  (write-line "Duplicate modifiers were found in control string." stream))
 
-(defmethod acclimation:report-condition
+#+(or)(defmethod acclimation:report-condition
     ((condition unknown-format-directive) stream (language acclimation:english))
   (cl:format stream
           "unknown format directive `~a' at index ~a."
           (char (control-string condition) (index condition))
           (index condition)))
 
-(defmethod acclimation:report-condition :before
+#+(or)(defmethod acclimation:report-condition :before
     ((condition directive-syntax-error) stream (language acclimation:english))
   (with-accessors ((control-string control-string)
                    (start start)
@@ -51,50 +71,29 @@
 (defmethod acclimation:report-condition
     ((condition unknown-directive-character) stream (language acclimation:english))
   (cl:format stream
-          "unknown directive character: ~c."
-          (directive-character (directive condition))))
+             "Unknown directive ~:c character in control string.~%"
+             (directive-character (directive condition))))
 
-;;; FIXME, report the index
 (defmethod acclimation:report-condition
-    ((condition directive-takes-no-modifiers) stream (language acclimation:english))
-  (cl:format stream
-          "found a modifier at index,~%but this ~
-           directive takes no modifiers."))
-
-;;; FIXME, report the index
-(defmethod acclimation:report-condition
-    ((condition directive-takes-only-colon) stream (language acclimation:english))
-  (cl:format stream
-          "found an at-sign at index,~%but this directive ~
-           takes only the colon modifier."))
-
-;;; FIXME, report the index
-(defmethod acclimation:report-condition
-    ((condition directive-takes-only-at-sign) stream (language acclimation:english))
-  (cl:format stream
-          "found a colon at index,~%but this directive ~
-           takes only the at-sign modifier."))
-
-;;; FIXME, report the index
-(defmethod acclimation:report-condition
-    ((condition directive-takes-at-most-one-modifier) stream (language acclimation:english))
-  (cl:format stream
-          "found both modifiers,~%but this directive ~
-           takes at most one modifier."))
+    ((condition illegal-modifiers) stream (language acclimation:english))
+  (cl:format stream "~:[Illegal~;Conflicting~] modifier~p ~{~#[~;~:c~;~:c and ~:c~:;~@{~:c~#[~;, and ~:;, ~]~}~]~} found in directive.~%"
+             (conflictingp condition)
+             (length (modifier-characters condition))
+             (modifier-characters condition)))
 
 (defmethod acclimation:report-condition
     ((condition too-many-parameters) stream (language acclimation:english))
   (cl:format stream
-          "the directive takes at most ~a parameters,~%but ~a found."
-          (at-most-how-many condition)
-          (how-many-found condition)))
+             "Directive takes at most ~a parameters, but ~a found.~%"
+             (at-most-how-many condition)
+             (how-many-found condition)))
 
 (defmethod acclimation:report-condition
     ((condition parameter-type-error) stream (language acclimation:english))
   (cl:format stream
-          "~a was required as parameter, but ~a was found"
-          (type-name (type-error-expected-type condition))
-          (type-error-datum condition)))
+             "~a was required as parameter, but ~a was found~%"
+             (type-name (type-error-expected-type condition))
+             (type-error-datum condition)))
 
 (defmethod acclimation:report-condition
     ((condition no-more-arguments) stream (language acclimation:english))
@@ -103,9 +102,9 @@
 (defmethod acclimation:report-condition
     ((condition argument-type-error) stream (language acclimation:english))
   (cl:format stream
-          "~a was required as argument, but ~a was found"
-          (type-name (type-error-expected-type condition))
-          (type-error-datum condition)))
+             "~a was required as argument, but ~a was found"
+             (type-name (type-error-expected-type condition))
+             (type-error-datum condition)))
 
 (defmethod acclimation:report-condition
     ((condition too-many-package-markers) stream (language acclimation:english))

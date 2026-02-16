@@ -4,74 +4,52 @@
 
 (define-condition format-error (error acclimation:condition) ())
 
-;;; This is the base class for all parse errors, i.e. error found
-;;; before we were able to construct a directive object at all.  All
-;;; we know is where the directive start (start), and the
-;;; control string.
-(define-condition directive-parse-error (format-error)
-  ((%control-string :reader control-string
-                    :initarg :control-string)
-   (%start :reader start
-           :initarg :start)))
+(define-condition directive-error (format-error)
+  ((%directive :reader directive
+               :initarg :directive)))
+
+;;; This is the base class for all parse errors,
+(define-condition directive-parse-error (directive-error)
+  ((%index :reader index
+           :initarg :index
+           :initform nil)))
 
 (define-condition end-of-control-string (directive-parse-error)
   ())
 
-(define-condition found-something-else-error (directive-parse-error)
-  ((%index :initarg :index :reader index)))
-
-(define-condition expected-integer-error (found-something-else-error)
+(define-condition expected-integer-error (directive-parse-error)
   ())
 
-(define-condition expected-parameter-start (found-something-else-error)
+#+(or)(define-condition expected-parameter-start (found-something-else-error)
   ())
 
-(define-condition duplicate-modifiers (found-something-else-error)
+(define-condition duplicate-modifiers (directive-parse-error)
   ())
 
-(define-condition unknown-format-directive (found-something-else-error)
+#+(or)(define-condition unknown-format-directive (found-something-else-error)
   ())
 
 ;;; The base class of all syntax errors.  When one of these is
 ;;; signaled, we have correctly parsed the directive, so we know where
 ;;; in the control string it starts and ends.  
-(define-condition directive-syntax-error (format-error)
-  ((%directive :reader directive
-               :initarg :directive)))
+(define-condition directive-syntax-error (directive-error)
+  ())
 
 (define-condition unknown-directive-character (directive-syntax-error)
   ())
 
-(define-condition directive-takes-no-modifiers (directive-syntax-error)
-  ())
-
-(define-condition directive-takes-only-colon (directive-syntax-error)
-  ())
-
-;;; FIXME, report the index
-(define-condition directive-takes-only-at-sign (directive-syntax-error)
-  ())
-
-(define-condition directive-takes-at-most-one-modifier (directive-syntax-error)
-  ())
+(define-condition illegal-modifiers (directive-syntax-error)
+  ((%modifier-characters :reader modifier-characters
+                         :initarg :modifier-characters)
+   (%conflicting :reader conflictingp
+                 :initarg :conflicting
+                 :initform nil)))
 
 (define-condition too-many-parameters (directive-syntax-error)
   ((%at-most-how-many :initarg :at-most-how-many :reader at-most-how-many)
    (%how-many-found :initarg :how-many-found :reader how-many-found)))
 
 (define-condition parameter-type-error (directive-syntax-error type-error)
-  ())
-
-;;; Runtime conditions
-
-(define-condition format-runtime-error (format-error) ())
-
-(define-condition no-more-arguments (format-runtime-error)
-  ;; maybe add the number of the argument that
-  ;; was accessed?
-  ())
-
-(define-condition argument-type-error (format-runtime-error type-error)
   ())
 
 (define-condition too-many-package-markers (directive-syntax-error)
@@ -88,10 +66,6 @@
 (define-condition symbol-not-external (directive-syntax-error)
   ((%symbol :reader symbol-not-external-symbol
             :initarg :symbol)))
-
-(define-condition go-to-out-of-bounds (format-runtime-error)
-  ((%what-argument :initarg :what-argument :reader what-argument)
-   (%max-arguments :initarg :max-arguments :reader max-arguments)))
 
 (define-condition modifier-and-parameter (directive-syntax-error)
   ())
@@ -115,9 +89,6 @@
                       :initarg :parent-directive
                       :initform nil)))
 
-(define-condition invalid-destination (format-error)
-  ((%destination :initarg :destination :reader destination)))
-
 (define-condition invalid-clause-count (directive-syntax-error)
   ((%minimum-count :reader minimum-count
                    :initarg :minimum-count
@@ -136,3 +107,23 @@
                   :initarg :requirement2)
    (%ancestor :reader ancestor
               :initarg :ancestor)))
+
+;;; Runtime conditions
+
+(define-condition format-runtime-error (format-error) ())
+
+(define-condition no-more-arguments (format-runtime-error)
+  ;; maybe add the number of the argument that
+  ;; was accessed?
+  ())
+
+(define-condition argument-type-error (format-runtime-error type-error)
+  ())
+
+(define-condition go-to-out-of-bounds (format-runtime-error)
+  ((%what-argument :initarg :what-argument :reader what-argument)
+   (%max-arguments :initarg :max-arguments :reader max-arguments)))
+
+(define-condition invalid-destination (format-error)
+  ((%destination :initarg :destination :reader destination)))
+
