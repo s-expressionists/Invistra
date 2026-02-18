@@ -61,9 +61,8 @@
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\<)) directive (end-directive t))
   (error 'unmatched-directive
-         :directive directive
-         :control-string (control-string directive)
-         :tilde-position (start directive)))
+         :client client
+         :directive directive))
 
 (defmethod calculate-argument-position (position (directive logical-block-directive))
   (setf position (call-next-method))
@@ -80,15 +79,21 @@
                              t))
 
 (defmethod check-directive-syntax progn (client (directive logical-block-directive))
-  (declare (ignore client))
   (flet ((check-fix (items)
            (loop for item across items
                  unless (or (stringp item)
                             (structured-end-p item)
                             (structured-separator-p item))
-                   do (error 'nesting-violation :directive item :parent-directive directive))))
+                   do (error 'nesting-violation
+                             :client client
+                             :directive item
+                             :parent-directive directive))))
     (when (> (length (clauses directive)) 3)
-      (error 'invalid-clause-count :directive directive :minimum-count 1 :maximum-count 3))
+      (error 'invalid-clause-count
+             :client client
+             :directive directive
+             :minimum-count 1
+             :maximum-count 3))
     (when (> (length (clauses directive)) 1)
       (check-fix (aref (clauses directive) 0)))
     (when (= (length (clauses directive)) 3)
@@ -304,7 +309,6 @@
                              :positions (list end)))))))
 
 (defmethod check-directive-syntax progn (client (directive call-function-directive))
-  (declare (ignore client))
   ;; Check that there is at most one package marker in the function name.
   ;; Also, compute a symbol from the name.
   (with-accessors ((control-string control-string)
@@ -326,20 +330,28 @@
                           position-of-package-marker))))
            (internalp (or (null position-of-package-marker)
                           (char= #\: (char control-string (1+ position-of-package-marker)))))
-           (symbol-name
-             (string-upcase
-              (subseq control-string
-                      (cond ((null position-of-package-marker)
-                             suffix-start)
-                            (internalp
-                             (+ 2 position-of-package-marker))
-                            (t
-                             (1+ position-of-package-marker)))
-                      (1- end))))
+           (symbol-start (cond ((null position-of-package-marker)
+                                suffix-start)
+                               (internalp
+                                (+ 2 position-of-package-marker))
+                               (t
+                                (1+ position-of-package-marker))))
+           (symbol-end (1- end))
+           (symbol-name (string-upcase (subseq control-string symbol-start symbol-end)))
            (package (find-package package-name)))
+      (when (position #\: control-string :start symbol-start :end symbol-end)
+        (error 'too-many-package-markers
+               :client client
+               :directive directive
+               :positions (loop for i from suffix-start below end
+                                when (char= #\: (char control-string i))
+                                  collect i)))
       (when (null package)
         (error 'no-such-package
+               :client client
                :directive directive
+               :positions (loop for i from suffix-start below position-of-package-marker
+                                collect i)
                :package-name package-name))
       (if (eq *package* package)
           (setf (function-name directive) (intern symbol-name package))
@@ -347,12 +359,18 @@
               (find-symbol symbol-name package)
             (when (null symbol)
               (error 'no-such-symbol
+                     :client client
                      :directive directive
+                     :positions (loop for i from symbol-start below symbol-end
+                                      collect i)
                      :symbol-name symbol-name))
             (when (and (not internalp)
                        (not (eql status :external)))
               (error 'symbol-not-external
+                     :client client
                      :directive directive
+                     :positions (loop for i from symbol-start below symbol-end
+                                      collect i)
                      :symbol symbol))
             (setf (function-name directive) symbol))))))
 

@@ -22,6 +22,7 @@
    next
      (when (= position end)
        (error 'invistra::end-of-control-string-error
+              :client client
               :directive directive
               :positions (list (invistra::end directive))))
      (case (char control-string position)
@@ -121,6 +122,7 @@
                          (fill-pointer token) 0)
                    (when (null package)
                      (error 'invistra::no-such-package
+                            :client client
                             :directive directive)))
                   (otherwise
                    (vector-push (funcall char-case char) token))))))))

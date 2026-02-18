@@ -5,7 +5,9 @@
 (define-condition format-error (error acclimation:condition) ())
 
 (define-condition directive-error (format-error)
-  ((%directive :reader directive
+  ((%client :reader client
+            :initarg :client)
+   (%directive :reader directive
                :initarg :directive)
    (%positions :reader positions
                :initarg :positions
@@ -47,11 +49,16 @@
                  :initform nil)))
 
 (define-condition too-many-parameters (directive-syntax-error)
-  ((%at-most-how-many :initarg :at-most-how-many :reader at-most-how-many)
-   (%how-many-found :initarg :how-many-found :reader how-many-found)))
+  ((%at-most-how-many :reader at-most-how-many
+                      :initarg :at-most-how-many)
+   (%how-many-found :reader how-many-found
+                    :initarg :how-many-found)))
 
-(define-condition parameter-type-error (directive-syntax-error type-error)
-  ())
+(define-condition parameter-type-error (type-error directive-syntax-error)
+  ()
+  (:report (lambda (condition stream)
+	           (acclimation:report-condition condition stream
+                                           (acclimation:language acclimation:*locale*)))))
 
 (define-condition too-many-package-markers (directive-syntax-error)
   ())
@@ -111,7 +118,8 @@
 
 ;;; Runtime conditions
 
-(define-condition format-runtime-error (format-error) ())
+(define-condition format-runtime-error (format-error)
+  ())
 
 (define-condition no-more-arguments (format-runtime-error)
   ;; maybe add the number of the argument that
@@ -119,12 +127,17 @@
   ())
 
 (define-condition argument-type-error (format-runtime-error type-error)
-  ())
+  ()
+  (:report (lambda (condition stream)
+	           (acclimation:report-condition condition stream
+                                           (acclimation:language acclimation:*locale*)))))
 
 (define-condition go-to-out-of-bounds (format-runtime-error)
-  ((%what-argument :initarg :what-argument :reader what-argument)
-   (%max-arguments :initarg :max-arguments :reader max-arguments)))
+  ((%what-argument :reader what-argument
+                   :initarg :what-argument)
+   (%max-arguments :reader max-arguments
+                   :initarg :max-arguments)))
 
 (define-condition invalid-destination (format-error)
-  ((%destination :initarg :destination :reader destination)))
-
+  ((%destination :reader destination
+                 :initarg :destination)))

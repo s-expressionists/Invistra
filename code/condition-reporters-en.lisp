@@ -25,7 +25,7 @@
                                           ((and (<= start i)
                                                 (< i end))
                                            #\=)
-                                          ((whitespace-char-p ch)
+                                          ((whitespace-char-p (client condition) ch)
                                            ch)
                                           (t
                                            #\space)))
@@ -66,24 +66,6 @@
     ((condition duplicate-modifiers) stream (language acclimation:english))
   (write-line "Duplicate modifiers were found in control string." stream))
 
-#+(or)(defmethod acclimation:report-condition
-    ((condition unknown-format-directive) stream (language acclimation:english))
-  (cl:format stream
-          "unknown format directive `~a' at index ~a."
-          (char (control-string condition) (index condition))
-          (index condition)))
-
-#+(or)(defmethod acclimation:report-condition :before
-    ((condition directive-syntax-error) stream (language acclimation:english))
-  (with-accessors ((control-string control-string)
-                   (start start)
-                   (end end))
-      (directive condition)
-    (cl:format stream
-            "In the control-string \"~a\", the directive \"~a\""
-            control-string
-            (subseq control-string start end))))
-
 (defmethod acclimation:report-condition
     ((condition unknown-directive-character) stream (language acclimation:english))
   (cl:format stream
@@ -107,8 +89,8 @@
 (defmethod acclimation:report-condition
     ((condition parameter-type-error) stream (language acclimation:english))
   (cl:format stream
-             "~a was required as parameter, but ~a was found~%"
-             (type-name (type-error-expected-type condition))
+             "A type of ~s was expected as parameter, but ~a was found.~%"
+             (type-error-expected-type condition)
              (type-error-datum condition)))
 
 (defmethod acclimation:report-condition
@@ -118,27 +100,27 @@
 (defmethod acclimation:report-condition
     ((condition argument-type-error) stream (language acclimation:english))
   (cl:format stream
-             "~a was required as argument, but ~a was found"
-             (type-name (type-error-expected-type condition))
+             "A type of ~s was required as argument, but ~a was found."
+             (type-error-expected-type condition)
              (type-error-datum condition)))
 
 (defmethod acclimation:report-condition
     ((condition too-many-package-markers) stream (language acclimation:english))
-  (cl:format stream "the function name contains too many package markers."))
+  (cl:format stream "The function name contains too many package markers.~%"))
 
 (defmethod acclimation:report-condition
     ((condition no-such-package) stream (language acclimation:english))
-  (cl:format stream "A package named ~a does not exist."
+  (cl:format stream "A package named ~a does not exist.~%"
              (no-such-package-package-name condition)))
 
 (defmethod acclimation:report-condition
     ((condition no-such-symbol) stream (language acclimation:english))
-  (cl:format stream "A symbol with a name of ~a does not exist."
+  (cl:format stream "A symbol with a name of ~a does not exist.~%"
              (no-such-symbol-symbol-name condition)))
 
 (defmethod acclimation:report-condition
     ((condition symbol-not-external) stream (language acclimation:english))
-  (cl:format stream "The symbol ~s is not external in the package."
+  (cl:format stream "The symbol ~s is not external in the package.~%"
              (symbol-not-external-symbol condition)))
 
 (defmethod acclimation:report-condition
@@ -150,7 +132,7 @@
 
 (defmethod acclimation:report-condition
     ((condition modifier-and-parameter) stream (language acclimation:english))
-  (cl:format stream "A parameter can be used only of there are no modifiers."))
+  (write-line "A parameter can be used only of there are no modifiers." stream))
 
 (defmethod acclimation:report-condition
     ((condition illegal-clause-separators) stream (language acclimation:english))
@@ -172,8 +154,7 @@
 
 (defmethod acclimation:report-condition
     ((condition unmatched-directive) stream (language acclimation:english))
-  (cl:format stream
-             "there is no matching directive"))
+  (write-line "Begin directive is missing corresponding end directive." stream))
 
 (defmethod acclimation:report-condition
     ((condition nesting-violation) stream (language acclimation:english))

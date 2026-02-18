@@ -62,7 +62,11 @@
           :type boolean)
    (%default :accessor parameter-default
              :initarg :default
-             :initform nil)))
+             :initform nil)
+   (%start :accessor start
+           :initarg :start)
+   (%end :accessor end
+         :initarg :end)))
 
 (defclass argument-reference-parameter (parameter)
   ())
@@ -89,6 +93,10 @@
    ;; the position in the control string of the ~ character.
    (%start :accessor start
            :initarg :start)
+   (%modifiers-start :accessor modifiers-start
+                     :initarg :modifiers-start)
+   (%character-start :accessor character-start
+                     :initarg :character-start)
    (%suffix-start :accessor suffix-start
                   :initarg :suffix-start)
    ;; the first position beyond the directive character
@@ -180,9 +188,12 @@
                do (loop-finish)
         else if (null spec)
           do (error 'too-many-parameters
+                    :client client
                     :directive directive
                     :at-most-how-many (1+ count)
-                    :how-many-found (+ count (length remaining-parameters)))
+                    :how-many-found (+ count (length remaining-parameters))
+                    :positions (loop for i from (1+ (start directive)) below (modifiers-start directive)
+                                     collect i))
         else
           do (setf parameter (apply #'make-instance 'literal-parameter
                                     :allow-other-keys t spec))
@@ -196,33 +207,66 @@
                  (setf parameter-value parameter-default))
                (unless (typep parameter-value parameter-type)
                  (error 'parameter-type-error
+                        :client client
+                        :directive directive
+                        :positions (loop for i from (start parameter) below (end parameter)
+                                         collect i)
                         :expected-type parameter-type
                         :datum parameter-value)))))
 
 ;;; Signal an error if a modifier has been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive no-modifiers-mixin))
-  (declare (ignore client))
   (cond ((and (colon-p directive) (at-sign-p directive))
-         (error 'illegal-modifiers :directive directive :modifier-characters '(#\@ #\:)))
+         (error 'illegal-modifiers
+                :client client
+                :directive directive
+                :modifier-characters '(#\@ #\:)
+                :list (loop for i from (modifiers-start directive) below (character-start directive)
+                            collect i)))
         ((colon-p directive)
-         (error 'illegal-modifiers :directive directive :modifier-characters '(#\:)))
+         (error 'illegal-modifiers
+                :client client
+                :directive directive
+                :modifier-characters '(#\:)
+                :list (loop for i from (modifiers-start directive) below (character-start directive)
+                            collect i)))
         ((at-sign-p directive)
-         (error 'illegal-modifiers :directive directive :modifier-characters '(#\@)))))
+         (error 'illegal-modifiers
+                :client client
+                :directive directive
+                :modifier-characters '(#\@)
+                :list (loop for i from (modifiers-start directive) below (character-start directive)
+                            collect i)))))
 
 ;;; Signal an error if an at-sign has been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive only-colon-mixin))
-  (declare (ignore client))
   (when (at-sign-p directive)
-    (error 'illegal-modifiers :directive directive :modifier-characters '(#\@))))
+    (error 'illegal-modifiers
+           :client client
+           :directive directive
+           :modifier-characters '(#\@)
+           :positions (list (position #\@ (control-string directive)
+                                      :start (modifiers-start directive))))))
 
 ;;; Signal an error if a colon has been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive only-at-sign-mixin))
-  (declare (ignore client))
   (when (colon-p directive)
-    (error 'illegal-modifiers :directive directive :modifier-characters '(#\:))))
+    (error 'illegal-modifiers
+           :client client
+           :directive directive
+           :modifier-characters '(#\:)
+           :positions (list (position #\: (control-string directive)
+                                      :start (modifiers-start directive))))))
 
 ;;; Signal an error if both modifiers have been given for such a directive.
 (defmethod check-directive-syntax progn (client (directive at-most-one-modifier-mixin))
-  (declare (ignore client))
   (when (and (colon-p directive) (at-sign-p directive))
-    (error 'illegal-modifiers :directive directive :modifier-characters '(#\@ #\:) :conflicting t)))
+    (error 'illegal-modifiers
+           :client client
+           :directive directive
+           :modifier-characters '(#\@ #\:)
+           :conflicting t
+           :positions (list (position #\@ (control-string directive)
+                                      :start (modifiers-start directive))
+                            (position #\: (control-string directive)
+                                      :start (modifiers-start directive))))))

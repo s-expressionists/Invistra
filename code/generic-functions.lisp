@@ -11,7 +11,9 @@
 (defmethod specialize-directive (client character directive end-directive)
   (declare (ignore client character end-directive))
   (error 'unknown-directive-character
-         :directive directive))
+         :client client
+         :directive directive
+         :positions (list (1- (suffix-start directive)))))
 
 (defgeneric parameter-specifications (client directive)
   (:method (client directive)
