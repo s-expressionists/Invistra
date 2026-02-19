@@ -74,7 +74,8 @@
 
 (defmethod acclimation:report-condition
     ((condition illegal-modifiers) stream (language acclimation:english))
-  (cl:format stream "~:[Illegal~;Conflicting~] modifier~p ~{~#[~;~:c~;~:c and ~:c~:;~@{~:c~#[~;, and ~:;, ~]~}~]~} found in directive.~%"
+  (cl:format stream "~:[Illegal~;Conflicting~] modifier~p ~{~#[~;~:c~;~:c and ~
+                     ~:c~:;~@{~:c~#[~;, and ~:;, ~]~}~]~} found in directive.~%"
              (conflictingp condition)
              (length (modifier-characters condition))
              (modifier-characters condition)))
@@ -154,15 +155,18 @@
 
 (defmethod acclimation:report-condition
     ((condition illegal-clause-separator) stream (language acclimation:english))
-  (write-line "Clause separator directive must appear inside of a conditional, justification or logical block directive." stream))
+  (write-line "Clause separator directive must appear inside of a structured directive that ~
+               permits multiple clauses." stream))
 
 (defmethod acclimation:report-condition
     ((condition illegal-outer-escape-upward) stream (language acclimation:english))
-  (write-line "Outer escape upward directive must occur inside of a sublist iteration directive." stream))
+  (write-line "Outer escape upward directive must occur inside of a sublist iteration ~
+               directive." stream))
 
 (defmethod acclimation:report-condition
     ((condition illegal-fix-directive) stream (language acclimation:english))
-  (write-line "Directives are not permitted in the prefix or suffix of a logical block directive." stream))
+  (write-line "Directives are not permitted in the prefix or suffix of a logical block ~
+               directive." stream))
 
 (defmethod acclimation:report-condition
     ((condition invalid-destination) stream (language acclimation:english))
@@ -173,7 +177,8 @@
 (defmethod acclimation:report-condition
     ((condition invalid-clause-count) stream (language acclimation:english))
   (cl:format stream
-             " contains ~a clause~:p but ~:[only between ~a and ~a clauses are permitted~;exactly ~a clause~:p is required~]."
+             " contains ~a clause~:p but ~:[only between ~a and ~a clauses are ~
+              permitted~;exactly ~a clause~:p is required~]."
              (length (clauses (directive condition)))
              (= (minimum-count condition) (maximum-count condition))
              (minimum-count condition) (maximum-count condition)))

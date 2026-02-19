@@ -21,7 +21,8 @@
   (when position
     (1+ position)))
 
-(defmethod interpret-item (client (directive character-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive character-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
@@ -51,7 +52,8 @@
            ;; The HyperSpec says to do what WRITE-CHAR does.
            (write-char char *format-output*))))))
 
-(defmethod compile-item (client (directive character-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive character-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p))
@@ -66,7 +68,8 @@
                                          *format-output*))))))
           (at-sign-p
            `((let ((*print-escape* t))
-               (incless:write-object ,(trinsic:client-form client) ,(pop-argument-form 'character) *format-output*))))
+               (incless:write-object ,(trinsic:client-form client)
+                                     ,(pop-argument-form 'character) *format-output*))))
           (t
            `((write-char ,(pop-argument-form 'character) *format-output*))))))
 
@@ -89,11 +92,13 @@
      :bind nil
      :default 1)))
 
-(defmethod interpret-item (client (directive newline-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive newline-directive) &optional parameters)
   (loop repeat (car parameters)
         do (terpri *format-output*)))
 
-(defmethod compile-item (client (directive newline-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive newline-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 '())
@@ -123,14 +128,16 @@
      :type (integer 0)
      :default 1)))
 
-(defmethod interpret-item (client (item fresh-line-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (item fresh-line-directive) &optional parameters)
   (let ((how-many (car parameters)))
     (unless (zerop how-many)
       (fresh-line *format-output*)
       (loop repeat (1- how-many)
             do (terpri *format-output*)))))
 
-(defmethod compile-item (client (item fresh-line-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (item fresh-line-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 nil)
@@ -167,11 +174,13 @@
      :bind nil
      :default 1)))
 
-(defmethod interpret-item (client (directive page-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive page-directive) &optional parameters)
   (loop repeat (car parameters)
         do (write-char #\Page *format-output*)))
 
-(defmethod compile-item (client (directive page-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive page-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 nil)
@@ -201,11 +210,13 @@
      :bind nil
      :default 1)))
 
-(defmethod interpret-item (client (directive tilde-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive tilde-directive) &optional parameters)
   (loop repeat (car parameters)
         do (write-char #\~ *format-output*)))
 
-(defmethod compile-item (client (directive tilde-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive tilde-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 nil)

@@ -14,48 +14,56 @@
                  (guts (let* ((pos 0)
                               (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
                               (*outer-exit* *inner-exit*)
-                              (*more-arguments-p* (lambda () t))
-                              (*argument-index* (lambda () pos))
-                              (*remaining-argument-count* (lambda ()
-                                                            `(- ,count
-                                                                ,(loop for arg across args
-                                                                       repeat pos
-                                                                       count (not (lambda-argument-namep arg))))))
-                              (*pop-argument* (lambda (&optional (type t))
-                                                (if (< pos (length args))
-                                                    (let ((arg (aref args pos)))
-                                                      (when (subtypep type (lambda-argument-type arg))
-                                                        (setf (lambda-argument-type arg) type))
-                                                      (incf pos)
-                                                      (lambda-argument-name arg))
-                                                    (let ((arg (make-lambda-argument :type type)))
-                                                      (vector-push-extend arg args)
-                                                      (incf pos)
-                                                      (lambda-argument-name arg)))))
-                              (pop-remaining-arguments-hook (lambda ()
-                                                              (if (< pos (length args))
-                                                                  (nconc (list 'list*)
-                                                                         (loop for i from pos
-                                                                                 below (length args)
-                                                                               collect (lambda-argument-name (aref args i)))
-                                                                         (list rest))
-                                                                  rest)))
+                              (*more-arguments-p*
+                                (lambda () t))
+                              (*argument-index*
+                                (lambda () pos))
+                              (*remaining-argument-count*
+                                (lambda ()
+                                  `(- ,count
+                                      ,(loop for arg across args
+                                             repeat pos
+                                             count (not (lambda-argument-namep arg))))))
+                              (*pop-argument*
+                                (lambda (&optional (type t))
+                                  (if (< pos (length args))
+                                      (let ((arg (aref args pos)))
+                                        (when (subtypep type (lambda-argument-type arg))
+                                          (setf (lambda-argument-type arg) type))
+                                        (incf pos)
+                                        (lambda-argument-name arg))
+                                      (let ((arg (make-lambda-argument :type type)))
+                                        (vector-push-extend arg args)
+                                        (incf pos)
+                                        (lambda-argument-name arg)))))
+                              (pop-remaining-arguments-hook
+                                (lambda ()
+                                  (if (< pos (length args))
+                                      (nconc (list 'list*)
+                                             (loop for i from pos
+                                                     below (length args)
+                                                   collect (lambda-argument-name (aref args i)))
+                                             (list rest))
+                                      rest)))
                               (*pop-remaining-arguments* pop-remaining-arguments-hook)
-                              (*go-to-argument* (lambda (index &optional absolutep)
-                                                  (setf pos (if absolutep index (+ index pos)))
-                                                  (when (minusp pos)
-                                                    (error 'go-to-out-of-bounds
-                                                           :what-argument pos
-                                                           :max-arguments (length args)))
-                                                  (loop for i from (length args) to pos
-                                                        do (vector-push-extend (make-lambda-argument) args))))
-                              (*inner-exit-if-exhausted* (lambda ()
-                                                           (unless (< pos (length args))
-                                                             (let ((arg (make-lambda-argument :namep (unique-name '#:argp))))
-                                                               (vector-push-extend arg args)
-                                                               `((unless ,(lambda-argument-namep arg)
-                                                                   (return-from ,block
-                                                                     ,(funcall pop-remaining-arguments-hook))))))))
+                              (*go-to-argument*
+                                (lambda (index &optional absolutep)
+                                  (setf pos (if absolutep index (+ index pos)))
+                                  (when (minusp pos)
+                                    (error 'go-to-out-of-bounds
+                                           :what-argument pos
+                                           :max-arguments (length args)))
+                                  (loop for i from (length args) to pos
+                                        do (vector-push-extend (make-lambda-argument) args))))
+                              (*inner-exit-if-exhausted*
+                                (lambda ()
+                                  (unless (< pos (length args))
+                                    (let ((arg (make-lambda-argument :namep
+                                                                     (unique-name '#:argp))))
+                                      (vector-push-extend arg args)
+                                      `((unless ,(lambda-argument-namep arg)
+                                          (return-from ,block
+                                            ,(funcall pop-remaining-arguments-hook))))))))
                               (*inner-exit* (lambda ()
                                               `((return-from ,block
                                                   ,(pop-remaining-arguments-form))))))
@@ -68,7 +76,8 @@
                                       collect '&optional
                                       and do (setf required nil)
                                     when (lambda-argument-namep arg)
-                                      collect `(,(lambda-argument-name arg) nil ,(lambda-argument-namep arg))
+                                      collect `(,(lambda-argument-name arg) nil
+                                                ,(lambda-argument-namep arg))
                                     else
                                       collect (lambda-argument-name arg)))
                  (declarations (loop for arg across args

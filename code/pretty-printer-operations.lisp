@@ -17,7 +17,7 @@
 (defmethod layout-requirements ((item conditional-newline-directive))
   (list :logical-block))
 
-(defmethod interpret-item (client (directive conditional-newline-directive) &optional parameters)
+(defmethod interpret-item ((client standard-client) (directive conditional-newline-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -30,7 +30,7 @@
                                    (at-sign-p :miser)
                                    (t :linear)))))
 
-(defmethod compile-item (client (directive conditional-newline-directive) &optional parameters)
+(defmethod compile-item ((client standard-client) (directive conditional-newline-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -78,18 +78,19 @@
                              (call-next-method)
                              t))
 
-(defmethod check-directive-nesting progn ((client standard-client) child (parent logical-block-directive) &optional group position)
+(defmethod check-item-syntax progn ((client standard-client) (directive directive) (parent logical-block-directive) &optional group position)
+  (declare (ignore position))
   (when (and (> (length (clauses parent)) 1)
              (or (eql group 0)
                  (eql group 2))
-             (not (stringp child))
-             (not (structured-end-p child))
-             (not (structured-separator-p child)))
+             (not (structured-end-p directive))
+             (not (structured-separator-p directive)))
     (error 'illegal-fix-directive
            :client client
-           :directive child)))
+           :directive directive)))
 
-(defmethod check-directive-syntax progn (client (directive logical-block-directive))
+(defmethod check-item-syntax progn ((client standard-client) (directive logical-block-directive) parent &optional group position)
+  (declare (ignore parent group position))
   (when (> (length (clauses directive)) 3)
     (error 'invalid-clause-count
            :client client
@@ -97,7 +98,7 @@
            :minimum-count 1
            :maximum-count 3)))
 
-(defmethod interpret-item (client (directive logical-block-directive) &optional parameters)
+(defmethod interpret-item ((client standard-client) (directive logical-block-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -179,7 +180,7 @@
                                       :per-line-prefix-p per-line-prefix-p
                                       :suffix suffix))))
 
-(defmethod compile-item (client (directive logical-block-directive) &optional parameters)
+(defmethod compile-item ((client standard-client) (directive logical-block-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -263,14 +264,14 @@
 (defmethod layout-requirements ((item indent-directive))
   (list :logical-block))
 
-(defmethod interpret-item (client (directive indent-directive) &optional parameters)
+(defmethod interpret-item ((client standard-client) (directive indent-directive) &optional parameters)
   (declare (ignorable client parameters))
   #-sicl
   (inravina:pprint-indent client *format-output*
                           (if (colon-p directive) :current :block)
                           (car parameters)))
 
-(defmethod compile-item (client (directive indent-directive) &optional parameters)
+(defmethod compile-item ((client standard-client) (directive indent-directive) &optional parameters)
   (declare (ignorable client parameters))
   #-sicl
   `((inravina:pprint-indent ,(trinsic:client-form client) *format-output*
@@ -306,7 +307,10 @@
                       (error 'end-of-control-string
                              :positions (list end)))))))
 
-(defmethod check-directive-syntax progn (client (directive call-function-directive))
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive call-function-directive) parent
+     &optional group position)
+  (declare (ignore parent group position))
   ;; Check that there is at most one package marker in the function name.
   ;; Also, compute a symbol from the name.
   (with-accessors ((control-string control-string)
@@ -365,7 +369,8 @@
                      :symbol symbol))
             (setf (function-name directive) symbol))))))
 
-(defmethod interpret-item (client (directive call-function-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive call-function-directive) &optional parameters)
   (apply (coerce-function-designator client (function-name directive))
          *format-output*
          (pop-argument)
@@ -373,8 +378,10 @@
          (at-sign-p directive)
          parameters))
 
-(defmethod compile-item (client (directive call-function-directive) &optional parameters)
-  `((funcall (coerce-function-designator ,(trinsic:client-form client) ',(function-name directive))
+(defmethod compile-item
+    ((client standard-client) (directive call-function-directive) &optional parameters)
+  `((funcall (coerce-function-designator ,(trinsic:client-form client)
+                                         ',(function-name directive))
              *format-output*
              ,(pop-argument-form)
              ,(colon-p directive)

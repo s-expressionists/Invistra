@@ -162,15 +162,19 @@
 ;;;
 ;;; Checking syntax, interpreting, and compiling directives.
 
-(defmethod check-directive-syntax progn ((client standard-client) (directive structured-directive-mixin))
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive structured-directive-mixin) parent
+     &optional group position)
+  (declare (ignore parent group position))
   (loop for items across (clauses directive)
         for group from 0
         do (loop for item across items
                  for position from 0
-                 do (check-directive-nesting client item directive group position)
-                    (check-directive-syntax client item))))
+                 do (check-item-syntax client item directive group position))))
 
-(defmethod check-directive-syntax progn ((client standard-client) (directive directive))
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive directive) parent &optional group position)
+  (declare (ignore parent group position))
   (loop for remaining-parameters = (parameters directive) then (cdr remaining-parameters)
         for parameter = (car remaining-parameters)
         for remaining-specs = (parameter-specifications client directive)
@@ -193,7 +197,8 @@
                     :directive directive
                     :at-most-how-many (1+ count)
                     :how-many-found (+ count (length remaining-parameters))
-                    :positions (loop for i from (1+ (start directive)) below (modifiers-start directive)
+                    :positions (loop for i from (1+ (start directive))
+                                       below (modifiers-start directive)
                                      collect i))
         else
           do (setf parameter (apply #'make-instance 'literal-parameter
@@ -216,31 +221,38 @@
                         :datum parameter-value)))))
 
 ;;; Signal an error if a modifier has been given for such a directive.
-(defmethod check-directive-syntax progn (client (directive no-modifiers-mixin))
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive no-modifiers-mixin) parent &optional group position)
+  (declare (ignore parent group position))
   (cond ((and (colon-p directive) (at-sign-p directive))
          (error 'illegal-modifiers
                 :client client
                 :directive directive
                 :modifier-characters '(#\@ #\:)
-                :list (loop for i from (modifiers-start directive) below (character-start directive)
+                :list (loop for i from (modifiers-start directive)
+                              below (character-start directive)
                             collect i)))
         ((colon-p directive)
          (error 'illegal-modifiers
                 :client client
                 :directive directive
                 :modifier-characters '(#\:)
-                :list (loop for i from (modifiers-start directive) below (character-start directive)
+                :list (loop for i from (modifiers-start directive)
+                              below (character-start directive)
                             collect i)))
         ((at-sign-p directive)
          (error 'illegal-modifiers
                 :client client
                 :directive directive
                 :modifier-characters '(#\@)
-                :list (loop for i from (modifiers-start directive) below (character-start directive)
+                :list (loop for i from (modifiers-start directive)
+                              below (character-start directive)
                             collect i)))))
 
 ;;; Signal an error if an at-sign has been given for such a directive.
-(defmethod check-directive-syntax progn (client (directive only-colon-mixin))
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive only-colon-mixin) parent &optional group position)
+  (declare (ignore parent group position))
   (when (at-sign-p directive)
     (error 'illegal-modifiers
            :client client
@@ -250,7 +262,9 @@
                                       :start (modifiers-start directive))))))
 
 ;;; Signal an error if a colon has been given for such a directive.
-(defmethod check-directive-syntax progn (client (directive only-at-sign-mixin))
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive only-at-sign-mixin) parent &optional group position)
+  (declare (ignore parent group position))
   (when (colon-p directive)
     (error 'illegal-modifiers
            :client client
@@ -260,7 +274,10 @@
                                       :start (modifiers-start directive))))))
 
 ;;; Signal an error if both modifiers have been given for such a directive.
-(defmethod check-directive-syntax progn (client (directive at-most-one-modifier-mixin))
+(defmethod check-item-syntax progn
+    ((client standard-client)(directive at-most-one-modifier-mixin) parent
+     &optional group position)
+  (declare (ignore parent group position))
   (when (and (colon-p directive) (at-sign-p directive))
     (error 'illegal-modifiers
            :client client

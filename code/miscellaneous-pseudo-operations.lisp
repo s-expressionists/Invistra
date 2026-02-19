@@ -30,14 +30,26 @@
 (defmethod structured-separator-p ((directive clause-separator-directive))
   t)
 
-(defmethod check-directive-nesting progn ((client standard-client) (child clause-separator-directive) parent &optional group position)
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive clause-separator-directive)
+     (parent iteration-directive)
+     &optional group position)
   (declare (ignore group position))
-  (unless (typep parent '(or conditional-expression-directive justification-directive logical-block-directive))
-    (error 'illegal-clause-separator
-           :client client
-           :directive child)))
+  (error 'illegal-clause-separator
+         :client client
+         :directive directive))
 
-(defmethod interpret-item ((client standard-client) (directive clause-separator-directive) &optional parameters)
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive clause-separator-directive)
+     (parent case-conversion-directive)
+     &optional group position)
+  (declare (ignore group position))
+  (error 'illegal-clause-separator
+         :client client
+         :directive directive))
+
+(defmethod interpret-item
+    ((client standard-client) (directive clause-separator-directive) &optional parameters)
   (let ((extra-space (car parameters))
         (line-length (cadr parameters)))
     (when extra-space
@@ -45,7 +57,8 @@
     (when line-length
       (setf *line-length* line-length))))
 
-(defmethod compile-item ((client standard-client) (directive clause-separator-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive clause-separator-directive) &optional parameters)
   (let ((extra-space (car parameters))
         (line-length (cadr parameters)))
     `(,@(cond ((numberp extra-space)
@@ -75,18 +88,16 @@
     (:name p2 :type (or null character integer))
     (:name p3 :type (or null character integer))))
 
-(defmethod check-directive-nesting progn ((client standard-client) (child escape-upward-directive) parent &optional group position)
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive escape-upward-directive) parent
+     &optional group position)
   (declare (ignore group position))
-  (when (and (colon-p child)
+  (when (and (colon-p directive)
              (or (not (typep parent 'iteration-directive))
                  (not (colon-p parent))))
     (error 'illegal-outer-escape-upward
            :client client
-           :directive child)))
-
-(defmethod check-directive-syntax progn
-    (client (directive escape-upward-directive))
-  (declare (ignore client))
+           :directive directive))
   (let ((parameters (parameters directive)))
     (when (and (second parameters) (not (first parameters)))
       (error 'parameter-omitted
@@ -97,7 +108,8 @@
              :parameter2 2
              :parameter3 3))))
 
-(defmethod interpret-item (client (directive escape-upward-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive escape-upward-directive) &optional parameters)
   (with-accessors ((colon-p colon-p))
       directive
     (destructuring-bind (p1 p2 p3)
@@ -113,7 +125,8 @@
                  (and p1 p2 p3 (<= p1 p2 p3)))
              (funcall (if colon-p *outer-exit* *inner-exit*)))))))
 
-(defmethod compile-item (client (directive escape-upward-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive escape-upward-directive) &optional parameters)
   (with-accessors ((colon-p colon-p))
       directive
     (destructuring-bind (p1 p2 p3)
@@ -176,7 +189,8 @@
     (and (member ch '(#\tab #\newline #\linefeed #\page #\return #\space))
          t))
 
-(defmethod parse-suffix ((client standard-client) directive (directive-character (eql #\Newline)))
+(defmethod parse-suffix
+    ((client standard-client) directive (directive-character (eql #\Newline)))
   (with-accessors ((control-string control-string)
                    (end end))
       directive
@@ -185,11 +199,13 @@
                      (whitespace-char-p client (char control-string end)))
           do (incf end))))
 
-(defmethod interpret-item (client (directive ignored-newline-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive ignored-newline-directive) &optional parameters)
   (declare (ignore parameters))
   (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
-         (write-string (subseq (control-string directive) (suffix-start directive) (end directive)) *format-output*))
+         (write-string (subseq (control-string directive) (suffix-start directive)
+                               (end directive)) *format-output*))
         ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
          (terpri *format-output*))
@@ -197,11 +213,13 @@
          ;; Ignore both the newline and the following whitespace.
          nil)))
 
-(defmethod compile-item (client (directive ignored-newline-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive ignored-newline-directive) &optional parameters)
   (declare (ignore parameters))
   (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
-         `((write-string ,(subseq (control-string directive) (suffix-start directive) (end directive)) *format-output*)))
+         `((write-string ,(subseq (control-string directive) (suffix-start directive)
+                                  (end directive)) *format-output*)))
         ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
          `((terpri *format-output*)))

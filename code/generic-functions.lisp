@@ -9,11 +9,11 @@
 
 ;;; For the default case, signal an error.
 (defmethod specialize-directive (client character directive end-directive)
-  (declare (ignore client character end-directive))
+  (declare (ignore character end-directive))
   (error 'unknown-directive-character
          :client client
          :directive directive
-         :positions (list (1- (suffix-start directive)))))
+         :positions (list (character-start directive))))
 
 (defgeneric parameter-specifications (client directive)
   (:method (client directive)
@@ -21,15 +21,10 @@
     nil))
 
 ;;; Check the syntax of a directive.
-(defgeneric check-directive-syntax (client directive)
+(defgeneric check-item-syntax (client directive parent &optional group position)
   (:method-combination progn :most-specific-last)
-  (:method progn (client directive)
-    (declare (ignore client directive))))
-
-(defgeneric check-directive-nesting (client child parent &optional group position)
-  (:method-combination progn :most-specific-last)
-  (:method progn (client child parent &optional group position)
-    (declare (ignore client child parent group position))))
+  (:method progn (client directive parent &optional group position)
+    (declare (ignore client directive parent group position))))
 
 (defgeneric interpret-item (client item &optional parameters)
   (:method (client item &optional parameters)

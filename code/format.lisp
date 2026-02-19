@@ -305,7 +305,7 @@
         (get-output-stream-string *format-output*)
         nil)))
 
-(defmethod interpret-item (client (item string) &optional parameters)
+(defmethod interpret-item ((client standard-client) (item string) &optional parameters)
   (declare (ignore parameters))
   (if *newline-kind*
       (loop with start = 0
@@ -323,13 +323,14 @@
             do (setf in-blank-p blankp))
       (write-string item *format-output*)))
 
-(defmethod compile-item (client (item string) &optional parameters)
+(defmethod compile-item ((client standard-client) (item string) &optional parameters)
   (declare (ignore parameters))
   (if *newline-kind*
       #+sicl nil #-sicl
       (loop with start = 0
             with in-blank-p = nil
-            with pprint-newline = `(inravina:pprint-newline ,(trinsic:client-form client) *format-output* ,*newline-kind*)
+            with pprint-newline = `(inravina:pprint-newline ,(trinsic:client-form client)
+                                                            *format-output* ,*newline-kind*)
             for char across item
             for index from 0
             for blankp = (and (find char #(#\Space #\Tab #\Page #\Return)) t)
@@ -344,12 +345,14 @@
             do (setf in-blank-p blankp))
       `((write-string ,item *format-output*))))
 
-(defmethod interpret-item :around (client (item directive) &optional parameters)
+(defmethod interpret-item :around
+    ((client standard-client) (item directive) &optional parameters)
   (declare (ignore parameters))
   (call-next-method client item
                     (mapcar #'interpret-parameter (parameters item))))
 
-(defmethod compile-item :around (client (item directive) &optional parameters)
+(defmethod compile-item :around
+    ((client standard-client) (item directive) &optional parameters)
   (declare (ignore parameters))
   (loop for parameter in (parameters item)
         for compiled-parameter = (compile-parameter parameter)

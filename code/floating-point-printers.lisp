@@ -152,7 +152,8 @@
                    do (write-char overflowchar *format-output*))
              t)))))
 
-(defmethod interpret-item (client (directive fixed-format-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive fixed-format-directive) &optional parameters)
   (print-float-arg client (pop-argument)
                    (lambda (client value digits exponent sign)
                      (apply #'print-fixed-arg
@@ -160,7 +161,8 @@
                             (colon-p directive) (at-sign-p directive)
                             parameters))))
 
-(defmethod compile-item (client (directive fixed-format-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive fixed-format-directive) &optional parameters)
   `((print-float-arg ,(trinsic:client-form client) ,(pop-argument-form)
                      (lambda (client value digits exponent sign)
                        (print-fixed-arg client value digits exponent sign
@@ -271,7 +273,8 @@
              (loop repeat w
                    do (write-char overflowchar *format-output*)))))))
 
-(defmethod interpret-item (client (directive exponential-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive exponential-directive) &optional parameters)
   (print-float-arg client (pop-argument)
                    (lambda (client value digits exponent sign)
                      (apply #'print-exponent-arg
@@ -279,7 +282,8 @@
                             (colon-p directive) (at-sign-p directive)
                             parameters))))
 
-(defmethod compile-item (client (directive exponential-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive exponential-directive) &optional parameters)
   `((print-float-arg ,(trinsic:client-form client) ,(pop-argument-form)
                      (lambda (client value digits exponent sign)
                        (print-exponent-arg client value digits exponent sign
@@ -331,7 +335,8 @@
                                colon-p at-sign-p w d e k
                                overflowchar padchar exponentchar)))))
 
-(defmethod interpret-item (client (directive general-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive general-directive) &optional parameters)
   (print-float-arg client (pop-argument)
                    (lambda (client value significand exponent sign)
                      (apply #'print-general-arg
@@ -339,7 +344,8 @@
                             (colon-p directive) (at-sign-p directive)
                             parameters))))
 
-(defmethod compile-item (client (directive general-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive general-directive) &optional parameters)
   `((print-float-arg ,(trinsic:client-form client) ,(pop-argument-form)
                      (lambda (client value significand exponent sign)
                        (print-general-arg client value significand exponent sign
@@ -398,7 +404,8 @@
                                     :fractional-position fractional-position
                                     :fractional-marker #\.))))))
 
-(defmethod interpret-item (client (directive monetary-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive monetary-directive) &optional parameters)
   (print-float-arg client (pop-argument)
                    (lambda (client value digits exponent sign)
                      (apply #'print-monetary-arg
@@ -406,7 +413,8 @@
                             (colon-p directive) (at-sign-p directive)
                             parameters))))
 
-(defmethod compile-item (client (directive monetary-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive monetary-directive) &optional parameters)
   `((print-float-arg ,(trinsic:client-form client) ,(pop-argument-form)
                      (lambda (client value digits exponent sign)
                        (print-monetary-arg client value digits exponent sign

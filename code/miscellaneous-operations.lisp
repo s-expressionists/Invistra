@@ -39,7 +39,8 @@
   (reduce #'calculate-argument-position (aref (clauses directive) 0)
           :initial-value (call-next-method)))
 
-(defmethod interpret-item (client (directive case-conversion-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive case-conversion-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
@@ -49,12 +50,14 @@
                                (colon-p
                                 (make-instance 'capitalize-stream :target *format-output*))
                                (at-sign-p
-                                (make-instance 'first-capitalize-stream :target *format-output*))
+                                (make-instance 'first-capitalize-stream
+                                               :target *format-output*))
                                (t
                                 (make-instance 'downcase-stream :target *format-output*)))))
       (interpret-items client (aref (clauses directive) 0)))))
 
-(defmethod compile-item (client (directive case-conversion-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive case-conversion-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
@@ -64,7 +67,8 @@
                                   (colon-p
                                    '(make-instance 'capitalize-stream :target *format-output*))
                                   (at-sign-p
-                                   '(make-instance 'first-capitalize-stream :target *format-output*))
+                                   '(make-instance 'first-capitalize-stream
+                                     :target *format-output*))
                                   (t
                                    '(make-instance 'downcase-stream :target *format-output*)))))
         ,@(compile-items client (aref (clauses directive) 0))))))
@@ -84,7 +88,8 @@
       position
       (1+ position)))
 
-(defmethod interpret-item (client (directive plural-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive plural-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
@@ -99,7 +104,8 @@
         (unless (eql (pop-argument) 1)
           (write-char #\s *format-output*)))))
 
-(defmethod compile-item (client (directive plural-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive plural-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))

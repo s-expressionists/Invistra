@@ -5,7 +5,7 @@
   (:export #:*format-output*
            #:*roman-digits*
            #:at-sign-p
-           #:check-directive-syntax
+           #:check-item-syntax
            #:coerce-function-designator
            #:colon-p
            #:compile-item

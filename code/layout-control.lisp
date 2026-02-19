@@ -31,7 +31,8 @@
 
 (defun format-relative-tab (client colnum colinc)
   (if #+sicl nil #-sicl (inravina:pretty-stream-p client *format-output*)
-      #+sicl nil #-sicl (inravina:pprint-tab client *format-output* :line-relative colnum colinc)
+      #+sicl nil #-sicl (inravina:pprint-tab client *format-output* :line-relative colnum
+                                             colinc)
       (let* ((cur (ngray:stream-line-column *format-output*)))
         (ngray:stream-advance-to-column *format-output*
                                         (if (and cur (plusp colinc))
@@ -51,7 +52,8 @@
                                                (+ cur
                                                   (- colinc (rem (- cur colnum) colinc)))))))))
 
-(defmethod interpret-item (client (directive tabulate-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive tabulate-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
@@ -66,7 +68,8 @@
           (t
            (apply #'format-absolute-tab client parameters)))))
 
-(defmethod compile-item (client (directive tabulate-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive tabulate-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
@@ -184,7 +187,8 @@
       (when pad-right
         (write-padding nil)))))
 
-(defmethod interpret-item (client (directive justification-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive justification-directive) &optional parameters)
   (loop with newline-segment = nil
         with *extra-space* = nil
         with *line-length* = nil
@@ -205,7 +209,8 @@
         else
           collect segment into segments))
 
-(defmethod compile-item (client (directive justification-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive justification-directive) &optional parameters)
   `((let (newline-segment segments
           *extra-space* *line-length*)
       (with-remaining-arguments ()

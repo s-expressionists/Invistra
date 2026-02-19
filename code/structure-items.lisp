@@ -27,12 +27,10 @@
                     (push (make-group :end item) result))
                    ((structured-separator-p item)
                     (push nil (group-clauses (car result)))))
-             #+(or)(check-directive-syntax client item)
         do (push item (car (group-clauses (car result))))))
 
 (defun parse-control-string (client control-string)
   (loop with items = (structure-items client (split-control-string client control-string))
         for item across items
         finally (return items)
-        do (check-directive-nesting client item nil)
-           (check-directive-syntax client item)))
+        do (check-item-syntax client item nil)))

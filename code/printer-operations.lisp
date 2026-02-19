@@ -25,7 +25,8 @@
   (when position
     (1+ position)))
 
-(defmethod interpret-item (client (directive aesthetic-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive aesthetic-directive) &optional parameters)
   (let ((*print-escape* nil)
         (*print-readably* nil)
         (arg (pop-argument)))
@@ -37,7 +38,8 @@
            *format-output*
            (at-sign-p directive) parameters)))
 
-(defmethod compile-item (client (directive aesthetic-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive aesthetic-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
@@ -104,7 +106,8 @@
   (when position
     (1+ position)))
 
-(defmethod interpret-item (client (directive standard-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive standard-directive) &optional parameters)
   (let ((*print-escape* t)
         (arg (pop-argument)))
     (apply #'write-string-with-padding
@@ -115,7 +118,8 @@
            *format-output*
            (at-sign-p directive) parameters)))
 
-(defmethod compile-item (client (directive standard-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive standard-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
@@ -175,7 +179,7 @@
   (when position
     (1+ position)))
 
-(defmethod interpret-item (client (directive write-directive) &optional parameters)
+(defmethod interpret-item ((client standard-client) (directive write-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
@@ -196,7 +200,7 @@
             (t
              (incless:write-object client arg *format-output*))))))
 
-(defmethod compile-item (client (directive write-directive) &optional parameters)
+(defmethod compile-item ((client standard-client) (directive write-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))

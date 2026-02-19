@@ -29,8 +29,8 @@
             (t
              (+ position (or n 1)))))))
 
-(defmethod interpret-item (client (directive go-to-directive) &optional parameters)
-  (declare (ignore client))
+(defmethod interpret-item
+    ((client standard-client) (directive go-to-directive) &optional parameters)
   (let ((n (car parameters)))
     (cond ((colon-p directive)
            ;; Back up in the list of arguments.
@@ -45,8 +45,8 @@
            ;; The default value for the parameter is 1.
            (go-to-argument (or n 1))))))
 
-(defmethod compile-item (client (directive go-to-directive) &optional parameters)
-  (declare (ignore client))
+(defmethod compile-item
+    ((client standard-client) (directive go-to-directive) &optional parameters)
   (let ((n (car parameters)))
     (cond ((colon-p directive)
            ;; Back up in the list of arguments.
@@ -135,15 +135,17 @@
              (cond ((< -1 value (length (clauses directive)))
                     (calculate-argument-position position (aref (clauses directive) value)))
                    ((last-clause-is-default-p directive)
-                    (calculate-argument-position position (aref (clauses directive)
-                                                                (1- (length (clauses directive))))))
+                    (calculate-argument-position position
+                                                 (aref (clauses directive)
+                                                       (1- (length (clauses directive))))))
                    (t
                     position))))
           (t
            (when (typep (car (parameters directive)) 'literal-parameter)
              (incf position))
            (let ((new-position (if (last-clause-is-default-p directive)
-                                   (reduce #'calculate-argument-position (aref (clauses directive) 0)
+                                   (reduce #'calculate-argument-position
+                                           (aref (clauses directive) 0)
                                            :initial-value position)
                                    position)))
              (when (every (lambda (clauses)
@@ -153,55 +155,66 @@
                           (clauses directive))
                       new-position))))))
 
-(defmethod check-directive-syntax progn (client (directive conditional-expression-directive))
-  ;; Check that, if a parameter is given, then there are
-  ;; no modifiers.
-  (when (and (not (null (parameters directive)))
-             (or (colon-p directive) (at-sign-p directive)))
-    (error 'modifier-and-parameter
-           :client client
-           :directive directive
-           :positions (loop for i from (1+ (start directive)) below (character-start directive)
-                            collect i)))
-  ;; Check that, if a colon modifier was given, then
-  ;; there should be a single clause separator (two clauses).
-  (when (and (colon-p directive)
-             (/= (length (clauses directive)) 2))
-    (error 'invalid-clause-count
-           :client client
-           :directive directive
-           :minimum-count 2
-           :maximum-count 2))
-  ;; Check that, if an at-sign modifier was given, then
-  ;; there should be a no clause separators (a single clause).
-  (when (and (at-sign-p directive)
-             (/= (length (clauses directive)) 1))
-    (error 'invalid-clause-count
-           :client client
-           :directive directive
-           :minimum-count 1
-           :maximum-count 1))
-  (let ((pos (position-if (lambda (items)
-                            (let ((last (aref items (1- (length items)))))
-                              (and (structured-separator-p last)
-                                   (colon-p last))))
-                          (clauses directive))))
-    ;; Check that, if a modifier is given, then there should
-    ;; be no clause separator with colon modifier.
-    (when (and (or (colon-p directive) (at-sign-p directive))
-               pos)
-      (error 'clause-separator-with-colon-modifier-not-allowed
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive conditional-expression-directive) parent
+     &optional group position)
+  (declare (ignore parent group position))
+  (with-accessors ((at-sign-p at-sign-p)
+                   (colon-p colon-p)
+                   (parameters parameters)
+                   (start start)
+                   (character-start character-start)
+                   (clauses clauses))
+      directive
+    ;; Check that, if a parameter is given, then there are
+    ;; no modifiers.
+    (when (and (or (not (typep (car parameters) 'literal-parameter))
+                   (parameter-value (car parameters)))
+               (or colon-p at-sign-p))
+      (error 'modifier-and-parameter
              :client client
-             :directive directive))
-    (when (and pos
-               (< pos (- (length (clauses directive)) 2)))
-      (error 'illegal-clause-separators
+             :directive directive
+             :positions (loop for i from (1+ start) below character-start
+                              collect i)))
+    ;; Check that, if a colon modifier was given, then
+    ;; there should be a single clause separator (two clauses).
+    (when (and colon-p
+               (/= (length clauses) 2))
+      (error 'invalid-clause-count
              :client client
-             :directive directive))
-    (setf (last-clause-is-default-p directive) (and pos t))))
+             :directive directive
+             :minimum-count 2
+             :maximum-count 2))
+    ;; Check that, if an at-sign modifier was given, then
+    ;; there should be a no clause separators (a single clause).
+    (when (and at-sign-p
+               (/= (length clauses) 1))
+      (error 'invalid-clause-count
+             :client client
+             :directive directive
+             :minimum-count 1
+             :maximum-count 1))
+    (let ((pos (position-if (lambda (items)
+                              (let ((last (aref items (1- (length items)))))
+                                (and (structured-separator-p last)
+                                     (colon-p last))))
+                            clauses)))
+      ;; Check that, if a modifier is given, then there should
+      ;; be no clause separator with colon modifier.
+      (when (and (or colon-p at-sign-p)
+                 pos)
+        (error 'clause-separator-with-colon-modifier-not-allowed
+               :client client
+               :directive directive))
+      (when (and pos
+                 (< pos (- (length clauses) 2)))
+        (error 'illegal-clause-separators
+               :client client
+               :directive directive))
+      (setf (last-clause-is-default-p directive) (and pos t)))))
 
-
-(defmethod interpret-item (client (directive conditional-expression-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive conditional-expression-directive) &optional parameters)
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p)
                    (clauses clauses))
@@ -226,7 +239,8 @@
                                      (aref clauses
                                            (1- (length clauses)))))))))))
 
-(defmethod compile-item (client (directive conditional-expression-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive conditional-expression-directive) &optional parameters)
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p)
                    (clauses clauses))
@@ -245,7 +259,8 @@
              (cond ((not (numberp n))
                     `((case ,(cond ((null n)
                                     (pop-argument-form 'integer))
-                                   ((typep (car (parameters directive)) 'remaining-argument-count-parameter)
+                                   ((typep (car (parameters directive))
+                                           'remaining-argument-count-parameter)
                                     n)
                                    (t
                                     `(or ,n ,(pop-argument-form 'integer))))
@@ -302,7 +317,8 @@
   (unless (at-sign-p directive)
     (1+ position)))
 
-(defmethod interpret-item (client (directive iteration-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive iteration-directive) &optional parameters)
   ;; eliminate the end-of-iteration directive from the
   ;; list of items
   (let* ((colon-p (colon-p directive))
@@ -432,7 +448,8 @@
                          do (funcall *inner-exit-if-exhausted*)
                        do (interpret-items client items))))))))
 
-(defmethod compile-item (client (directive iteration-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive iteration-directive) &optional parameters)
   ;; eliminate the end-of-iteration directive from the
   ;; list of items
   (let* ((colon-p (colon-p directive))
@@ -465,7 +482,8 @@
                                      `(when (plusp index)
                                         do (funcall *inner-exit-if-exhausted*))
                                      `(do (funcall *inner-exit-if-exhausted*)))
-                               do (with-arguments (,(trinsic:client-form client) (pop-argument) :outer t)
+                               do (with-arguments (,(trinsic:client-form client) (pop-argument)
+                                                   :outer t)
                                     (interpret-items ,(trinsic:client-form client) items))))))))
               (colon-p
                ;; We use one argument, and that should be a list of sublists.
@@ -494,7 +512,8 @@
                                          `(when (plusp index)
                                             do (funcall *inner-exit-if-exhausted*))
                                          `(do (funcall *inner-exit-if-exhausted*)))
-                                   do (with-arguments (,(trinsic:client-form client) (pop-argument) :outer t)
+                                   do (with-arguments (,(trinsic:client-form client)
+                                                       (pop-argument) :outer t)
                                         (interpret-items ,(trinsic:client-form client) items))))))))))
               (at-sign-p
                `((let ((iteration-limit ,iteration-limit)
@@ -624,7 +643,8 @@
   (unless (at-sign-p directive)
     (1+ position)))
 
-(defmethod interpret-item (client (directive recursive-processing-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive recursive-processing-directive) &optional parameters)
   (declare (ignore parameters))
   (let ((control (pop-argument 'string)))
     (if (at-sign-p directive)
@@ -635,7 +655,8 @@
         (with-arguments (client (pop-argument))
           (format-with-runtime-arguments client control)))))
 
-(defmethod compile-item (client (directive recursive-processing-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive recursive-processing-directive) &optional parameters)
   (declare (ignore parameters))
   (if (at-sign-p directive)
       ;; reuse the arguments from the parent control-string
