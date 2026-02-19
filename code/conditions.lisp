@@ -60,9 +60,6 @@
 	           (acclimation:report-condition condition stream
                                            (acclimation:language acclimation:*locale*)))))
 
-(define-condition too-many-package-markers (directive-syntax-error)
-  ())
-
 (define-condition no-such-package (directive-syntax-error)
   ((%package-name :reader no-such-package-package-name
                   :initarg :package-name)))
@@ -92,10 +89,14 @@
 (define-condition unmatched-directive (directive-syntax-error)
   ())
 
-(define-condition nesting-violation (directive-syntax-error)
-  ((%parent-directive :reader parent-directive
-                      :initarg :parent-directive
-                      :initform nil)))
+(define-condition illegal-clause-separator (directive-syntax-error)
+  ())
+
+(define-condition illegal-outer-escape-upward (directive-syntax-error)
+  ())
+
+(define-condition illegal-fix-directive (directive-syntax-error)
+  ())
 
 (define-condition invalid-clause-count (directive-syntax-error)
   ((%minimum-count :reader minimum-count

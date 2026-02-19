@@ -34,6 +34,5 @@
   (loop with items = (structure-items client (split-control-string client control-string))
         for item across items
         finally (return items)
-        unless (valid-nesting-p client item nil)
-          do (error 'nesting-violation :directive item)
-        do (check-directive-syntax client item)))
+        do (check-directive-nesting client item nil)
+           (check-directive-syntax client item)))

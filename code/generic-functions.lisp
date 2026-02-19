@@ -26,10 +26,10 @@
   (:method progn (client directive)
     (declare (ignore client directive))))
 
-(defgeneric valid-nesting-p (client child parent)
-  (:method (client child parent)
-    (declare (ignore client child parent))
-    t))
+(defgeneric check-directive-nesting (client child parent &optional group position)
+  (:method-combination progn :most-specific-last)
+  (:method progn (client child parent &optional group position)
+    (declare (ignore client child parent group position))))
 
 (defgeneric interpret-item (client item &optional parameters)
   (:method (client item &optional parameters)

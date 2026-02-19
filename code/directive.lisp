@@ -164,10 +164,11 @@
 
 (defmethod check-directive-syntax progn ((client standard-client) (directive structured-directive-mixin))
   (loop for items across (clauses directive)
+        for group from 0
         do (loop for item across items
-                 unless (valid-nesting-p client item directive)
-                   do (error 'nesting-violation :directive item :parent-directive directive)
-                 do (check-directive-syntax client item))))
+                 for position from 0
+                 do (check-directive-nesting client item directive group position)
+                    (check-directive-syntax client item))))
 
 (defmethod check-directive-syntax progn ((client standard-client) (directive directive))
   (loop for remaining-parameters = (parameters directive) then (cdr remaining-parameters)

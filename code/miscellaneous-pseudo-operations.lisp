@@ -30,18 +30,12 @@
 (defmethod structured-separator-p ((directive clause-separator-directive))
   t)
 
-(defmethod valid-nesting-p ((client standard-client) (child clause-separator-directive) (parent conditional-expression-directive))
-  t)
-
-(defmethod valid-nesting-p ((client standard-client) (child clause-separator-directive) (parent justification-directive))
-  t)
-
-(defmethod valid-nesting-p ((client standard-client) (child clause-separator-directive) (parent logical-block-directive))
-  t)
-
-(defmethod valid-nesting-p ((client standard-client) (child clause-separator-directive) parent)
-  (declare (ignore parent))
-  nil)
+(defmethod check-directive-nesting progn ((client standard-client) (child clause-separator-directive) parent &optional group position)
+  (declare (ignore group position))
+  (unless (typep parent '(or conditional-expression-directive justification-directive logical-block-directive))
+    (error 'illegal-clause-separator
+           :client client
+           :directive child)))
 
 (defmethod interpret-item ((client standard-client) (directive clause-separator-directive) &optional parameters)
   (let ((extra-space (car parameters))
@@ -81,12 +75,14 @@
     (:name p2 :type (or null character integer))
     (:name p3 :type (or null character integer))))
 
-(defmethod valid-nesting-p ((client standard-client) (child escape-upward-directive) parent)
-  (not (colon-p child)))
-
-(defmethod valid-nesting-p ((client standard-client) (child escape-upward-directive) (parent iteration-directive))
-  (or (not (colon-p child))
-      (colon-p parent)))
+(defmethod check-directive-nesting progn ((client standard-client) (child escape-upward-directive) parent &optional group position)
+  (declare (ignore group position))
+  (when (and (colon-p child)
+             (or (not (typep parent 'iteration-directive))
+                 (not (colon-p parent))))
+    (error 'illegal-outer-escape-upward
+           :client client
+           :directive child)))
 
 (defmethod check-directive-syntax progn
     (client (directive escape-upward-directive))

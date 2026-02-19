@@ -78,26 +78,24 @@
                              (call-next-method)
                              t))
 
+(defmethod check-directive-nesting progn ((client standard-client) child (parent logical-block-directive) &optional group position)
+  (when (and (> (length (clauses parent)) 1)
+             (or (eql group 0)
+                 (eql group 2))
+             (not (stringp child))
+             (not (structured-end-p child))
+             (not (structured-separator-p child)))
+    (error 'illegal-fix-directive
+           :client client
+           :directive child)))
+
 (defmethod check-directive-syntax progn (client (directive logical-block-directive))
-  (flet ((check-fix (items)
-           (loop for item across items
-                 unless (or (stringp item)
-                            (structured-end-p item)
-                            (structured-separator-p item))
-                   do (error 'nesting-violation
-                             :client client
-                             :directive item
-                             :parent-directive directive))))
-    (when (> (length (clauses directive)) 3)
-      (error 'invalid-clause-count
-             :client client
-             :directive directive
-             :minimum-count 1
-             :maximum-count 3))
-    (when (> (length (clauses directive)) 1)
-      (check-fix (aref (clauses directive) 0)))
-    (when (= (length (clauses directive)) 3)
-      (check-fix (aref (clauses directive) 2)))))
+  (when (> (length (clauses directive)) 3)
+    (error 'invalid-clause-count
+           :client client
+           :directive directive
+           :minimum-count 1
+           :maximum-count 3)))
 
 (defmethod interpret-item (client (directive logical-block-directive) &optional parameters)
   (declare (ignore parameters)
@@ -339,13 +337,6 @@
            (symbol-end (1- end))
            (symbol-name (string-upcase (subseq control-string symbol-start symbol-end)))
            (package (find-package package-name)))
-      (when (position #\: control-string :start symbol-start :end symbol-end)
-        (error 'too-many-package-markers
-               :client client
-               :directive directive
-               :positions (loop for i from suffix-start below end
-                                when (char= #\: (char control-string i))
-                                  collect i)))
       (when (null package)
         (error 'no-such-package
                :client client

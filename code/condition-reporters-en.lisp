@@ -105,10 +105,6 @@
              (type-error-datum condition)))
 
 (defmethod acclimation:report-condition
-    ((condition too-many-package-markers) stream (language acclimation:english))
-  (cl:format stream "The function name contains too many package markers.~%"))
-
-(defmethod acclimation:report-condition
     ((condition no-such-package) stream (language acclimation:english))
   (cl:format stream "A package named ~a does not exist.~%"
              (no-such-package-package-name condition)))
@@ -157,17 +153,16 @@
   (write-line "Begin directive is missing corresponding end directive." stream))
 
 (defmethod acclimation:report-condition
-    ((condition nesting-violation) stream (language acclimation:english))
-  (with-accessors ((parent-directive parent-directive))
-      condition
-    (if parent-directive
-        (with-accessors ((control-string control-string)
-                         (start start)
-                         (end end))
-            parent-directive
-          (cl:format stream " cannot be nested inside of a \"~a\" directive."
-                     (subseq control-string start end)))
-        (write-string " cannot be used as a top level directive." stream))))
+    ((condition illegal-clause-separator) stream (language acclimation:english))
+  (write-line "Clause separator directive must appear inside of a conditional, justification or logical block directive." stream))
+
+(defmethod acclimation:report-condition
+    ((condition illegal-outer-escape-upward) stream (language acclimation:english))
+  (write-line "Outer escape upward directive must occur inside of a sublist iteration directive." stream))
+
+(defmethod acclimation:report-condition
+    ((condition illegal-fix-directive) stream (language acclimation:english))
+  (write-line "Directives are not permitted in the prefix or suffix of a logical block directive." stream))
 
 (defmethod acclimation:report-condition
     ((condition invalid-destination) stream (language acclimation:english))
