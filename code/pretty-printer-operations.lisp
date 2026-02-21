@@ -60,7 +60,7 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\<)) directive (end-directive t))
-  (signal-unmatched-directive client directive))
+  (signal-missing-directive client directive #\> :end-logical-block-or-end-justification))
 
 (defmethod calculate-argument-position (position (directive logical-block-directive))
   (setf position (call-next-method))

@@ -84,18 +84,25 @@
 
 (defmethod acclimation:report-condition
     ((condition illegal-modifiers) stream (language acclimation:english))
-  (cl:format stream "~:[Illegal~;Conflicting~] modifier~p ~{~#[~;~:c~;~:c and ~
-                     ~:c~:;~@{~:c~#[~;, and ~:;, ~]~}~]~} found in directive.~%"
-             (eq (format-error-reason condition) :conflicting)
-             (length (modifier-characters condition))
-             (modifier-characters condition)))
+  (case (format-error-reason condition)
+    (:outer-escape-upward
+     (write-line "Outer escape upward modifier can only be used inside of a sublist iteration directive." stream))
+    (:conditional-with-parameter
+     (write-line "Modifiers can only be used on a conditional directive that does not have a parameter." stream))
+    (:default-clause
+     (write-line "The default clause modifier (:) can only appear on the last clause separator directive in a conditional without modifiers." stream))
+    (otherwise
+     (cl:format stream "~:[Illegal~;Conflicting~] modifier~p ~{~#[~;~:c~;~:c and ~
+                        ~:c~:;~@{~:c~#[~;, and ~:;, ~]~}~]~} found in directive.~%"
+                (eq (format-error-reason condition) :conflicting)
+                (length (modifier-characters condition))
+                (modifier-characters condition)))))
 
 (defmethod acclimation:report-condition
-    ((condition too-many-parameters) stream (language acclimation:english))
+    ((condition illegal-parameter) stream (language acclimation:english))
   (cl:format stream
-             "Directive takes at most ~a parameters, but ~a found.~%"
-             (at-most-how-many condition)
-             (how-many-found condition)))
+             "Illegal parameter found. Directive can have no more than ~a parameter~:p.~%"
+             (maximum-count condition)))
 
 (defmethod acclimation:report-condition
     ((condition parameter-type-error) stream (language acclimation:english))
@@ -120,42 +127,33 @@
              (symbol-not-external-symbol condition)))
 
 (defmethod acclimation:report-condition
-    ((condition modifier-and-parameter) stream (language acclimation:english))
-  (write-line "A parameter can be used only of there are no modifiers." stream))
-
-(defmethod acclimation:report-condition
     ((condition illegal-directive) stream (language acclimation:english))
   (write-line (case (format-error-reason condition)
                   (:clause-separator
                    "Clause separator directive must appear inside of a structured directive that permits multiple clauses.")
-                  (:outer-escape-upward
-                   "Outer escape upward directive must occur inside of a sublist iteration directive.")
                   (:logical-block-fix
                    "Directives are not permitted in the prefix or suffix of a logical block directive.")
+                  (:clause-count
+                   "Too many clauses in directive.")
                   (otherwise
                    "Illegal directive."))
                 stream))
 
 (defmethod acclimation:report-condition
-    ((condition parameter-omitted) stream (language acclimation:english))
-  (cl:format stream
-          "Parameter number ~d was given, but parameter ~d ~
-           was omitted, which is not allowed."
-          (parameter1 condition)
-          (parameter2 condition)))
-
-(defmethod acclimation:report-condition
-    ((condition unmatched-directive) stream (language acclimation:english))
-  (write-line "Begin directive is missing corresponding end directive." stream))
-
-(defmethod acclimation:report-condition
-    ((condition invalid-clause-count) stream (language acclimation:english))
-  (cl:format stream
-             "Directive contains ~a clause~:p but ~:[only between ~a and ~a clauses are ~
-              permitted~;exactly ~a clause~:p is required~].~%"
-             (actual-count condition)
-             (= (minimum-count condition) (maximum-count condition))
-             (minimum-count condition) (maximum-count condition)))
+    ((condition missing-directive) stream (language acclimation:english))
+  (case (format-error-reason condition)
+    (:end-logical-block-or-end-justification
+     (write-line "Missing end of justification (~>) or end of logical block (~:>) directive."  stream))
+    (:end-conditional
+     (write-line "Missing end of conditional (~]) directive." stream))
+    (:end-case-conversion
+     (write-line "Missing end of case conversion (~)) directive." stream))
+    (:end-iteration
+     (write-line "Missing end of iteration (~}) directive." stream))
+    (:clause-count
+     (write-line "Not enough clauses in directive, i.e. missing clause separator (~;) directive." stream))
+    (otherwise
+     (cl:format stream "Missing ~~~c directive." (directive-character condition)))))
 
 (defmethod acclimation:report-condition
     ((condition incompatible-layout-requirements) stream (language acclimation:english))
@@ -165,16 +163,6 @@
              (requirement2 condition)
              (requirement1 condition)
              (ancestor condition)))
-
-#+(or)(defmethod acclimation:report-condition
-    ((condition illegal-clause-separator) stream (language acclimation:english))
-  (cl:format stream "At most the last clause separator can have ~
-                  a `:' modifier"))
-
-#+(or)(defmethod acclimation:report-condition
-    ((condition clause-separator-with-colon-modifier-not-allowed) stream
-     (language acclimation:english))
-  (cl:format stream "A default clause is incompatible with modifiers."))
 
 ;;; Runtime conditions
 

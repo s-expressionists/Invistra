@@ -91,12 +91,7 @@
   (when (and (colon-p directive)
              (or (not (typep parent 'iteration-directive))
                  (not (colon-p parent))))
-    (signal-illegal-outer-escape-upward client directive))
-  (let ((parameters (parameters directive)))
-    (when (and (second parameters) (not (first parameters)))
-      (signal-parameter-omitted client directive 2 1))
-    (when (and (third parameters) (not (second parameters)))
-      (signal-parameter-omitted client directive 3 2))))
+    (signal-illegal-outer-escape-upward client directive)))
 
 (defmethod interpret-item
     ((client standard-client) (directive escape-upward-directive) &optional parameters)
@@ -106,13 +101,13 @@
         parameters
       (cond ((and (null p1) (null p2) (null p3))
              (funcall (if colon-p *outer-exit-if-exhausted* *inner-exit-if-exhausted*)))
-            ((or (and (eql p1 0) (null p2) (null p3))
-                 (and (null p1) (eql p2 0) (null p3))
-                 (and (null p1) (null p2) (eql p3 0))
-                 (and (null p1) p2 p3 (eql p2 p3))
-                 (and (null p2) p1 p3 (eql p1 p3))
-                 (and (null p3) p1 p2 (eql p1 p2))
-                 (and p1 p2 p3 (<= p1 p2 p3)))
+            ((or (and p3
+                      (<= p1 p2 p3))
+                 (and (null p3)
+                      (or (and (null p2)
+                               (eql p1 0))
+                          (and p2
+                               (eql p1 p2)))))
              (funcall (if colon-p *outer-exit* *inner-exit*)))))))
 
 (defmethod compile-item
@@ -127,31 +122,32 @@
             (exit-if-exhausted-forms (if colon-p
                                          (outer-exit-if-exhausted-forms)
                                          (inner-exit-if-exhausted-forms))))
-        (cond ((null p1)
+        (cond ((and (null p1) (null p2) (null p3))
                exit-if-exhausted-forms)
-              ((null p2)
+              ((and (null p2) (null p3))
                `((cond ((null ,p1)
                         ,@exit-if-exhausted-forms)
                        ((eql 0 ,p1)
                         ,@exit-forms))))
-            ((null p3)
-             `((cond ((and (null ,p1) (null ,p2))
-                      ,@exit-if-exhausted-forms)
-                     ((or (and (null ,p1) (eql 0 ,p2))
-                          (and (eql 0 ,p1) (null ,p2))
-                          (and ,p1 ,p2 (eql ,p1 ,p2)))
-                      ,@exit-forms))))
-            (t
-             `((cond ((and (null ,p1) (null ,p2) (null ,p3))
-                      ,@exit-if-exhausted-forms)
-                     ((or (and (null ,p1) (null ,p2) (eql 0 ,p3))
-                          (and (null ,p1) (eql 0 ,p2) (null ,p3))
-                          (and (eql 0 ,p1) (null ,p2) (null ,p3))
-                          (and (null ,p1) ,p2 ,p3 (eql ,p2 ,p3))
-                          (and (null ,p2) ,p1 ,p3 (eql ,p1 ,p3))
-                          (and (null ,p3) ,p1 ,p2 (eql ,p1 ,p2))
-                          (and ,p1 ,p2 ,p3 (<= ,p1 ,p2 ,p3)))
-                      ,@exit-forms)))))))))
+              ((null p3)
+               `((cond ((and (null ,p1) (null ,p2))
+                        ,@exit-if-exhausted-forms)
+                       ((or (and (null ,p2)
+                                 (eql ,p1 0))
+                            (and ,p2
+                                 (eql ,p1 ,p2)))
+                        ,@exit-forms))))
+              (t
+               `((cond ((and (null ,p1) (null ,p2) (null ,p3))
+                        ,@exit-if-exhausted-forms)
+                       ((or (and ,p3
+                                 (<= ,p1 ,p2 ,p3))
+                            (and (null ,p3)
+                                 (or (and (null ,p2)
+                                          (eql ,p1 0))
+                                     (and ,p2
+                                          (eql ,p1 ,p2)))))
+                        ,@exit-forms)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

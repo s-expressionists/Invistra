@@ -113,7 +113,9 @@
          (if required
              (setf parameters
                    (nconc parameters
-                          (list (make-instance 'literal-parameter))))
+                          (list (make-instance 'literal-parameter
+                                               :start end
+                                               :end end))))
              (return nil)))
        (when (and (< end (length control-string))
                   (char= #\, (char control-string end)))
@@ -123,41 +125,34 @@
 
 (defmethod parse-modifier ((client standard-client) directive (character (eql #\@)))
   (with-accessors ((end end)
-                   (control-string control-string)
-                   (modifiers-start modifiers-start)
                    (at-sign-p at-sign-p))
       directive
-    (when at-sign-p
-      (signal-duplicate-modifiers client directive #\@))
-    (setf at-sign-p t)
     (incf end)
+    (if at-sign-p
+        (signal-duplicate-modifiers client directive #\@)
+        (setf at-sign-p t))
     t))
 
 (defmethod parse-modifier ((client standard-client) directive (character (eql #\:)))
   (with-accessors ((end end)
-                   (control-string control-string)
-                   (modifiers-start modifiers-start)
                    (colon-p colon-p))
       directive
-    (when colon-p
-      (signal-duplicate-modifiers client directive #\:))
-    (setf colon-p t)
     (incf end)
+    (if colon-p
+      (signal-duplicate-modifiers client directive #\:)
+      (setf colon-p t))
     t))
 
 (defun parse-modifiers (client directive)
   (with-accessors ((control-string control-string)
                    (end end)
-                   (modifiers-start modifiers-start)
-                   (character-start character-start))
+                   (modifiers-start modifiers-start))
       directive
     (tagbody
-       (setf modifiers-start end
-             character-start end)
+       (setf modifiers-start end)
      next
        (check-end-of-control-string client directive end)
        (when (parse-modifier client directive (char-upcase (char control-string end)))
-         (setf character-start end)
          (go next)))))
 
 (defmethod parse-directive

@@ -80,6 +80,9 @@
            :initarg :value
            :initform nil)))
 
+(defmethod null-parameter-p ((parameter literal-parameter))
+  (null (parameter-value parameter)))
+
 ;;; How we represent a directive.  It may seem wasteful to allocate
 ;;; a class instance for each directive, but most format directives
 ;;; are handled at compile time anyway.
@@ -89,16 +92,21 @@
                     :initarg :control-string)
    ;; the position in the control string of the ~ character.
    (%start :accessor start
-           :initarg :start)
+           :initarg :start
+           :initform nil)
    (%modifiers-start :accessor modifiers-start
-                     :initarg :modifiers-start)
+                     :initarg :modifiers-start
+                     :initform nil)
    (%character-start :accessor character-start
-                     :initarg :character-start)
+                     :initarg :character-start
+                     :initform nil)
    (%suffix-start :accessor suffix-start
-                  :initarg :suffix-start)
+                  :initarg :suffix-start
+                  :initform nil)
    ;; the first position beyond the directive character
    (%end :accessor end
-         :initarg :end)
+         :initarg :end
+         :initform nil)
    ;; The directive character used.
    (%directive-character :accessor directive-character
                          :initarg :directive-character)
@@ -197,7 +205,7 @@
                          (getf spec :rest)))
                do (loop-finish)
         else if (null spec)
-          do (signal-too-many-parameters client directive)
+          do (signal-illegal-parameter client directive parameter count)
         else
           do (setf parameter (apply #'make-instance 'literal-parameter
                                     :allow-other-keys t spec))
@@ -215,25 +223,25 @@
     ((client standard-client) (directive no-modifiers-mixin) parent &optional group position)
   (declare (ignore parent group position))
   (cond ((and (colon-p directive) (at-sign-p directive))
-         (signal-illegal-modifiers client directive nil #\@ #\:))
+         (signal-illegal-modifiers client directive #\@ #\:))
         ((colon-p directive)
-         (signal-illegal-modifiers client directive nil #\:))
+         (signal-illegal-modifiers client directive #\:))
         ((at-sign-p directive)
-         (signal-illegal-modifiers client directive nil #\@))))
+         (signal-illegal-modifiers client directive #\@))))
 
 ;;; Signal an error if an at-sign has been given for such a directive.
 (defmethod check-item-syntax progn
     ((client standard-client) (directive only-colon-mixin) parent &optional group position)
   (declare (ignore parent group position))
   (when (at-sign-p directive)
-    (signal-illegal-modifiers client directive nil #\@)))
+    (signal-illegal-modifiers client directive #\@)))
 
 ;;; Signal an error if a colon has been given for such a directive.
 (defmethod check-item-syntax progn
     ((client standard-client) (directive only-at-sign-mixin) parent &optional group position)
   (declare (ignore parent group position))
   (when (colon-p directive)
-    (signal-illegal-modifiers client directive nil #\:)))
+    (signal-illegal-modifiers client directive #\:)))
 
 ;;; Signal an error if both modifiers have been given for such a directive.
 (defmethod check-item-syntax progn
@@ -241,4 +249,4 @@
      &optional group position)
   (declare (ignore parent group position))
   (when (and (colon-p directive) (at-sign-p directive))
-    (signal-illegal-modifiers client directive t #\@ #\:)))
+    (signal-conflicting-modifiers client directive #\@ #\:)))

@@ -80,3 +80,8 @@
 (defgeneric structured-end (directive)
   (:method (directive)
     (end directive)))
+
+(defgeneric null-parameter-p (parameter)
+  (:method (parameter)
+    (declare (ignore parameter))
+    nil))

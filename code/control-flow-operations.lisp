@@ -101,7 +101,7 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\[)) directive (end-directive t))
-  (signal-unmatched-directive client directive))
+  (signal-missing-directive client directive #\] :end-conditional))
 
 (defmethod parameter-specifications
     ((client t) (directive conditional-expression-directive))
@@ -186,7 +186,7 @@
                     (or colon-p
                         at-sign-p
                         (minusp pos)))
-            do (signal-illegal-modifiers client last nil #\:)
+            do (signal-illegal-default-clause client last)
           when (and (structured-separator-p last)
                     (colon-p last)
                     (zerop pos))
@@ -284,7 +284,7 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\{)) directive (end-directive t))
-  (signal-unmatched-directive client directive))
+  (signal-missing-directive client directive #\} :end-iteration))
 
 (defmethod parameter-specifications
             ((client t) (directive iteration-directive))
