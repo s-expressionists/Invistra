@@ -1,6 +1,6 @@
 (cl:in-package #:invistra)
 
-(defun merge-layout-requirements (r1 r2 ancestor)
+(defun merge-layout-requirements (client directive r1 r2 ancestor)
   (when (or (and (member :justify-dynamic r1)
                  (member :logical-block r2))
             (and (member :logical-block r1)
@@ -8,10 +8,7 @@
             (and ancestor
                  (member :justify r1)
                  (member :logical-block r2)))
-    (error 'incompatible-layout-requirements
-           :requirement1 r1
-           :requirement2 r2
-           :ancestor ancestor))
+    (signal-incompatible-layout-requirements client directive r1 r2 ancestor))
   (union r1 r2))
 
 (defgeneric control-string (directive))
@@ -145,15 +142,23 @@
 (defmethod structured-end-p ((directive end-structured-directive-mixin))
   t)
 
-(defmethod layout-requirements ((item structured-directive-mixin))
+(defmethod layout-requirements ((client standard-client) (item structured-directive-mixin))
   (loop with requirements = nil
         for clause across (clauses item)
         finally (return requirements)
         do (loop for it across clause
                  do (setf requirements
-                          (merge-layout-requirements (layout-requirements it)
+                          (merge-layout-requirements client it
+                                                     (layout-requirements client it)
                                                      requirements
                                                      nil)))))
+
+(defmethod structured-end ((directive structured-directive-mixin))
+  (or (loop with clauses = (clauses directive)
+            for i from (1- (length clauses)) downto 0
+            unless (zerop (length (aref clauses i)))
+              return (structured-end (aref (aref clauses i) (1- (length (aref clauses i))))))
+      (end directive)))
 
 (defmethod calculate-argument-position (position (item directive))
   (reduce #'calculate-argument-position (parameters item) :initial-value position))
@@ -192,86 +197,43 @@
                          (getf spec :rest)))
                do (loop-finish)
         else if (null spec)
-          do (error 'too-many-parameters
-                    :client client
-                    :directive directive
-                    :at-most-how-many (1+ count)
-                    :how-many-found (+ count (length remaining-parameters))
-                    :positions (loop for i from (1+ (start directive))
-                                       below (modifiers-start directive)
-                                     collect i))
+          do (signal-too-many-parameters client directive)
         else
           do (setf parameter (apply #'make-instance 'literal-parameter
                                     :allow-other-keys t spec))
         collect parameter into parameters
         when (typep parameter 'literal-parameter)
           do (with-accessors ((parameter-value parameter-value)
-                              (parameter-type parameter-type)
                               (parameter-default parameter-default))
                  parameter
                (unless parameter-value
                  (setf parameter-value parameter-default))
-               (unless (typep parameter-value parameter-type)
-                 (error 'parameter-type-error
-                        :client client
-                        :directive directive
-                        :positions (loop for i from (start parameter) below (end parameter)
-                                         collect i)
-                        :expected-type parameter-type
-                        :datum parameter-value)))))
+               (check-parameter-type client directive parameter))))
 
 ;;; Signal an error if a modifier has been given for such a directive.
 (defmethod check-item-syntax progn
     ((client standard-client) (directive no-modifiers-mixin) parent &optional group position)
   (declare (ignore parent group position))
   (cond ((and (colon-p directive) (at-sign-p directive))
-         (error 'illegal-modifiers
-                :client client
-                :directive directive
-                :modifier-characters '(#\@ #\:)
-                :list (loop for i from (modifiers-start directive)
-                              below (character-start directive)
-                            collect i)))
+         (signal-illegal-modifiers client directive nil #\@ #\:))
         ((colon-p directive)
-         (error 'illegal-modifiers
-                :client client
-                :directive directive
-                :modifier-characters '(#\:)
-                :list (loop for i from (modifiers-start directive)
-                              below (character-start directive)
-                            collect i)))
+         (signal-illegal-modifiers client directive nil #\:))
         ((at-sign-p directive)
-         (error 'illegal-modifiers
-                :client client
-                :directive directive
-                :modifier-characters '(#\@)
-                :list (loop for i from (modifiers-start directive)
-                              below (character-start directive)
-                            collect i)))))
+         (signal-illegal-modifiers client directive nil #\@))))
 
 ;;; Signal an error if an at-sign has been given for such a directive.
 (defmethod check-item-syntax progn
     ((client standard-client) (directive only-colon-mixin) parent &optional group position)
   (declare (ignore parent group position))
   (when (at-sign-p directive)
-    (error 'illegal-modifiers
-           :client client
-           :directive directive
-           :modifier-characters '(#\@)
-           :positions (list (position #\@ (control-string directive)
-                                      :start (modifiers-start directive))))))
+    (signal-illegal-modifiers client directive nil #\@)))
 
 ;;; Signal an error if a colon has been given for such a directive.
 (defmethod check-item-syntax progn
     ((client standard-client) (directive only-at-sign-mixin) parent &optional group position)
   (declare (ignore parent group position))
   (when (colon-p directive)
-    (error 'illegal-modifiers
-           :client client
-           :directive directive
-           :modifier-characters '(#\:)
-           :positions (list (position #\: (control-string directive)
-                                      :start (modifiers-start directive))))))
+    (signal-illegal-modifiers client directive nil #\:)))
 
 ;;; Signal an error if both modifiers have been given for such a directive.
 (defmethod check-item-syntax progn
@@ -279,12 +241,4 @@
      &optional group position)
   (declare (ignore parent group position))
   (when (and (colon-p directive) (at-sign-p directive))
-    (error 'illegal-modifiers
-           :client client
-           :directive directive
-           :modifier-characters '(#\@ #\:)
-           :conflicting t
-           :positions (list (position #\@ (control-string directive)
-                                      :start (modifiers-start directive))
-                            (position #\: (control-string directive)
-                                      :start (modifiers-start directive))))))
+    (signal-illegal-modifiers client directive t #\@ #\:)))

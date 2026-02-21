@@ -101,9 +101,7 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\[)) directive (end-directive t))
-  (error 'unmatched-directive
-         :client client
-         :directive directive))
+  (signal-unmatched-directive client directive))
 
 (defmethod parameter-specifications
     ((client t) (directive conditional-expression-directive))
@@ -171,47 +169,28 @@
     (when (and (or (not (typep (car parameters) 'literal-parameter))
                    (parameter-value (car parameters)))
                (or colon-p at-sign-p))
-      (error 'modifier-and-parameter
-             :client client
-             :directive directive
-             :positions (loop for i from (1+ start) below character-start
-                              collect i)))
+      (signal-modifier-and-parameter client directive))
     ;; Check that, if a colon modifier was given, then
     ;; there should be a single clause separator (two clauses).
-    (when (and colon-p
-               (/= (length clauses) 2))
-      (error 'invalid-clause-count
-             :client client
-             :directive directive
-             :minimum-count 2
-             :maximum-count 2))
+    (when colon-p
+      (check-clause-count client directive 2 2))
     ;; Check that, if an at-sign modifier was given, then
     ;; there should be a no clause separators (a single clause).
-    (when (and at-sign-p
-               (/= (length clauses) 1))
-      (error 'invalid-clause-count
-             :client client
-             :directive directive
-             :minimum-count 1
-             :maximum-count 1))
-    (let ((pos (position-if (lambda (items)
-                              (let ((last (aref items (1- (length items)))))
-                                (and (structured-separator-p last)
-                                     (colon-p last))))
-                            clauses)))
-      ;; Check that, if a modifier is given, then there should
-      ;; be no clause separator with colon modifier.
-      (when (and (or colon-p at-sign-p)
-                 pos)
-        (error 'clause-separator-with-colon-modifier-not-allowed
-               :client client
-               :directive directive))
-      (when (and pos
-                 (< pos (- (length clauses) 2)))
-        (error 'illegal-clause-separators
-               :client client
-               :directive directive))
-      (setf (last-clause-is-default-p directive) (and pos t)))))
+    (when at-sign-p
+      (check-clause-count client directive 1 1))
+    (loop for clause across clauses
+          for pos from (- 2 (length clauses))
+          for last = (aref clause (1- (length clause)))
+          when (and (structured-separator-p last)
+                    (colon-p last)
+                    (or colon-p
+                        at-sign-p
+                        (minusp pos)))
+            do (signal-illegal-modifiers client last nil #\:)
+          when (and (structured-separator-p last)
+                    (colon-p last)
+                    (zerop pos))
+            do (setf (last-clause-is-default-p directive) t))))
 
 (defmethod interpret-item
     ((client standard-client) (directive conditional-expression-directive) &optional parameters)
@@ -305,9 +284,7 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\{)) directive (end-directive t))
-  (error 'unmatched-directive
-         :client client
-         :directive directive))
+  (signal-unmatched-directive client directive))
 
 (defmethod parameter-specifications
             ((client t) (directive iteration-directive))

@@ -10,10 +10,7 @@
 ;;; For the default case, signal an error.
 (defmethod specialize-directive (client character directive end-directive)
   (declare (ignore character end-directive))
-  (error 'unknown-directive-character
-         :client client
-         :directive directive
-         :positions (list (character-start directive))))
+  (signal-unknown-directive-character client directive))
 
 (defgeneric parameter-specifications (client directive)
   (:method (client directive)
@@ -54,9 +51,9 @@
     (declare (ignore client character control-string position))
     nil))
 
-(defgeneric layout-requirements (item)
-  (:method (item)
-    (declare (ignore item))
+(defgeneric layout-requirements (client item)
+  (:method (client item)
+    (declare (ignore client item))
     nil))
 
 (defgeneric coerce-function-designator (client object)
@@ -77,3 +74,9 @@
     position))
 
 (defgeneric whitespace-char-p (client ch))
+
+(defgeneric end (directive))
+
+(defgeneric structured-end (directive)
+  (:method (directive)
+    (end directive)))

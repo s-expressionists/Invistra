@@ -35,18 +35,14 @@
      (parent iteration-directive)
      &optional group position)
   (declare (ignore group position))
-  (error 'illegal-clause-separator
-         :client client
-         :directive directive))
+  (signal-illegal-clause-separator client directive))
 
 (defmethod check-item-syntax progn
     ((client standard-client) (directive clause-separator-directive)
      (parent case-conversion-directive)
      &optional group position)
   (declare (ignore group position))
-  (error 'illegal-clause-separator
-         :client client
-         :directive directive))
+  (signal-illegal-clause-separator client directive))
 
 (defmethod interpret-item
     ((client standard-client) (directive clause-separator-directive) &optional parameters)
@@ -95,18 +91,12 @@
   (when (and (colon-p directive)
              (or (not (typep parent 'iteration-directive))
                  (not (colon-p parent))))
-    (error 'illegal-outer-escape-upward
-           :client client
-           :directive directive))
+    (signal-illegal-outer-escape-upward client directive))
   (let ((parameters (parameters directive)))
     (when (and (second parameters) (not (first parameters)))
-      (error 'parameter-omitted
-             :parameter1 1
-             :parameter2 2))
+      (signal-parameter-omitted client directive 2 1))
     (when (and (third parameters) (not (second parameters)))
-      (error 'parameter-omitted
-             :parameter2 2
-             :parameter3 3))))
+      (signal-parameter-omitted client directive 3 2))))
 
 (defmethod interpret-item
     ((client standard-client) (directive escape-upward-directive) &optional parameters)

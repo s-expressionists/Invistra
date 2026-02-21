@@ -20,11 +20,7 @@
   (prog ((end (length control-string))
          (escape nil))
    next
-     (when (= position end)
-       (error 'invistra::end-of-control-string-error
-              :client client
-              :directive directive
-              :positions (list (invistra::end directive))))
+     (invistra::check-end-of-control-string-error client directive invistra::end directive)
      (case (char control-string position)
        (#\`
         (if escape
@@ -121,9 +117,7 @@
                          package (find-package token)
                          (fill-pointer token) 0)
                    (when (null package)
-                     (error 'invistra::no-such-package
-                            :client client
-                            :directive directive)))
+                     (invistra::signal-no-such-package client directive position token))
                   (otherwise
                    (vector-push (funcall char-case char) token))))))))
 

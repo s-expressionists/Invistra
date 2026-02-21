@@ -8,7 +8,8 @@
   (loop with result = (list (make-group))
         for item in (reverse items)
         finally (reduce (lambda (req it)
-                          (merge-layout-requirements (layout-requirements it)
+                          (merge-layout-requirements client it
+                                                     (layout-requirements client it)
                                                      req
                                                      nil))
                         (car (group-clauses (car result)))

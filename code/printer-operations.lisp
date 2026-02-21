@@ -171,7 +171,7 @@
     ((client standard-client) (char (eql #\W)) directive (end-directive t))
   (change-class directive 'write-directive))
 
-(defmethod layout-requirements ((item write-directive))
+(defmethod layout-requirements ((client standard-client) (item write-directive))
   (list :logical-block))
 
 (defmethod calculate-argument-position (position (directive write-directive))

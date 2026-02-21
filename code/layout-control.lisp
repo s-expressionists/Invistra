@@ -25,7 +25,7 @@
      :bind nil
      :default 1)))
 
-(defmethod layout-requirements ((item tabulate-directive))
+(defmethod layout-requirements ((client standard-client) (item tabulate-directive))
   (when (colon-p item)
     (list :logical-block)))
 
@@ -123,8 +123,9 @@
      :type character
      :default #\Space)))
 
-(defmethod layout-requirements :around ((item justification-directive))
-  (merge-layout-requirements (list (if (colon-p (aref (aref (clauses item) 0)
+(defmethod layout-requirements :around ((client standard-client) (item justification-directive))
+  (merge-layout-requirements client item
+                             (list (if (colon-p (aref (aref (clauses item) 0)
                                                       (1- (length (aref (clauses item) 0)))))
                                        :justify-dynamic
                                        :justify))

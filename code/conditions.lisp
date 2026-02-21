@@ -1,104 +1,273 @@
 (cl:in-package #:invistra)
 
+(defun directive-positions (directive)
+  (loop for i from (start directive) below (end directive)
+        collect i))
+
 ;;; The base class of all format errors.
 
-(define-condition format-error (error acclimation:condition) ())
+(define-condition format-error (error acclimation:condition)
+  ((%reason :reader format-error-reason
+            :initarg :reason
+            :initform nil)))
 
-(define-condition directive-error (format-error)
+(define-condition control-string-error (format-error)
   ((%client :reader client
             :initarg :client)
-   (%directive :reader directive
-               :initarg :directive)
+   (%control-string :accessor control-string
+                    :initarg :control-string)
+   (%start :reader start
+           :initarg :start)
+   (%end :reader end
+         :initarg :end)
    (%positions :reader positions
                :initarg :positions
                :initform nil)))
 
 ;;; This is the base class for all parse errors,
-(define-condition directive-parse-error (directive-error)
+(define-condition format-parse-error (control-string-error)
   ())
 
-(define-condition end-of-control-string (directive-parse-error)
+(define-condition end-of-control-string (format-parse-error)
   ())
 
-(define-condition expected-integer-error (directive-parse-error)
+(defun signal-end-of-control-string (client directive)
+  (error 'end-of-control-string
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :positions (list (end directive))))
+
+(defun check-end-of-control-string (client directive position)
+  (unless (< position (length (control-string directive)))
+    (error 'end-of-control-string
+           :client client
+           :control-string (control-string directive)
+           :start (start directive)
+           :end (end directive)
+           :positions (list (end directive)))))
+
+(define-condition expected-integer-error (format-parse-error)
   ())
 
-#+(or)(define-condition expected-parameter-start (found-something-else-error)
+(defun signal-expected-integer-error (client directive position)
+  (error 'expected-integer-error
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :positions (list position)))
+
+(define-condition duplicate-modifiers (format-parse-error)
   ())
 
-(define-condition duplicate-modifiers (directive-parse-error)
-  ())
-
-#+(or)(define-condition unknown-format-directive (found-something-else-error)
-  ())
+(defun signal-duplicate-modifiers (client directive character)
+  (error 'duplicate-modifiers
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :positions (loop for i from (modifiers-start directive) below (character-start directive)
+                          when (char= character (char (control-string directive) i))
+                            collect i)))
 
 ;;; The base class of all syntax errors.  When one of these is
 ;;; signaled, we have correctly parsed the directive, so we know where
 ;;; in the control string it starts and ends.  
-(define-condition directive-syntax-error (directive-error)
+(define-condition format-syntax-error (control-string-error)
   ())
 
-(define-condition unknown-directive-character (directive-syntax-error)
-  ())
+(define-condition unknown-directive-character (format-syntax-error)
+  ((%directive-character :accessor directive-character
+                         :initarg :directive-character)))
 
-(define-condition illegal-modifiers (directive-syntax-error)
+(defun signal-unknown-directive-character (client directive)
+  (error 'unknown-directive-character
+         :client client
+         :control-string (control-string directive)
+         :directive-character (directive-character directive)
+         :start (start directive)
+         :end (end directive)
+         :positions (list (character-start directive))))
+
+(define-condition illegal-modifiers (format-syntax-error)
   ((%modifier-characters :reader modifier-characters
-                         :initarg :modifier-characters)
-   (%conflicting :reader conflictingp
-                 :initarg :conflicting
-                 :initform nil)))
+                         :initarg :modifier-characters)))
 
-(define-condition too-many-parameters (directive-syntax-error)
+(defun signal-illegal-modifiers (client directive &rest modifier-characters)
+  (error 'illegal-modifiers
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :modifier-characters modifier-characters
+         :positions (loop for i from (modifiers-start directive)
+                            below (character-start directive)
+                          when (member (char (control-string directive) i) modifier-characters)
+                            collect i)))
+
+(defun signal-conflicting-modifiers (client directive &rest modifier-characters)
+  (error 'illegal-modifiers
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :modifier-characters modifier-characters
+         :reason :conflicting
+         :positions (loop for i from (modifiers-start directive)
+                            below (character-start directive)
+                          when (member (char (control-string directive) i) modifier-characters)
+                            collect i)))
+
+(define-condition too-many-parameters (format-syntax-error)
   ((%at-most-how-many :reader at-most-how-many
                       :initarg :at-most-how-many)
    (%how-many-found :reader how-many-found
                     :initarg :how-many-found)))
 
-(define-condition parameter-type-error (type-error directive-syntax-error)
+(defun signal-too-many-parameters (client directive)
+  (error 'too-many-parameters
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :at-most-how-many (length (parameter-specifications directive))
+         :how-many-found (length (parameters directive))
+         :positions (loop for i from (1+ (start directive))
+                            below (modifiers-start directive)
+                          collect i)))
+
+(define-condition parameter-type-error (type-error format-syntax-error)
   ()
   (:report (lambda (condition stream)
 	           (acclimation:report-condition condition stream
                                            (acclimation:language acclimation:*locale*)))))
 
-(define-condition no-such-package (directive-syntax-error)
+(defun check-parameter-type (client directive parameter)
+  (with-accessors ((parameter-value parameter-value)
+                   (parameter-type parameter-type))
+      parameter
+    (unless (typep parameter-value parameter-type)
+      (error 'parameter-type-error
+             :client client
+             :control-string (control-string directive)
+             :start (start directive)
+             :end (end directive)
+             :positions (loop for i from (start parameter) below (end parameter)
+                              collect i)
+             :expected-type parameter-type
+             :datum parameter-value))))
+
+(define-condition no-such-package (format-syntax-error)
   ((%package-name :reader no-such-package-package-name
                   :initarg :package-name)))
 
-(define-condition no-such-symbol (directive-syntax-error)
+(defun signal-no-such-package (client directive name start end)
+  (error 'no-such-package
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :positions (loop for i from start below end
+                          collect i)
+         :package-name name))
+
+(define-condition no-such-symbol (format-syntax-error)
   ((%symbol-name :reader no-such-symbol-symbol-name
                  :initarg :symbol-name)))
 
-(define-condition symbol-not-external (directive-syntax-error)
+(defun signal-no-such-symbol (client directive name start end)
+  (error 'no-such-symbol
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :positions (loop for i from start below end
+                          collect i)
+         :symbol-name name))
+
+(define-condition symbol-not-external (format-syntax-error)
   ((%symbol :reader symbol-not-external-symbol
             :initarg :symbol)))
 
-(define-condition modifier-and-parameter (directive-syntax-error)
+(defun signal-symbol-not-external (client directive symbol start end)
+  (error 'symbol-not-external
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :positions (loop for i from start below end
+                          collect i)
+         :symbol symbol))
+
+(define-condition modifier-and-parameter (format-syntax-error)
   ())
 
-(define-condition illegal-clause-separators (directive-syntax-error)
+(defun signal-modifier-and-parameter (client directive)
+  (error 'modifier-and-parameter
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :positions (loop for i from (1+ (start directive)) below (character-start directive)
+                          collect i)))
+
+(define-condition illegal-directive (format-syntax-error)
   ())
 
-(define-condition clause-separator-with-colon-modifier-not-allowed
-    (directive-syntax-error)
+(defun signal-illegal-clause-separator (client directive)
+  (error 'illegal-directive
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :reason :clause-separator))
+
+(defun signal-illegal-outer-escape-upward (client directive)
+  (error 'illegal-directive
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :reason :outer-escape-upward))
+
+(defun signal-illegal-fix-directive (client directive)
+  (error 'illegal-directive
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :reason :logical-block-fix))
+
+#+(or)(define-condition clause-separator-with-colon-modifier-not-allowed
+    (format-syntax-error)
   ())
 
-(define-condition parameter-omitted (directive-syntax-error)
+(define-condition parameter-omitted (format-syntax-error)
   ((%parameter1 :initarg :parameter1 :reader parameter1)
    (%parameter2 :initarg :parameter2 :reader parameter2)))
 
-(define-condition unmatched-directive (directive-syntax-error)
+(defun signal-parameter-omitted (client directive parameter1 parameter2)
+  (error 'parameter-omitted
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)
+         :parameter1 parameter1
+         :parameter2 parameter2))
+
+(define-condition unmatched-directive (format-syntax-error)
   ())
 
-(define-condition illegal-clause-separator (directive-syntax-error)
-  ())
+(defun signal-unmatched-directive (client directive)
+  (error 'unmatched-directive
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (end directive)))
 
-(define-condition illegal-outer-escape-upward (directive-syntax-error)
-  ())
-
-(define-condition illegal-fix-directive (directive-syntax-error)
-  ())
-
-(define-condition invalid-clause-count (directive-syntax-error)
+(define-condition invalid-clause-count (format-syntax-error)
   ((%minimum-count :reader minimum-count
                    :initarg :minimum-count
                    :initform 1)
@@ -108,14 +277,40 @@
    (%actual-count :reader actual-count
                   :initarg :actual-count)))
 
+(defun check-clause-count (client directive minimum-count maximum-count)
+  (unless (<= minimum-count (length (clauses directive)) maximum-count)
+    (error 'invalid-clause-count
+           :client client
+           :control-string (control-string directive)
+           :start (start directive)
+           :end (structured-end directive)
+           :positions (loop for clause across (clauses directive)
+                            nconc (loop for item across clause
+                                        when (structured-separator-p item)
+                                          nconc (loop for i from (start item) below (end item)
+                                                      collect i)))
+           :actual-count (length (clauses directive))
+           :minimum-count minimum-count
+           :maximum-count maximum-count)))
+
 (define-condition incompatible-layout-requirements
-    (directive-syntax-error)
+    (format-syntax-error)
   ((%requirement1 :reader requirement1
                   :initarg :requirement1)
    (%requirement2 :reader requirement2
                   :initarg :requirement2)
    (%ancestor :reader ancestor
               :initarg :ancestor)))
+
+(defun signal-incompatible-layout-requirements (client directive requirement1 requirement2 ancestor)
+  (error 'incompatible-layout-requirements
+         :client client
+         :control-string (control-string directive)
+         :start (start directive)
+         :end (structured-end directive)
+         :requirement1 requirement1
+         :requirement2 requirement2
+         :ancestor ancestor))
 
 ;;; Runtime conditions
 

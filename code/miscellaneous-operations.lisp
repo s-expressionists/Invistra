@@ -31,9 +31,7 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\()) directive (end-directive t))
-  (error 'unmatched-directive
-         :client client
-         :directive directive))
+  (signal-unmatched-directive client directive))
 
 (defmethod calculate-argument-position (position (directive case-conversion-directive))
   (reduce #'calculate-argument-position (aref (clauses directive) 0)

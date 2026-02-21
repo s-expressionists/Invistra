@@ -38,20 +38,14 @@
                    (end end)
                    (parameters parameters))
       directive
-    (incf end)
-    (cond ((< end (length control-string))
-           (setf parameters
-                 (nconc parameters
-                        (list (make-instance 'literal-parameter
-                                             :value (char control-string end)
-                                             :start (1- end)
-                                             :end (incf end)))))
-           t)
-          (t
-           (error 'end-of-control-string
-                  :client client
-                  :directive directive
-                  :positions (list end))))))
+    (check-end-of-control-string client directive (incf end))
+    (setf parameters
+          (nconc parameters
+                 (list (make-instance 'literal-parameter
+                                      :value (char control-string end)
+                                      :start (1- end)
+                                      :end (incf end)))))
+    t))
 
 (defun parse-integer-parameter (client directive)
   (with-accessors ((control-string control-string)
@@ -61,10 +55,7 @@
     (multiple-value-bind (value end-position)
         (parse-integer control-string :start end :junk-allowed t)
       (when (null value)
-        (error 'expected-integer-error
-               :client client
-               :directive directive
-               :positions (list end-position)))
+        (signal-expected-integer-error client directive end-position))
       (setf parameters
             (nconc parameters
                    (list (make-instance 'literal-parameter :value value
@@ -116,11 +107,7 @@
       directive
     (prog ((required nil))
      next
-       (when (>= end (length control-string))
-         (error 'end-of-control-string
-                :client client
-                :directive directive
-                :positions (list end)))
+       (check-end-of-control-string client directive end)
        (unless (parse-parameter client directive
                                 (char-upcase (char control-string end)))
          (if required
@@ -141,11 +128,7 @@
                    (at-sign-p at-sign-p))
       directive
     (when at-sign-p
-      (error 'duplicate-modifiers
-             :client client
-             :directive directive
-             :positions (list (position #\@ control-string :start modifiers-start)
-                              end)))
+      (signal-duplicate-modifiers client directive #\@))
     (setf at-sign-p t)
     (incf end)
     t))
@@ -157,11 +140,7 @@
                    (colon-p colon-p))
       directive
     (when colon-p
-      (error 'duplicate-modifiers
-             :client client
-             :directive directive
-             :positions (list (position #\: control-string :start modifiers-start)
-                              end)))
+      (signal-duplicate-modifiers client directive #\:))
     (setf colon-p t)
     (incf end)
     t))
@@ -169,17 +148,16 @@
 (defun parse-modifiers (client directive)
   (with-accessors ((control-string control-string)
                    (end end)
-                   (modifiers-start modifiers-start))
+                   (modifiers-start modifiers-start)
+                   (character-start character-start))
       directive
     (tagbody
-       (setf modifiers-start end)
+       (setf modifiers-start end
+             character-start end)
      next
-       (unless (< end (length control-string))
-         (error 'end-of-control-string
-                :client client
-                :directive directive
-                :positions (list end)))
+       (check-end-of-control-string client directive end)
        (when (parse-modifier client directive (char-upcase (char control-string end)))
+         (setf character-start end)
          (go next)))))
 
 (defmethod parse-directive
@@ -195,11 +173,7 @@
         directive
       (parse-parameters client directive)
       (parse-modifiers client directive)
-      (unless (< end (length control-string))
-        (error 'end-of-control-string
-               :client client
-               :directive directive
-               :positions (list end)))
+      (check-end-of-control-string client directive end)
       (setf directive-character (char-upcase (char control-string end))
             character-start end)
       (incf end)

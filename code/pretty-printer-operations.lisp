@@ -14,7 +14,7 @@
     ((client standard-client) (char (eql #\_)) directive (end-directive t))
   (change-class directive 'conditional-newline-directive))
 
-(defmethod layout-requirements ((item conditional-newline-directive))
+(defmethod layout-requirements ((client standard-client) (item conditional-newline-directive))
   (list :logical-block))
 
 (defmethod interpret-item ((client standard-client) (directive conditional-newline-directive) &optional parameters)
@@ -60,9 +60,7 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\<)) directive (end-directive t))
-  (error 'unmatched-directive
-         :client client
-         :directive directive))
+  (signal-unmatched-directive client directive))
 
 (defmethod calculate-argument-position (position (directive logical-block-directive))
   (setf position (call-next-method))
@@ -73,8 +71,9 @@
         (position
          (1+ position))))
 
-(defmethod layout-requirements :around ((item logical-block-directive))
-  (merge-layout-requirements (list :logical-block)
+(defmethod layout-requirements :around ((client standard-client) (item logical-block-directive))
+  (merge-layout-requirements client item
+                             (list :logical-block)
                              (call-next-method)
                              t))
 
@@ -85,18 +84,11 @@
                  (eql group 2))
              (not (structured-end-p directive))
              (not (structured-separator-p directive)))
-    (error 'illegal-fix-directive
-           :client client
-           :directive directive)))
+    (signal-illegal-fix-directive client directive)))
 
 (defmethod check-item-syntax progn ((client standard-client) (directive logical-block-directive) parent &optional group position)
   (declare (ignore parent group position))
-  (when (> (length (clauses directive)) 3)
-    (error 'invalid-clause-count
-           :client client
-           :directive directive
-           :minimum-count 1
-           :maximum-count 3)))
+  (check-clause-count client directive 1 3))
 
 (defmethod interpret-item ((client standard-client) (directive logical-block-directive) &optional parameters)
   (declare (ignore parameters)
@@ -224,22 +216,22 @@
           (with-dynamic-arguments ()
             `((let* ((object ,arg-form)
                      (argument-count (dotted-list-length object))
-                     (*previous-arguments* (make-array argument-count
-                                                       :adjustable t :fill-pointer 0))
-                     (*previous-argument-index* 0))
+                     (previous-arguments (make-array argument-count
+                                                     :adjustable t :fill-pointer 0))
+                     (previous-argument-index 0))
                 (inravina:execute-logical-block ,(trinsic:client-form client) *format-output*
                                                 object
                                                 (lambda (*format-output* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p*)
                                                   (let* ((position 0)
                                                          (*remaining-argument-count* (lambda ()
-                                                                                            (- argument-count position)))
+                                                                                       (- argument-count position)))
                                                          (*argument-index* (lambda ()
-                                                                                  position))
+                                                                             position))
                                                          (*pop-argument* (lambda (&optional (type t))
-                                                                                (let ((value (funcall pop-argument-hook)))
-                                                                                  (unless (typep value type)
-                                                                                    (error 'type-error :datum value :expected-type type))
-                                                                                  value))))
+                                                                           (let ((value (funcall pop-argument-hook)))
+                                                                             (unless (typep value type)
+                                                                               (error 'type-error :datum value :expected-type type))
+                                                                             value))))
 
                                                     ,@(compile-items client (aref (clauses directive)
                                                                                   (if (= (length (clauses directive)) 1)
@@ -261,7 +253,7 @@
 (defmethod parameter-specifications ((client t) (directive indent-directive))
   '((:type integer :default 0)))
 
-(defmethod layout-requirements ((item indent-directive))
+(defmethod layout-requirements ((client standard-client) (item indent-directive))
   (list :logical-block))
 
 (defmethod interpret-item ((client standard-client) (directive indent-directive) &optional parameters)
@@ -304,8 +296,7 @@
                    (end end))
       directive
     (setf end (1+ (or (position #\/ control-string :start end)
-                      (error 'end-of-control-string
-                             :positions (list end)))))))
+                      (signal-end-of-control-string client directive))))))
 
 (defmethod check-item-syntax progn
     ((client standard-client) (directive call-function-directive) parent
@@ -342,31 +333,16 @@
            (symbol-name (string-upcase (subseq control-string symbol-start symbol-end)))
            (package (find-package package-name)))
       (when (null package)
-        (error 'no-such-package
-               :client client
-               :directive directive
-               :positions (loop for i from suffix-start below position-of-package-marker
-                                collect i)
-               :package-name package-name))
+        (signal-no-such-package client directive package-name suffix-start position-of-package-marker))
       (if (eq *package* package)
           (setf (function-name directive) (intern symbol-name package))
           (multiple-value-bind (symbol status)
               (find-symbol symbol-name package)
             (when (null symbol)
-              (error 'no-such-symbol
-                     :client client
-                     :directive directive
-                     :positions (loop for i from symbol-start below symbol-end
-                                      collect i)
-                     :symbol-name symbol-name))
+              (signal-no-such-symbol client directive symbol-name symbol-start symbol-end))
             (when (and (not internalp)
                        (not (eql status :external)))
-              (error 'symbol-not-external
-                     :client client
-                     :directive directive
-                     :positions (loop for i from symbol-start below symbol-end
-                                      collect i)
-                     :symbol symbol))
+              (signal-symbol-not-external client directive symbol symbol-start symbol-end))
             (setf (function-name directive) symbol))))))
 
 (defmethod interpret-item
