@@ -1,9 +1,5 @@
 (cl:in-package #:invistra)
 
-(defun directive-positions (directive)
-  (loop for i from (start directive) below (end directive)
-        collect i))
-
 ;;; The base class of all format errors.
 
 (define-condition format-error (error acclimation:condition)
@@ -16,13 +12,8 @@
             :initarg :client)
    (%control-string :accessor control-string
                     :initarg :control-string)
-   (%start :reader start
-           :initarg :start)
-   (%end :reader end
-         :initarg :end)
-   (%positions :reader positions
-               :initarg :positions
-               :initform nil)))
+   (%regions :reader regions
+             :initarg :regions)))
 
 ;;; This is the base class for all parse errors,
 (define-condition format-parse-error (control-string-error)
@@ -35,18 +26,16 @@
   (error 'end-of-control-string
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
-         :positions (list (end directive))))
+         :regions (list (cons (start directive) (end directive))
+                        (1- (end-directive)))))
 
 (defun check-end-of-control-string (client directive position)
   (unless (< position (length (control-string directive)))
     (error 'end-of-control-string
            :client client
            :control-string (control-string directive)
-           :start (start directive)
-           :end (end directive)
-           :positions (list (end directive)))))
+           :regions (list (cons (start directive) (end directive))
+                          (1- (end-directive))))))
 
 (define-condition expected-integer-error (format-parse-error)
   ())
@@ -55,9 +44,8 @@
   (error 'expected-integer-error
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
-         :positions (list position)))
+         :regions (list (cons (start directive) (end directive))
+                        position)))
 
 (define-condition duplicate-modifiers (format-parse-error)
   ())
@@ -66,11 +54,11 @@
   (error 'duplicate-modifiers
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
-         :positions (loop for i from (modifiers-start directive) below (character-start directive)
-                          when (char= character (char (control-string directive) i))
-                            collect i)))
+         :regions (list* (cons (start directive) (end directive))
+                         (loop for i from (modifiers-start directive)
+                                 below (character-start directive)
+                               when (char= character (char (control-string directive) i))
+                                 collect i))))
 
 ;;; The base class of all syntax errors.  When one of these is
 ;;; signaled, we have correctly parsed the directive, so we know where
@@ -87,9 +75,8 @@
          :client client
          :control-string (control-string directive)
          :directive-character (directive-character directive)
-         :start (start directive)
-         :end (end directive)
-         :positions (list (character-start directive))))
+         :regions (list (cons (start directive) (end directive))
+                        (character-start directive))))
 
 (define-condition illegal-modifiers (format-syntax-error)
   ((%modifier-characters :reader modifier-characters
@@ -111,14 +98,14 @@
   (error 'illegal-modifiers
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
          :modifier-characters modifier-characters
          :reason :conflicting
-         :positions (loop for i from (modifiers-start directive)
-                            below (character-start directive)
-                          when (member (char (control-string directive) i) modifier-characters)
-                            collect i)))
+         :regions (list* (cons (start directive) (end directive))
+                         (loop for i from (modifiers-start directive)
+                                 below (character-start directive)
+                               when (member (char (control-string directive) i)
+                                            modifier-characters)
+                                 collect i))))
 
 (define-condition too-many-parameters (format-syntax-error)
   ((%at-most-how-many :reader at-most-how-many
@@ -130,13 +117,12 @@
   (error 'too-many-parameters
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
          :at-most-how-many (length (parameter-specifications directive))
          :how-many-found (length (parameters directive))
-         :positions (loop for i from (1+ (start directive))
-                            below (modifiers-start directive)
-                          collect i)))
+         :regions (list* (cons (start directive) (end directive))
+                         (loop for i from (1+ (start directive))
+                                 below (modifiers-start directive)
+                               collect i))))
 
 (define-condition parameter-type-error (type-error format-syntax-error)
   ()
@@ -152,10 +138,7 @@
       (error 'parameter-type-error
              :client client
              :control-string (control-string directive)
-             :start (start directive)
-             :end (end directive)
-             :positions (loop for i from (start parameter) below (end parameter)
-                              collect i)
+             :regions (list (cons (start parameter) (end parameter)))
              :expected-type parameter-type
              :datum parameter-value))))
 
@@ -167,10 +150,7 @@
   (error 'no-such-package
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
-         :positions (loop for i from start below end
-                          collect i)
+         :regions (list (cons start end))
          :package-name name))
 
 (define-condition no-such-symbol (format-syntax-error)
@@ -181,10 +161,7 @@
   (error 'no-such-symbol
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
-         :positions (loop for i from start below end
-                          collect i)
+         :regions (list (cons start end))
          :symbol-name name))
 
 (define-condition symbol-not-external (format-syntax-error)
@@ -195,10 +172,7 @@
   (error 'symbol-not-external
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
-         :positions (loop for i from start below end
-                          collect i)
+         :regions (list (cons start end))
          :symbol symbol))
 
 (define-condition modifier-and-parameter (format-syntax-error)
@@ -208,10 +182,7 @@
   (error 'modifier-and-parameter
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
-         :positions (loop for i from (1+ (start directive)) below (character-start directive)
-                          collect i)))
+         :regions (list (cons (1+ (start directive)) (character-start directive)))))
 
 (define-condition illegal-directive (format-syntax-error)
   ())
@@ -220,24 +191,21 @@
   (error 'illegal-directive
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
+         :regions (list (cons (start directive) (end directive)))
          :reason :clause-separator))
 
 (defun signal-illegal-outer-escape-upward (client directive)
   (error 'illegal-directive
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
+         :regions (list (cons (start directive) (end directive)))
          :reason :outer-escape-upward))
 
 (defun signal-illegal-fix-directive (client directive)
   (error 'illegal-directive
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
+         :regions (list (cons (start directive) (end directive)))
          :reason :logical-block-fix))
 
 #+(or)(define-condition clause-separator-with-colon-modifier-not-allowed
@@ -252,8 +220,7 @@
   (error 'parameter-omitted
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)
+         :regions (list (cons (start directive) (end directive)))
          :parameter1 parameter1
          :parameter2 parameter2))
 
@@ -264,8 +231,7 @@
   (error 'unmatched-directive
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (end directive)))
+         :regions (list (cons (start directive) (end directive)))))
 
 (define-condition invalid-clause-count (format-syntax-error)
   ((%minimum-count :reader minimum-count
@@ -282,13 +248,7 @@
     (error 'invalid-clause-count
            :client client
            :control-string (control-string directive)
-           :start (start directive)
-           :end (structured-end directive)
-           :positions (loop for clause across (clauses directive)
-                            nconc (loop for item across clause
-                                        when (structured-separator-p item)
-                                          nconc (loop for i from (start item) below (end item)
-                                                      collect i)))
+           :regions (list (cons (start directive) (structured-end directive)))
            :actual-count (length (clauses directive))
            :minimum-count minimum-count
            :maximum-count maximum-count)))
@@ -306,8 +266,7 @@
   (error 'incompatible-layout-requirements
          :client client
          :control-string (control-string directive)
-         :start (start directive)
-         :end (structured-end directive)
+         :regions (list (cons (start directive) (structured-end directive)))
          :requirement1 requirement1
          :requirement2 requirement2
          :ancestor ancestor))
