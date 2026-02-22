@@ -1,6 +1,8 @@
 (in-package #:invistra-intrinsic)
 
-(defclass intrinsic-client (inravina-intrinsic:intrinsic-client invista:standard-client)
+(defclass intrinsic-client (#-sicl inravina-intrinsic:intrinsic-client
+                            #+sicl incless-intrinsic:intrinsic-client
+                            invista:standard-client)
   ())
 
 (defclass intrinsic-client-impl
