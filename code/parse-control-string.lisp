@@ -105,22 +105,14 @@
                    (end end)
                    (parameters parameters))
       directive
-    (prog ((required nil))
+    (tagbody
      next
        (check-end-of-control-string client directive end)
-       (unless (parse-parameter client directive
-                                (char-upcase (char control-string end)))
-         (if required
-             (setf parameters
-                   (nconc parameters
-                          (list (make-instance 'literal-parameter
-                                               :start end
-                                               :end end))))
-             (return nil)))
-       (when (and (< end (length control-string))
+       (when (and (parse-parameter client directive
+                                   (char-upcase (char control-string end)))
+                  (< end (length control-string))
                   (char= #\, (char control-string end)))
          (incf end)
-         (setf required t)
          (go next)))))
 
 (defmethod parse-modifier ((client standard-client) directive (character (eql #\@)))
