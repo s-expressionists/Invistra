@@ -51,8 +51,8 @@
                                   (setf pos (if absolutep index (+ index pos)))
                                   (when (minusp pos)
                                     (error 'go-to-out-of-bounds
-                                           :what-argument pos
-                                           :max-arguments (length args)))
+                                           :argument-position pos
+                                           :argument-count (length args)))
                                   (loop for i from (length args) to pos
                                         do (vector-push-extend (make-lambda-argument) args))))
                               (*inner-exit-if-exhausted*

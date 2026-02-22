@@ -84,19 +84,23 @@
 
 (defmethod acclimation:report-condition
     ((condition illegal-modifiers) stream (language acclimation:english))
-  (case (format-error-reason condition)
-    (:outer-escape-upward
-     (write-line "Outer escape upward modifier can only be used inside of a sublist iteration directive." stream))
-    (:conditional-with-parameter
-     (write-line "Modifiers can only be used on a conditional directive that does not have a parameter." stream))
-    (:default-clause
-     (write-line "The default clause modifier (:) can only appear on the last clause separator directive in a conditional without modifiers." stream))
-    (otherwise
-     (cl:format stream "~:[Illegal~;Conflicting~] modifier~p ~{~#[~;~:c~;~:c and ~
+  (cl:format stream "~:[Illegal~;Conflicting~] modifier~p ~{~#[~;~:c~;~:c and ~
                         ~:c~:;~@{~:c~#[~;, and ~:;, ~]~}~]~} found in directive.~%"
-                (eq (format-error-reason condition) :conflicting)
-                (length (modifier-characters condition))
-                (modifier-characters condition)))))
+             (conflictingp condition)
+             (length (modifier-characters condition))
+             (modifier-characters condition)))
+
+(defmethod acclimation:report-condition
+    ((condition illegal-outer-modifier) stream (language acclimation:english))
+  (write-line "Outer escape upward modifier can only be used inside of a sublist iteration directive." stream))
+
+(defmethod acclimation:report-condition
+    ((condition illegal-conditional-modifier) stream (language acclimation:english))
+  (write-line "Modifiers can only be used on a conditional directive that does not have a parameter." stream))
+
+(defmethod acclimation:report-condition
+    ((condition illegal-default-modifier) stream (language acclimation:english))
+  (write-line "The default clause modifier (:) can only appear on the last clause separator directive in a conditional without modifiers." stream))
 
 (defmethod acclimation:report-condition
     ((condition illegal-parameter) stream (language acclimation:english))
@@ -128,36 +132,55 @@
 
 (defmethod acclimation:report-condition
     ((condition illegal-directive) stream (language acclimation:english))
-  (write-line (case (format-error-reason condition)
-                  (:clause-separator
-                   "Clause separator directive must appear inside of a structured directive that permits multiple clauses.")
-                  (:logical-block-fix
-                   "Directives are not permitted in the prefix or suffix of a logical block directive.")
-                  (:clause-count
-                   "Too many clauses in directive.")
-                  (:global-layout-conflict
-                   "Dynamic justification and logical block directives may not be used in the same control string.")
-                  (:local-layout-conflict
-                   "Logical block directives may not be used inside of a justification directive.")
-                  (otherwise
-                   "Illegal directive."))
-                stream))
+  (write-line  "Illegal directive." stream))
+
+(defmethod acclimation:report-condition
+    ((condition illegal-clause-separator) stream (language acclimation:english))
+  (write-line "Clause separator directive must appear inside of a structured directive that permits multiple clauses."
+              stream))
+
+(defmethod acclimation:report-condition
+    ((condition illegal-fix-directive) stream (language acclimation:english))
+  (write-line "Directives are not permitted in the prefix or suffix of a logical block directive."
+              stream))
+
+(defmethod acclimation:report-condition
+    ((condition excessive-clause-separators) stream (language acclimation:english))
+  (write-line "Too many clauses in directive." stream))
+
+(defmethod acclimation:report-condition
+    ((condition global-layout-conflict) stream (language acclimation:english))
+  (write-line "Dynamic justification and logical block directives may not be used in the same control string."
+              stream))
+
+(defmethod acclimation:report-condition
+    ((condition local-layout-conflict) stream (language acclimation:english))
+  (write-line "Logical block directives may not be used inside of a justification directive."
+              stream))
 
 (defmethod acclimation:report-condition
     ((condition missing-directive) stream (language acclimation:english))
-  (case (format-error-reason condition)
-    (:end-logical-block-or-end-justification
-     (write-line "Missing end of justification (~>) or end of logical block (~:>) directive."  stream))
-    (:end-conditional
-     (write-line "Missing end of conditional (~]) directive." stream))
-    (:end-case-conversion
-     (write-line "Missing end of case conversion (~)) directive." stream))
-    (:end-iteration
-     (write-line "Missing end of iteration (~}) directive." stream))
-    (:clause-count
-     (write-line "Not enough clauses in directive, i.e. missing clause separator (~;) directive." stream))
-    (otherwise
-     (cl:format stream "Missing ~~~c directive." (directive-character condition)))))
+  (cl:format stream "Missing ~~~c directive." (directive-character condition)))
+
+(defmethod acclimation:report-condition
+    ((condition missing-end-logical-block-or-end-justification) stream (language acclimation:english))
+  (write-line "Missing end of justification (~>) or end of logical block (~:>) directive."  stream))
+
+(defmethod acclimation:report-condition
+    ((condition missing-end-conditional) stream (language acclimation:english))
+  (write-line "Missing end of conditional (~]) directive." stream))
+
+(defmethod acclimation:report-condition
+    ((condition missing-end-case-conversion) stream (language acclimation:english))
+  (write-line "Missing end of case conversion (~)) directive." stream))
+
+(defmethod acclimation:report-condition
+    ((condition missing-end-iteration) stream (language acclimation:english))
+  (write-line "Missing end of iteration (~}) directive." stream))
+
+(defmethod acclimation:report-condition
+    ((condition missing-clause-separator) stream (language acclimation:english))
+  (write-line "Not enough clauses in directive, i.e. missing clause separator (~;) directive." stream))
 
 ;;; Runtime conditions
 
@@ -175,9 +198,9 @@
 (defmethod acclimation:report-condition
     ((condition go-to-out-of-bounds) stream (language acclimation:english))
   (cl:format stream "An attempt was made to go to argument number ~d ~
-                  instead of one between 0 and ~d."
-          (what-argument condition)
-          (max-arguments condition)))
+                     instead of one between 0 and ~d."
+          (argument-position condition)
+          (argument-count condition)))
 
 (defmethod acclimation:report-condition
     ((condition invalid-destination) stream (language acclimation:english))

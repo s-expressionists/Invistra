@@ -3,9 +3,7 @@
 ;;; The base class of all format errors.
 
 (define-condition format-error (error acclimation:condition)
-  ((%reason :reader format-error-reason
-            :initarg :reason
-            :initform nil)))
+  ())
 
 (define-condition control-string-error (format-error)
   ((%client :reader client
@@ -82,7 +80,10 @@
 
 (define-condition illegal-modifiers (format-syntax-error)
   ((%modifier-characters :reader modifier-characters
-                         :initarg :modifier-characters)))
+                         :initarg :modifier-characters)
+   (%conflicting :reader conflictingp
+                 :initarg :conflicting
+                 :initform nil)))
 
 (defun signal-illegal-modifiers (client directive &rest modifier-characters)
   (error 'illegal-modifiers
@@ -101,7 +102,7 @@
          :client client
          :control-string (control-string directive)
          :modifier-characters modifier-characters
-         :reason :conflicting
+         :conflicting t
          :regions (list* (cons (start directive) (end directive))
                          (loop for i from (modifiers-start directive)
                                  below (character-start directive)
@@ -109,36 +110,42 @@
                                             modifier-characters)
                                  collect i))))
 
-(defun signal-illegal-outer-escape-upward (client directive)
-  (error 'illegal-modifiers
+(define-condition illegal-outer-modifier (illegal-modifiers)
+  ())
+
+(defun signal-illegal-outer-modifier (client directive)
+  (error 'illegal-outer-modifier
          :client client
          :control-string (control-string directive)
          :modifier-characters '(#\:)
-         :reason :outer-escape-upward
          :regions (list (cons (start directive) (end directive))
                         (position #\: (control-string directive)
                                   :start (modifiers-start directive)
                                   :end (character-start directive)))))
 
-(defun signal-modifier-and-parameter (client directive)
-  (error 'illegal-modifiers
+(define-condition illegal-conditional-modifier (illegal-modifiers)
+  ())
+
+(defun signal-illegal-conditional-modifier (client directive)
+  (error 'illegal-conditional-modifier
          :client client
          :control-string (control-string directive)
          :modifier-characters (loop for i from (modifiers-start directive)
                                       below (character-start directive)
                                     collect (char (control-string directive) i))
-         :reason :conditional-with-parameter
          :regions (list* (cons (start directive) (end directive))
                          (loop for i from (modifiers-start directive)
                                  below (character-start directive)
                                collect i))))
 
-(defun signal-illegal-default-clause (client directive)
-  (error 'illegal-modifiers
+(define-condition illegal-default-modifier (illegal-modifiers)
+  ())
+
+(defun signal-illegal-default-modifier (client directive)
+  (error 'illegal-default-modifier
          :client client
          :control-string (control-string directive)
          :modifier-characters #\:
-         :reason :default-clause
          :regions (list* (cons (start directive) (end directive))
                          (loop for i from (modifiers-start directive)
                                  below (character-start directive)
@@ -212,62 +219,120 @@
 (define-condition illegal-directive (format-syntax-error)
   ())
 
+(define-condition illegal-clause-separator (illegal-directive)
+  ())
+
 (defun signal-illegal-clause-separator (client directive)
-  (error 'illegal-directive
+  (error 'illegal-clause-separator
          :client client
          :control-string (control-string directive)
-         :regions (list (cons (start directive) (end directive)))
-         :reason :clause-separator))
+         :regions (list (cons (start directive) (end directive)))))
+
+(define-condition illegal-fix-directive (illegal-directive)
+  ())
 
 (defun signal-illegal-fix-directive (client directive)
-  (error 'illegal-directive
+  (error 'illegal-fix-directive
          :client client
          :control-string (control-string directive)
-         :regions (list (cons (start directive) (end directive)))
-         :reason :logical-block-fix))
+         :regions (list (cons (start directive) (end directive)))))
 
-(defun signal-local-layout-conflict (client directive)
-  (error 'illegal-directive
-         :client client
-         :control-string (control-string directive)
-         :regions (list (cons (start directive) (structured-end directive)))
-         :reason :local-layout-conflict))
+(define-condition global-layout-conflict (illegal-directive)
+  ())
 
 (defun signal-global-layout-conflict (client directive)
-  (error 'illegal-directive
+  (error 'global-layout-conflict
          :client client
          :control-string (control-string directive)
-         :regions (list (cons (start directive) (structured-end directive)))
-         :reason :global-layout-conflict))
+         :regions (list (cons (start directive) (structured-end directive)))))
+
+(define-condition local-layout-conflict (illegal-directive)
+  ())
+
+(defun signal-local-layout-conflict (client directive)
+  (error 'local-layout-conflict
+         :client client
+         :control-string (control-string directive)
+         :regions (list (cons (start directive) (structured-end directive)))))
+
+(define-condition excessive-clause-separators (illegal-directive)
+  ())
 
 (define-condition missing-directive (format-syntax-error)
   ((%directive-character :accessor directive-character
                          :initarg :directive-character)))
 
-(defun signal-missing-directive (client directive character &optional reason)
+(defun signal-missing-directive (client directive character)
   (error 'missing-directive
          :client client
          :control-string (control-string directive)
          :directive-character character
-         :reason reason
+         :regions (list (cons (start directive) (structured-end directive)))))
+
+(define-condition missing-end-logical-block-or-end-justification (missing-directive)
+  ())
+
+(defun signal-missing-end-logical-block-or-end-justification (client directive)
+  (error 'missing-end-logical-block-or-end-justification
+         :client client
+         :control-string (control-string directive)
+         :directive-character #\>
+         :regions (list (cons (start directive) (structured-end directive)))))
+
+(define-condition missing-end-conditional (missing-directive)
+  ())
+
+(defun signal-missing-end-conditional (client directive)
+  (error 'missing-end-conditional
+         :client client
+         :control-string (control-string directive)
+         :directive-character #\]
+         :regions (list (cons (start directive) (structured-end directive)))))
+
+(define-condition missing-end-case-conversion (missing-directive)
+  ())
+
+(defun signal-missing-end-case-conversion (client directive)
+  (error 'missing-end-case-conversion
+         :client client
+         :control-string (control-string directive)
+         :directive-character #\)
+         :regions (list (cons (start directive) (structured-end directive)))))
+
+(define-condition missing-end-iteration (missing-directive)
+  ())
+
+(defun signal-missing-end-iteration (client directive)
+  (error 'missing-end-iteration
+         :client client
+         :control-string (control-string directive)
+         :directive-character #\}
+         :regions (list (cons (start directive) (structured-end directive)))))
+
+(define-condition missing-clause-separator (missing-directive)
+  ())
+
+(defun signal-missing-clause-separator (client directive)
+  (error 'missing-clause-separator
+         :client client
+         :control-string (control-string directive)
+         :directive-character #\;
          :regions (list (cons (start directive) (structured-end directive)))))
 
 (defun check-clause-count (client directive minimum-count maximum-count)
   (let ((len (length (clauses directive))))
     (cond ((< len minimum-count)
-           (error 'missing-directive
+           (error 'missing-clause-separator
                   :client client
                   :control-string (control-string directive)
                   :directive-character #\;
-                  :reason :clause-count
                   :regions (list (cons (start directive) (structured-end directive)))))
           ((< maximum-count len)
            (let* ((clause (aref (clauses directive) (1- maximum-count)))
                   (separator (aref clause (1- (length clause)))))
-             (error 'illegal-directive
+             (error 'excessive-clause-separators
                     :client client
                     :control-string (control-string directive)
-                    :reason :clause-count
                     :regions (list (cons (start separator) (end separator)))))))))
 
 ;;; Runtime conditions
@@ -287,10 +352,10 @@
                                            (acclimation:language acclimation:*locale*)))))
 
 (define-condition go-to-out-of-bounds (format-runtime-error)
-  ((%what-argument :reader what-argument
-                   :initarg :what-argument)
-   (%max-arguments :reader max-arguments
-                   :initarg :max-arguments)))
+  ((%argument-position :reader argument-position
+                       :initarg :argument-position)
+   (%argument-count :reader argument-count
+                    :initarg :argument-count)))
 
 (define-condition invalid-destination (format-error)
   ((%destination :reader destination

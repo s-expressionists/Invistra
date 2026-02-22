@@ -91,7 +91,7 @@
   (when (and (colon-p directive)
              (or (not (typep parent 'iteration-directive))
                  (not (colon-p parent))))
-    (signal-illegal-outer-escape-upward client directive)))
+    (signal-illegal-outer-modifier client directive)))
 
 (defmethod interpret-item
     ((client standard-client) (directive escape-upward-directive) &optional parameters)

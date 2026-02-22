@@ -29,5 +29,5 @@
                 (incf position index))
               (unless (< -1 position (length object))
                 (error 'invistra::go-to-out-of-bounds
-                       :what-argument position
-                       :max-arguments (length object)))))))
+                       :argument-position position
+                       :argument-count (length object)))))))

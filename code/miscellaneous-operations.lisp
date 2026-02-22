@@ -31,7 +31,7 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\()) directive (end-directive t))
-  (signal-missing-directive client directive #\) :end-case-conversion))
+  (signal-missing-end-case-conversion client directive))
 
 (defmethod calculate-argument-position (position (directive case-conversion-directive))
   (reduce #'calculate-argument-position (aref (clauses directive) 0)

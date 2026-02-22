@@ -101,7 +101,7 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\[)) directive (end-directive t))
-  (signal-missing-directive client directive #\] :end-conditional))
+  (signal-missing-end-conditional client directive))
 
 (defmethod parameter-specifications
     ((client t) (directive conditional-expression-directive))
@@ -169,7 +169,7 @@
     (when (and (or (not (typep (car parameters) 'literal-parameter))
                    (parameter-value (car parameters)))
                (or colon-p at-sign-p))
-      (signal-modifier-and-parameter client directive))
+      (signal-illegal-conditional-modifier client directive))
     ;; Check that, if a colon modifier was given, then
     ;; there should be a single clause separator (two clauses).
     (when colon-p
@@ -186,7 +186,7 @@
                     (or colon-p
                         at-sign-p
                         (minusp pos)))
-            do (signal-illegal-default-clause client last)
+            do (signal-illegal-default-modifier client last)
           when (and (structured-separator-p last)
                     (colon-p last)
                     (zerop pos))
@@ -284,7 +284,7 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\{)) directive (end-directive t))
-  (signal-missing-directive client directive #\} :end-iteration))
+  (signal-missing-end-iteration client directive))
 
 (defmethod parameter-specifications
             ((client t) (directive iteration-directive))

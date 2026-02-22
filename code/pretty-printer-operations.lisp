@@ -64,7 +64,7 @@
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\<)) directive (end-directive t))
-  (signal-missing-directive client directive #\> :end-logical-block-or-end-justification))
+  (signal-missing-end-logical-block-or-end-justification client directive))
 
 (defmethod calculate-argument-position (position (directive logical-block-directive))
   (setf position (call-next-method))
@@ -157,8 +157,8 @@
                               (incf index position))
                             (cond ((not (< -1 index argument-count))
                                    (error 'go-to-out-of-bounds
-                                          :what-argument index
-                                          :max-arguments argument-count))
+                                          :argument-position index
+                                          :argument-count argument-count))
                                   ((<= index position)
                                    (setf position index))
                                   (t

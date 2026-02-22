@@ -86,8 +86,8 @@
             (declare (ignore absolutep))
             (unless (zerop index)
               (error 'go-to-out-of-bounds
-                     :what-argument index
-                     :max-arguments 0)))))
+                     :argument-position index
+                     :argument-count 0)))))
 
 (defmethod make-argument-cursor ((client standard-client) (object cons))
   (let ((head object)
@@ -117,15 +117,15 @@
                      (setf position index)
                      (when (minusp position)
                        (error 'go-to-out-of-bounds
-                              :what-argument position
-                              :max-arguments (length object)))
+                              :argument-position position
+                              :argument-count (length object)))
                      (setf head (nthcdr position object)))
                     ((minusp index)
                      (setf position (+ position index))
                      (when (minusp position)
                        (error 'go-to-out-of-bounds
-                              :what-argument position
-                              :max-arguments (length object)))
+                              :argument-position position
+                              :argument-count (length object)))
                      (setf head (nthcdr position object)))
                     (t
                      (setf position (+ position index)
