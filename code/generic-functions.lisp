@@ -18,10 +18,11 @@
     nil))
 
 ;;; Check the syntax of a directive.
-(defgeneric check-item-syntax (client directive parent &optional group position)
+(defgeneric check-item-syntax
+    (client directive global-layout local-layout parent &optional group position)
   (:method-combination progn :most-specific-last)
-  (:method progn (client directive parent &optional group position)
-    (declare (ignore client directive parent group position))))
+  (:method progn (client directive global-layout local-layout parent &optional group position)
+    (declare (ignore client directive global-layout local-layout parent group position))))
 
 (defgeneric interpret-item (client item &optional parameters)
   (:method (client item &optional parameters)
@@ -51,10 +52,7 @@
     (declare (ignore client character control-string position))
     nil))
 
-(defgeneric layout-requirements (client item)
-  (:method (client item)
-    (declare (ignore client item))
-    nil))
+(defgeneric merge-layout (client item global local &rest args &key))
 
 (defgeneric coerce-function-designator (client object)
   (:method (client object)

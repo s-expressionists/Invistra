@@ -154,9 +154,9 @@
                       new-position))))))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive conditional-expression-directive) parent
+    ((client standard-client) (directive conditional-expression-directive) global-layout local-layout parent
      &optional group position)
-  (declare (ignore parent group position))
+  (declare (ignore global-layout local-layout parent group position))
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p)
                    (parameters parameters)

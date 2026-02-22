@@ -45,8 +45,8 @@
         (t
          ch)))
 
-(defmethod invistra:check-item-syntax progn ((client extension-client) (directive call-function-directive) parent &optional group position)
-  (declare (ignore parent group position))
+(defmethod invistra:check-item-syntax progn ((client extension-client) (directive call-function-directive) global-layout local-layout parent &optional group position)
+  (declare (ignore global-layout local-layout parent group position))
   (with-accessors ((control-string invistra::control-string)
                    (start invistra::start)
                    (suffix-start invistra::suffix-start)

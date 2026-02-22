@@ -25,9 +25,14 @@
      :bind nil
      :default 1)))
 
-(defmethod layout-requirements ((client standard-client) (item tabulate-directive))
-  (when (colon-p item)
-    (list :logical-block)))
+(defmethod check-item-syntax :around
+    ((client standard-client) (directive tabulate-directive) global-layout local-layout parent
+     &optional group position)
+  (if (colon-p directive)
+      (call-next-method client directive global-layout
+                        (merge-layout client directive global-layout local-layout :logical-block t)
+                        parent group position)
+      (call-next-method)))
 
 (defun format-relative-tab (client colnum colinc)
   (if #+sicl nil #-sicl (inravina:pretty-stream-p client *format-output*)
@@ -123,14 +128,16 @@
      :type character
      :default #\Space)))
 
-(defmethod layout-requirements :around ((client standard-client) (item justification-directive))
-  (merge-layout-requirements client item
-                             (list (if (colon-p (aref (aref (clauses item) 0)
-                                                      (1- (length (aref (clauses item) 0)))))
-                                       :justify-dynamic
-                                       :justify))
-                             (call-next-method)
-                             t))
+(defmethod check-item-syntax :around
+    ((client standard-client) (directive justification-directive) global-layout local-layout
+     parent &optional group position)
+  (call-next-method client directive global-layout
+                    (merge-layout client directive global-layout local-layout
+                                  :justification t
+                                  :dynamic (colon-p (aref (aref (clauses directive) 0)
+                                                          (1- (length (aref (clauses directive)
+                                                                            0))))))
+                    parent group position))
 
 (defmethod calculate-argument-position (position (directive justification-directive))
   nil

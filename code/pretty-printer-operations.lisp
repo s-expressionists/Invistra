@@ -14,8 +14,12 @@
     ((client standard-client) (char (eql #\_)) directive (end-directive t))
   (change-class directive 'conditional-newline-directive))
 
-(defmethod layout-requirements ((client standard-client) (item conditional-newline-directive))
-  (list :logical-block))
+(defmethod check-item-syntax :around
+    ((client standard-client) (directive conditional-newline-directive) global-layout local-layout parent
+     &optional group position)
+  (call-next-method client directive global-layout
+                    (merge-layout client directive global-layout local-layout :logical-block t)
+                    parent group position))
 
 (defmethod interpret-item ((client standard-client) (directive conditional-newline-directive) &optional parameters)
   (declare (ignore parameters)
@@ -71,14 +75,15 @@
         (position
          (1+ position))))
 
-(defmethod layout-requirements :around ((client standard-client) (item logical-block-directive))
-  (merge-layout-requirements client item
-                             (list :logical-block)
-                             (call-next-method)
-                             t))
+(defmethod check-item-syntax :around
+    ((client standard-client) (directive logical-block-directive) global-layout local-layout parent
+     &optional group position)
+  (call-next-method client directive global-layout
+                    (merge-layout client directive global-layout local-layout :logical-block t)
+                    parent group position))
 
-(defmethod check-item-syntax progn ((client standard-client) (directive directive) (parent logical-block-directive) &optional group position)
-  (declare (ignore position))
+(defmethod check-item-syntax progn ((client standard-client) (directive directive) global-layout local-layout (parent logical-block-directive) &optional group position)
+  (declare (ignore global-layout local-layout position))
   (when (and (> (length (clauses parent)) 1)
              (or (eql group 0)
                  (eql group 2))
@@ -86,8 +91,8 @@
              (not (structured-separator-p directive)))
     (signal-illegal-fix-directive client directive)))
 
-(defmethod check-item-syntax progn ((client standard-client) (directive logical-block-directive) parent &optional group position)
-  (declare (ignore parent group position))
+(defmethod check-item-syntax progn ((client standard-client) (directive logical-block-directive)  global-layout local-layout parent &optional group position)
+  (declare (ignore global-layout local-layout parent group position))
   (check-clause-count client directive 1 3))
 
 (defmethod interpret-item ((client standard-client) (directive logical-block-directive) &optional parameters)
@@ -253,8 +258,12 @@
 (defmethod parameter-specifications ((client t) (directive indent-directive))
   '((:type integer :default 0)))
 
-(defmethod layout-requirements ((client standard-client) (item indent-directive))
-  (list :logical-block))
+(defmethod check-item-syntax :around
+    ((client standard-client) (directive indent-directive) global-layout local-layout parent
+     &optional group position)
+  (call-next-method client directive global-layout
+                    (merge-layout client directive global-layout local-layout :logical-block t)
+                    parent group position))
 
 (defmethod interpret-item ((client standard-client) (directive indent-directive) &optional parameters)
   (declare (ignorable client parameters))
@@ -299,9 +308,9 @@
                       (signal-end-of-control-string client directive))))))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive call-function-directive) parent
+    ((client standard-client) (directive call-function-directive) global-layout local-layout parent
      &optional group position)
-  (declare (ignore parent group position))
+  (declare (ignore global-layout local-layout parent group position))
   ;; Check that there is at most one package marker in the function name.
   ;; Also, compute a symbol from the name.
   (with-accessors ((control-string control-string)

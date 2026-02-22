@@ -171,8 +171,12 @@
     ((client standard-client) (char (eql #\W)) directive (end-directive t))
   (change-class directive 'write-directive))
 
-(defmethod layout-requirements ((client standard-client) (item write-directive))
-  (list :logical-block))
+(defmethod check-item-syntax :around
+    ((client standard-client) (directive write-directive) global-layout local-layout parent
+     &optional group position)
+  (call-next-method client directive global-layout
+                    (merge-layout client directive global-layout local-layout :logical-block t)
+                    parent group position))
 
 (defmethod calculate-argument-position (position (directive write-directive))
   (setf position (call-next-method))

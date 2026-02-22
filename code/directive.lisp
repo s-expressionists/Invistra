@@ -1,15 +1,37 @@
 (cl:in-package #:invistra)
 
-(defun merge-layout-requirements (client directive r1 r2 ancestor)
-  (when (or (and (member :justify-dynamic r1)
-                 (member :logical-block r2))
-            (and (member :logical-block r1)
-                 (member :justify-dynamic r2))
-            (and ancestor
-                 (member :justify r1)
-                 (member :logical-block r2)))
-    (signal-incompatible-layout-requirements client directive r1 r2 ancestor))
-  (union r1 r2))
+(defclass layout ()
+  ((%logical-block :accessor logical-block-p
+                   :initarg :logical-block
+                   :initform nil)
+   (%justification :accessor justificationp
+                   :initarg :justification
+                   :initform nil)
+   (%dynamic :accessor dynamicp
+             :initarg :dynamic
+             :initform nil)))
+
+(defmethod merge-layout ((client standard-client) directive global local
+                         &rest args
+                         &key ((:logical-block logical-block-p) nil)
+                              ((:justification justificationp) nil)
+                              ((:dynamic dynamicp) nil))
+  (declare (ignore args))
+  (when (or (and (dynamicp global) logical-block-p)
+            (and dynamicp (logical-block-p global)))
+    (signal-global-layout-conflict client directive))
+  (when logical-block-p
+    (setf (logical-block-p global) t))
+  (when justificationp
+    (setf (justificationp global) t))
+  (when dynamicp
+    (setf (dynamicp global) t))
+  (when (and (justificationp local) logical-block-p)
+    (signal-local-layout-conflict  client directive))
+  (make-instance 'layout
+                 :logical-block (or (logical-block-p local) logical-block-p)
+                 :justification (or (justificationp local) justificationp)
+                 :dynamic (or (dynamicp local) dynamicp)))
 
 (defgeneric control-string (directive))
 
@@ -150,17 +172,6 @@
 (defmethod structured-end-p ((directive end-structured-directive-mixin))
   t)
 
-(defmethod layout-requirements ((client standard-client) (item structured-directive-mixin))
-  (loop with requirements = nil
-        for clause across (clauses item)
-        finally (return requirements)
-        do (loop for it across clause
-                 do (setf requirements
-                          (merge-layout-requirements client it
-                                                     (layout-requirements client it)
-                                                     requirements
-                                                     nil)))))
-
 (defmethod structured-end ((directive structured-directive-mixin))
   (or (loop with clauses = (clauses directive)
             for i from (1- (length clauses)) downto 0
@@ -176,17 +187,17 @@
 ;;; Checking syntax, interpreting, and compiling directives.
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive structured-directive-mixin) parent
+    ((client standard-client) (directive structured-directive-mixin) global-layout local-layout parent
      &optional group position)
   (declare (ignore parent group position))
   (loop for items across (clauses directive)
         for group from 0
         do (loop for item across items
                  for position from 0
-                 do (check-item-syntax client item directive group position))))
+                 do (check-item-syntax client item global-layout local-layout directive group position))))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive directive) parent &optional group position)
+    ((client standard-client) (directive directive) global-layout local-layout parent &optional group position)
   (declare (ignore parent group position))
   (loop for remaining-parameters = (parameters directive) then (cdr remaining-parameters)
         for parameter = (car remaining-parameters)
@@ -220,8 +231,8 @@
 
 ;;; Signal an error if a modifier has been given for such a directive.
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive no-modifiers-mixin) parent &optional group position)
-  (declare (ignore parent group position))
+    ((client standard-client) (directive no-modifiers-mixin) global-layout local-layout parent &optional group position)
+  (declare (ignore global-layout local-layout parent group position))
   (cond ((and (colon-p directive) (at-sign-p directive))
          (signal-illegal-modifiers client directive #\@ #\:))
         ((colon-p directive)
@@ -231,22 +242,22 @@
 
 ;;; Signal an error if an at-sign has been given for such a directive.
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive only-colon-mixin) parent &optional group position)
-  (declare (ignore parent group position))
+    ((client standard-client) (directive only-colon-mixin) global-layout local-layout parent &optional group position)
+  (declare (ignore global-layout local-layout parent group position))
   (when (at-sign-p directive)
     (signal-illegal-modifiers client directive #\@)))
 
 ;;; Signal an error if a colon has been given for such a directive.
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive only-at-sign-mixin) parent &optional group position)
-  (declare (ignore parent group position))
+    ((client standard-client) (directive only-at-sign-mixin) global-layout local-layout parent &optional group position)
+  (declare (ignore global-layout local-layout parent group position))
   (when (colon-p directive)
     (signal-illegal-modifiers client directive #\:)))
 
 ;;; Signal an error if both modifiers have been given for such a directive.
 (defmethod check-item-syntax progn
-    ((client standard-client)(directive at-most-one-modifier-mixin) parent
+    ((client standard-client)(directive at-most-one-modifier-mixin) global-layout local-layout parent
      &optional group position)
-  (declare (ignore parent group position))
+  (declare (ignore global-layout local-layout parent group position))
   (when (and (colon-p directive) (at-sign-p directive))
     (signal-conflicting-modifiers client directive #\@ #\:)))

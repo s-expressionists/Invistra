@@ -226,6 +226,20 @@
          :regions (list (cons (start directive) (end directive)))
          :reason :logical-block-fix))
 
+(defun signal-local-layout-conflict (client directive)
+  (error 'illegal-directive
+         :client client
+         :control-string (control-string directive)
+         :regions (list (cons (start directive) (structured-end directive)))
+         :reason :local-layout-conflict))
+
+(defun signal-global-layout-conflict (client directive)
+  (error 'illegal-directive
+         :client client
+         :control-string (control-string directive)
+         :regions (list (cons (start directive) (structured-end directive)))
+         :reason :global-layout-conflict))
+
 (define-condition missing-directive (format-syntax-error)
   ((%directive-character :accessor directive-character
                          :initarg :directive-character)))
@@ -255,24 +269,6 @@
                     :control-string (control-string directive)
                     :reason :clause-count
                     :regions (list (cons (start separator) (end separator)))))))))
-
-(define-condition incompatible-layout-requirements
-    (format-syntax-error)
-  ((%requirement1 :reader requirement1
-                  :initarg :requirement1)
-   (%requirement2 :reader requirement2
-                  :initarg :requirement2)
-   (%ancestor :reader ancestor
-              :initarg :ancestor)))
-
-(defun signal-incompatible-layout-requirements (client directive requirement1 requirement2 ancestor)
-  (error 'incompatible-layout-requirements
-         :client client
-         :control-string (control-string directive)
-         :regions (list (cons (start directive) (structured-end directive)))
-         :requirement1 requirement1
-         :requirement2 requirement2
-         :ancestor ancestor))
 
 ;;; Runtime conditions
 

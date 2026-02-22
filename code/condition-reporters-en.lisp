@@ -135,6 +135,10 @@
                    "Directives are not permitted in the prefix or suffix of a logical block directive.")
                   (:clause-count
                    "Too many clauses in directive.")
+                  (:global-layout-conflict
+                   "Dynamic justification and logical block directives may not be used in the same control string.")
+                  (:local-layout-conflict
+                   "Logical block directives may not be used inside of a justification directive.")
                   (otherwise
                    "Illegal directive."))
                 stream))
@@ -154,15 +158,6 @@
      (write-line "Not enough clauses in directive, i.e. missing clause separator (~;) directive." stream))
     (otherwise
      (cl:format stream "Missing ~~~c directive." (directive-character condition)))))
-
-(defmethod acclimation:report-condition
-    ((condition incompatible-layout-requirements) stream (language acclimation:english))
-  (cl:format stream
-             "The layout requirement ~a is not compatible with the requirement of ~
-              ~a~:[~; as an ancestor~].~%"
-             (requirement2 condition)
-             (requirement1 condition)
-             (ancestor condition)))
 
 ;;; Runtime conditions
 

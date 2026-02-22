@@ -32,16 +32,16 @@
 
 (defmethod check-item-syntax progn
     ((client standard-client) (directive clause-separator-directive)
-     (parent iteration-directive)
+     global-layout local-layout (parent iteration-directive)
      &optional group position)
-  (declare (ignore group position))
+  (declare (ignore global-layout local-layout group position))
   (signal-illegal-clause-separator client directive))
 
 (defmethod check-item-syntax progn
     ((client standard-client) (directive clause-separator-directive)
-     (parent case-conversion-directive)
+     global-layout local-layout (parent case-conversion-directive)
      &optional group position)
-  (declare (ignore group position))
+  (declare (ignore global-layout local-layout group position))
   (signal-illegal-clause-separator client directive))
 
 (defmethod interpret-item
@@ -85,9 +85,9 @@
     (:name p3 :type (or null character integer))))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive escape-upward-directive) parent
+    ((client standard-client) (directive escape-upward-directive) global-layout local-layout parent
      &optional group position)
-  (declare (ignore group position))
+  (declare (ignore global-layout local-layout group position))
   (when (and (colon-p directive)
              (or (not (typep parent 'iteration-directive))
                  (not (colon-p parent))))

@@ -7,14 +7,7 @@
 (defun structure-items (client items)
   (loop with result = (list (make-group))
         for item in (reverse items)
-        finally (reduce (lambda (req it)
-                          (merge-layout-requirements client it
-                                                     (layout-requirements client it)
-                                                     req
-                                                     nil))
-                        (car (group-clauses (car result)))
-                        :initial-value nil)
-                (return (coerce (car (group-clauses (car result))) 'vector))
+        finally (return (coerce (car (group-clauses (car result))) 'vector))
         unless (stringp item)
           do (specialize-directive client (directive-character item)
                                    item (group-end (car result)))
@@ -32,6 +25,8 @@
 
 (defun parse-control-string (client control-string)
   (loop with items = (structure-items client (split-control-string client control-string))
+        with global = (make-instance 'layout)
+        with local = (make-instance 'layout)
         for item across items
         finally (return items)
-        do (check-item-syntax client item nil)))
+        do (check-item-syntax client item global local nil)))
