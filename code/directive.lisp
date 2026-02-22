@@ -33,41 +33,6 @@
                  :justification (or (justificationp local) justificationp)
                  :dynamic (or (dynamicp local) dynamicp)))
 
-(defgeneric control-string (directive))
-
-(defgeneric start (directive))
-
-(defgeneric suffix-start (directive))
-
-(defgeneric end (directive))
-
-(defgeneric directive-character (directive))
-
-(defgeneric parameters (directive))
-
-(defgeneric colon-p (directive))
-
-(defgeneric at-sign-p (directive))
-
-(defgeneric structured-end-p (directive)
-  (:method (directive)
-    (declare (ignore directive))
-    nil))
-
-(defgeneric structured-separator-p (directive)
-  (:method (directive)
-    (declare (ignore directive))
-    nil))
-
-(defgeneric structured-start-p (directive)
-  (:method (directive)
-    (declare (ignore directive))
-    nil))
-
-(defgeneric interpret-parameter (parameter))
-
-(defgeneric compile-parameter (parameter))
-
 (defclass parameter ()
   ((%name :accessor parameter-name
           :initarg :name

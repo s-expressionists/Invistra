@@ -175,3 +175,63 @@
       (setf suffix-start end)
       (parse-suffix client directive directive-character)
       directive)))
+
+(defstruct group
+  end
+  (clauses (list nil)))
+
+;;; Split a control string into its components.  Each component is
+;;; either a string to be printed as it is, or a directive.  The list
+;;; of components will never contain two consecutive strings.
+(defun split-control-string (client control-string)
+  (prog ((start 0)
+         (end 0)
+         (position 0)
+         (items nil)
+         (directive nil))
+   next
+     (when (< position (length control-string))
+       (setf end position
+             directive (parse-directive client (char control-string position)
+                                        control-string position))
+       (cond (directive
+              (setf position (end directive))
+              (when (< start end)
+                (push (subseq control-string start end) items))
+              (push directive items)
+              (setf start position
+                    end position))
+             (t
+              (incf position)
+              (setf end position)))
+       (go next))
+     (when (< start end)
+       (push (subseq control-string start end) items))
+     (return (nreverse items))))
+
+(defun structure-items (client items)
+  (loop with result = (list (make-group))
+        for item in (reverse items)
+        finally (return (coerce (car (group-clauses (car result))) 'vector))
+        unless (stringp item)
+          do (specialize-directive client (directive-character item)
+                                   item (group-end (car result)))
+             (cond ((structured-start-p item)
+                    (setf (clauses item) (map 'vector
+                                              (lambda (items)
+                                                (coerce items 'vector))
+                                              (group-clauses (car result))))
+                    (pop result))
+                   ((structured-end-p item)
+                    (push (make-group :end item) result))
+                   ((structured-separator-p item)
+                    (push nil (group-clauses (car result)))))
+        do (push item (car (group-clauses (car result))))))
+
+(defun parse-control-string (client control-string)
+  (loop with items = (structure-items client (split-control-string client control-string))
+        with global = (make-instance 'layout)
+        with local = (make-instance 'layout)
+        for item across items
+        finally (return items)
+        do (check-item-syntax client item global local nil)))

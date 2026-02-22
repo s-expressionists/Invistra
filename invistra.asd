@@ -21,8 +21,6 @@
                              (:file "generic-functions")
                              (:file "directive")
                              (:file "parse-control-string")
-                             (:file "split-control-string")
-                             (:file "structure-items")
                              (:file "control-string-compiler")
                              (:file "format")
                              (:file "formatter")

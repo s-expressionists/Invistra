@@ -4,24 +4,50 @@
            #:formatter)
   (:export #:*format-output*
            #:*roman-digits*
+           #:argument-type-error
            #:at-sign-p
+           #:check-clause-count
+           #:check-end-of-control-string
            #:check-item-syntax
            #:coerce-function-designator
            #:colon-p
            #:compile-item
+           #:control-string
+           #:control-string-error
            #:define-interface
            #:directive
+           #:duplicate-modifiers
+           #:end
+           #:start
+           #:suffix-start
+           #:parse-suffix
+           #:modifiers-start
+           #:character-start
+           #:end-of-control-string
            #:format
            #:format-compiler-macro
+           #:format-error
+           #:format-parse-error
+           #:format-runtime-error
+           #:format-syntax-error
            #:formatter
            #:go-to-argument
            #:go-to-argument-forms
+           #:go-to-out-of-bounds
+           #:illegal-directive
+           #:illegal-modifiers
+           #:illegal-parameter
            #:inner-exit
            #:inner-exit-forms
            #:inner-exit-if-exhausted
            #:inner-exit-if-exhausted-forms
            #:interpret-item
+           #:invalid-destination
            #:make-argument-cursor
+           #:missing-directive
+           #:no-more-arguments
+           #:no-such-package
+           #:no-such-symbol
            #:outer-exit
            #:outer-exit-forms
            #:outer-exit-if-exhausted
@@ -33,8 +59,19 @@
            #:pop-remaining-arguments-form
            #:remaining-argument-count
            #:remaining-argument-count-form
+           #:signal-conflicting-modifiers
+           #:signal-duplicate-modifiers
+           #:signal-end-of-control-string
+           #:signal-illegal-modifiers
+           #:signal-missing-directive
+           #:signal-no-such-package
+           #:signal-no-such-symbol
+           #:signal-symbol-not-external
+           #:signal-unknown-directive-character
            #:specialize-directive
            #:standard-client
+           #:symbol-not-external
+           #:unknown-directive-character
            #:write-cardinal-numeral
            #:write-old-roman-numeral
            #:write-ordinal-numeral
