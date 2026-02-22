@@ -53,7 +53,7 @@
                                     (error 'go-to-out-of-bounds
                                            :argument-position pos
                                            :argument-count (length args)))
-                                  (loop for i from (length args) to pos
+                                  (loop for i from (length args) below pos
                                         do (vector-push-extend (make-lambda-argument) args))))
                               (*inner-exit-if-exhausted*
                                 (lambda ()

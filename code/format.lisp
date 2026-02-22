@@ -113,23 +113,25 @@
                 (setf head nil
                       position (length object))))
             (lambda (index &optional absolutep)
-              (cond (absolutep
-                     (setf position index)
-                     (when (minusp position)
-                       (error 'go-to-out-of-bounds
-                              :argument-position position
-                              :argument-count (length object)))
-                     (setf head (nthcdr position object)))
-                    ((minusp index)
-                     (setf position (+ position index))
-                     (when (minusp position)
-                       (error 'go-to-out-of-bounds
-                              :argument-position position
-                              :argument-count (length object)))
-                     (setf head (nthcdr position object)))
-                    (t
-                     (setf position (+ position index)
-                           head (nthcdr index head))))))))
+              (tagbody
+                 (unless absolutep
+                   (incf index position))
+                 (when (minusp index)
+                   (error 'go-to-out-of-bounds
+                          :argument-position index
+                          :argument-count (length object)))
+                 (when (< index position)
+                   (setf head object
+                         position 0))
+               next
+                 (when (< position index)
+                   (unless head
+                     (error 'go-to-out-of-bounds
+                            :argument-position index
+                            :argument-count (length object)))
+                   (incf position)
+                   (pop head)
+                   (go next)))))))
 
 (defmacro with-arguments ((client arguments &key outer) &body body)
   (let ((block-name (gensym)))
