@@ -92,7 +92,7 @@
 (defmethod make-argument-cursor ((client standard-client) (object cons))
   (let ((head object)
         (position 0)
-        (len (list-length object)))
+        (len (dotted-list-length object)))
     (values (lambda ()
               head)
             (lambda ()
@@ -111,7 +111,7 @@
               (prog1
                   head
                 (setf head nil
-                      position (length object))))
+                      position len)))
             (lambda (index &optional absolutep)
               (tagbody
                  (unless absolutep
@@ -119,7 +119,7 @@
                  (when (minusp index)
                    (error 'go-to-out-of-bounds
                           :argument-position index
-                          :argument-count (length object)))
+                          :argument-count len))
                  (when (< index position)
                    (setf head object
                          position 0))
@@ -128,7 +128,7 @@
                    (unless head
                      (error 'go-to-out-of-bounds
                             :argument-position index
-                            :argument-count (length object)))
+                            :argument-count len))
                    (incf position)
                    (pop head)
                    (go next)))))))

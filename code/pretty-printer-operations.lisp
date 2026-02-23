@@ -15,13 +15,14 @@
   (change-class directive 'conditional-newline-directive))
 
 (defmethod check-item-syntax :around
-    ((client standard-client) (directive conditional-newline-directive) global-layout local-layout parent
-     &optional group position)
+    ((client standard-client) (directive conditional-newline-directive) global-layout
+     local-layout parent &optional group position)
   (call-next-method client directive global-layout
                     (merge-layout client directive global-layout local-layout :logical-block t)
                     parent group position))
 
-(defmethod interpret-item ((client standard-client) (directive conditional-newline-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive conditional-newline-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -34,7 +35,8 @@
                                    (at-sign-p :miser)
                                    (t :linear)))))
 
-(defmethod compile-item ((client standard-client) (directive conditional-newline-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive conditional-newline-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -70,19 +72,23 @@
   (setf position (call-next-method))
   (cond ((at-sign-p directive)
          (reduce #'calculate-argument-position (aref (clauses directive)
-                                                     (if (< (length (clauses directive)) 2) 0 1))
+                                                     (if (< (length (clauses directive)) 2)
+                                                         0
+                                                         1))
                  :initial-value position))
         (position
          (1+ position))))
 
 (defmethod check-item-syntax :around
-    ((client standard-client) (directive logical-block-directive) global-layout local-layout parent
-     &optional group position)
+    ((client standard-client) (directive logical-block-directive) global-layout local-layout
+     parent &optional group position)
   (call-next-method client directive global-layout
                     (merge-layout client directive global-layout local-layout :logical-block t)
                     parent group position))
 
-(defmethod check-item-syntax progn ((client standard-client) (directive directive) global-layout local-layout (parent logical-block-directive) &optional group position)
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive directive) global-layout local-layout
+     (parent logical-block-directive) &optional group position)
   (declare (ignore global-layout local-layout position))
   (when (and (> (length (clauses parent)) 1)
              (or (eql group 0)
@@ -91,11 +97,14 @@
              (not (structured-separator-p directive)))
     (signal-illegal-fix-directive client directive)))
 
-(defmethod check-item-syntax progn ((client standard-client) (directive logical-block-directive)  global-layout local-layout parent &optional group position)
+(defmethod check-item-syntax progn
+    ((client standard-client) (directive logical-block-directive) global-layout local-layout
+     parent &optional group position)
   (declare (ignore global-layout local-layout parent group position))
   (check-clause-count client directive 1 3))
 
-(defmethod interpret-item ((client standard-client) (directive logical-block-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive logical-block-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -123,61 +132,68 @@
                         "")))
          (per-line-prefix-p (and (> (length (clauses directive)) 1)
                                  (at-sign-p (aref (aref (clauses directive) 0)
-                                            (1- (length (aref (clauses directive) 0)))))))
-         (object (unless at-sign-p (pop-argument))))
-    (flet ((interpret-body (*format-output* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p*)
-             (if at-sign-p
-                 (interpret-items client (aref (clauses directive)
-                                               (if (= (length (clauses directive)) 1)
-                                                   0
-                                                   1)))
-                 (let* ((argument-count (dotted-list-length object))
-                        (previous-arguments (make-array argument-count
-                                                        :adjustable t :fill-pointer 0))
-                        (position 0)
-                        (*argument-index*
-                          (lambda () position))
-                        (*remaining-argument-count*
-                          (lambda () (- argument-count position)))
-                        (my-pop-argument-hook
-                          (lambda (&optional (type t))
-                            (let ((value (if (< position (length previous-arguments))
-                                             (aref previous-arguments position)
-                                             (vector-push-extend (funcall pop-argument-hook)
-                                                                 previous-arguments))))
-                              (unless (typep value type)
-                                (error 'type-error :datum value :expected-type type))
-                              (incf position))))
-                        (*pop-argument* my-pop-argument-hook)
-                        (*pop-remaining-arguments*
-                          (lambda () nil))
-                        (*go-to-argument*
-                          (lambda (index absolutep)
-                            (unless absolutep
-                              (incf index position))
-                            (cond ((not (< -1 index argument-count))
-                                   (error 'go-to-out-of-bounds
-                                          :argument-position index
-                                          :argument-count argument-count))
-                                  ((<= index position)
-                                   (setf position index))
-                                  (t
-                                   (tagbody
-                                    next
-                                      (when (< position index)
-                                        (funcall my-pop-argument-hook)
-                                        (go next))))))))
-                   (interpret-items client (aref (clauses directive)
-                                                 (if (= (length (clauses directive)) 1)
-                                                     0
-                                                     1)))))))
-      (inravina:execute-logical-block client *format-output*
-                                      object #'interpret-body
-                                      :prefix prefix
-                                      :per-line-prefix-p per-line-prefix-p
-                                      :suffix suffix))))
+                                                  (1- (length (aref (clauses directive) 0)))))))
+         (object (if at-sign-p (pop-remaining-arguments) (pop-argument))))
+    (inravina:execute-logical-block
+     client *format-output*
+     object
+     (lambda (*format-output* inner-exit-if-exhausted-hook pop-argument-hook more-arguments-p-hook)
+       (let* ((argument-count (dotted-list-length object))
+              (previous-arguments (make-array argument-count
+                                              :adjustable t :fill-pointer 0))
+              (position 0)
+              (*argument-index*
+                (lambda () position))
+              (*remaining-argument-count*
+                (lambda () (- argument-count position)))
+              (my-pop-argument-hook
+                (lambda (&optional (type t))
+                  (let (value)
+                    (if (< position (length previous-arguments))
+                        (setf value (aref previous-arguments position))
+                        (vector-push-extend (setf value (funcall pop-argument-hook))
+                                            previous-arguments))
+                    (unless (typep value type)
+                      (error 'type-error :datum value :expected-type type))
+                    (incf position)
+                    value)))
+              (*pop-argument* my-pop-argument-hook)
+              (*pop-remaining-arguments*
+                (lambda () nil))
+              (*more-arguments-p*
+                (lambda ()
+                  (or (< position (length previous-arguments))
+                      (funcall more-arguments-p-hook))))
+              (*inner-exit-if-exhausted*
+                (lambda ()
+                  (unless (< position (length previous-arguments))
+                    (funcall inner-exit-if-exhausted-hook))))
+              (*go-to-argument*
+                (lambda (index absolutep)
+                  (unless absolutep
+                    (incf index position))
+                  (cond ((not (< -1 index argument-count))
+                         (error 'go-to-out-of-bounds
+                                :argument-position index
+                                :argument-count argument-count))
+                        ((<= index position)
+                         (setf position index))
+                        (t
+                         (tagbody
+                          next
+                            (when (< position index)
+                              (funcall my-pop-argument-hook)
+                              (go next))))))))
+         (interpret-items client (aref (clauses directive)
+                                       (if (= (length (clauses directive)) 1)
+                                           0
+                                           1)))))
+     :prefix prefix
+     :per-line-prefix-p per-line-prefix-p
+     :suffix suffix)))
 
-(defmethod compile-item ((client standard-client) (directive logical-block-directive) &optional parameters)
+(defmethod compile-item
+    ((client standard-client) (directive logical-block-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -205,45 +221,70 @@
                         "")))
          (per-line-prefix-p (and (> (length (clauses directive)) 1)
                                  (at-sign-p (aref (aref (clauses directive) 0)
-                                                  (1- (length (aref (clauses directive) 0))))))))
-    (if at-sign-p
-        `((inravina:execute-logical-block ,(trinsic:client-form client) *format-output*
-                                          nil
-                                          (lambda (*format-output* escape-hook pop-argument-hook more-arguments-p-hook)
-                                            (declare (ignore escape-hook pop-argument-hook))
-                                            ,@(compile-items client (aref (clauses directive)
-                                                                          (if (= (length (clauses directive)) 1)
-                                                                              0
-                                                                              1))))
-                                          :prefix ,prefix :suffix ,suffix
-                                          :per-line-prefix-p ,per-line-prefix-p))
-        (let ((arg-form (pop-argument-form)))
-          (with-dynamic-arguments ()
-            `((let* ((object ,arg-form)
-                     (argument-count (dotted-list-length object))
-                     (previous-arguments (make-array argument-count
-                                                     :adjustable t :fill-pointer 0))
-                     (previous-argument-index 0))
-                (inravina:execute-logical-block ,(trinsic:client-form client) *format-output*
-                                                object
-                                                (lambda (*format-output* *inner-exit-if-exhausted* pop-argument-hook *more-arguments-p*)
-                                                  (let* ((position 0)
-                                                         (*remaining-argument-count* (lambda ()
-                                                                                       (- argument-count position)))
-                                                         (*argument-index* (lambda ()
-                                                                             position))
-                                                         (*pop-argument* (lambda (&optional (type t))
-                                                                           (let ((value (funcall pop-argument-hook)))
-                                                                             (unless (typep value type)
-                                                                               (error 'type-error :datum value :expected-type type))
-                                                                             value))))
-
-                                                    ,@(compile-items client (aref (clauses directive)
-                                                                                  (if (= (length (clauses directive)) 1)
-                                                                                      0
-                                                                                      1)))))
-                                                :prefix ,prefix :suffix ,suffix
-                                                :per-line-prefix-p ,per-line-prefix-p))))))))
+                                                  (1- (length (aref (clauses directive) 0)))))))
+         (arg-form (if at-sign-p (pop-remaining-arguments-form) (pop-argument-form))))
+    (with-dynamic-arguments ()
+      `((let* ((object ,arg-form)
+               (argument-count (dotted-list-length object))
+               (previous-arguments (make-array argument-count
+                                               :adjustable t :fill-pointer 0))
+               (position 0)
+               (*remaining-argument-count*
+                 (lambda ()
+                   (- argument-count position)))
+               (*argument-index*
+                 (lambda ()
+                   position))
+               (*pop-remaining-arguments*
+                 (lambda () nil)))
+          (inravina:execute-logical-block
+           ,(trinsic:client-form client) *format-output*
+           object
+           (lambda
+               (*format-output* inner-exit-if-exhausted-hook pop-argument-hook
+                more-arguments-p-hook)
+             (let* ((my-pop-argument-hook
+                      (lambda (&optional (type t))
+                        (let (value)
+                          (if (< position (length previous-arguments))
+                              (setf value (aref previous-arguments position))
+                              (vector-push-extend (setf value (funcall pop-argument-hook))
+                                                  previous-arguments))
+                          (unless (typep value type)
+                            (error 'type-error :datum value :expected-type type))
+                          (incf position)
+                          value)))
+                    (*pop-argument* my-pop-argument-hook)
+                    (*more-arguments-p*
+                      (lambda ()
+                        (or (< position (length previous-arguments))
+                            (funcall more-arguments-p-hook))))
+                    (*inner-exit-if-exhausted*
+                      (lambda ()
+                        (unless (< position (length previous-arguments))
+                          (funcall inner-exit-if-exhausted-hook))))
+                    (*go-to-argument*
+                      (lambda (index absolutep)
+                        (unless absolutep
+                          (incf index position))
+                        (cond ((not (< -1 index argument-count))
+                               (error 'go-to-out-of-bounds
+                                      :argument-position index
+                                      :argument-count argument-count))
+                              ((<= index position)
+                               (setf position index))
+                              (t
+                               (tagbody
+                                next
+                                  (when (< position index)
+                                    (funcall my-pop-argument-hook)
+                                    (go next))))))))
+               ,@(compile-items client (aref (clauses directive)
+                                             (if (= (length (clauses directive)) 1)
+                                                 0
+                                                 1)))))
+           :prefix ,prefix :suffix ,suffix
+           :per-line-prefix-p ,per-line-prefix-p))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
