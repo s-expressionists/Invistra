@@ -14,4 +14,5 @@
                 :serial t
                 :components ((:file "packages")
                              (:file "arguments")
-                             (:file "call-function")))))
+                             (:file "call-function")
+                             (:file "numeral")))))

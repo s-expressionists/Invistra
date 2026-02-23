@@ -1,22 +1,23 @@
-(in-package #:invistra-numeral)
+(in-package #:invistra-extension)
 
 (defclass numeral-directive (invistra:directive)
-  ((pattern :accessor numeral-pattern
-            :initarg :pattern)))
+  ())
 
 (defmethod invistra:parameter-specifications ((client t) (directive numeral-directive))
-  '((:type integer :default 0)
+  '((:type character :default #\A)
+    (:type integer :default 0)
     (:type character :default #\Space)
     (:type character :default #\,)
     (:type integer :default 3)))
 
-(defmacro define-numeral-directive (client-class char pattern)
-  `(defmethod invistra:specialize-directive
-       ((client ,client-class) (char (eql ,char)) directive (end-directive t))
-     (change-class directive 'numeral-directive
-                   :pattern ',pattern)))
+(defmethod invistra:specialize-directive
+    ((client extension-client) (char (eql #\N)) directive end-directive)
+  (declare (ignore end-directive))
+     (change-class directive 'numeral-directive))
 
-#|(defmethod numeral-pattern ((name null))
+(defgeneric numeral-pattern (name))
+
+(defmethod numeral-pattern ((name (eql #\A)))
   '#1=(#("0" "1" "2" "3" "4" "5" "6" "7" "8" "9")
         . #1#))
 
@@ -47,10 +48,11 @@
          "𝋅" "𝋆" "𝋇" "𝋈" "𝋉"
          "𝋊" "𝋋" "𝋌" "𝋍" "𝋎"
          "𝋏" "𝋐" "𝋑" "𝋒" "𝋓")
-        . #1#))|#
+        . #1#))
 
-(defun print-numeral-arg (client colon-p at-sign-p pattern mincol padchar commachar comma-interval)
+(defun print-numeral-arg (client colon-p at-sign-p name mincol padchar commachar comma-interval)
   (prog ((q (invistra:pop-argument))
+         (pattern (numeral-pattern (char-upcase name)))
          (r 0)
          (c 0)
          parts
@@ -70,17 +72,20 @@
            (push (string comma-part) parts)))
        (go repeat))
      (setf result (apply #'concatenate 'string parts)
-           pad-length (max 0 (- mincol (inravina:stream-measure-string invistra:*format-output* result))))
+           pad-length (max 0
+                           (- mincol
+                              (inravina:stream-measure-string invistra:*format-output*
+                                                              result))))
      (write-string result invistra:*format-output*)))
 
-(defmethod invistra:interpret-item (client (directive numeral-directive) &optional parameters)
+(defmethod invistra:interpret-item
+    ((client extension-client) (directive numeral-directive) &optional parameters)
   (apply #'print-numeral-arg client
          (invistra:colon-p directive) (invistra:at-sign-p directive)
-         (numeral-pattern directive)
          parameters))
 
-(defmethod invistra:compile-item (client (directive numeral-directive) &optional parameters)
+(defmethod invistra:compile-item
+    ((client extension-client) (directive numeral-directive) &optional parameters)
   `((print-numeral-arg ,(trinsic:client-form client)
                        ,(invistra:colon-p directive) ,(invistra:at-sign-p directive)
-                       ,(numeral-pattern directive)
                        ,@parameters)))
