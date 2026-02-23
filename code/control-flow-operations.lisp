@@ -322,7 +322,7 @@
                                        (< index iteration-limit))
                              when (or (not oncep) (plusp index))
                                do (funcall *inner-exit-if-exhausted*)
-                             do (with-arguments (client (pop-argument))
+                             do (with-arguments (client (pop-argument) :outer t)
                                   (interpret-items client items))))))
                 (colon-p
                  ;; We use one argument, and that should be a list of sublists.
@@ -341,7 +341,7 @@
                                   (error 'argument-type-error
                                          :expected-type 'list
                                          :datum args))
-                                (with-arguments (client args)
+                                (with-arguments (client args :outer t)
                                   (format-with-runtime-arguments client control))))
                          (if (null iteration-limit)
                              (loop for args in arg ; a bit unusual naming perhaps
@@ -392,7 +392,7 @@
                                  (< index iteration-limit))
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
-                       do (with-arguments (client (pop-argument))
+                       do (with-arguments (client (pop-argument) :outer t)
                             (interpret-items client items)))))
               (colon-p
                ;; We use one argument, and that should be a list of sublists.
@@ -403,7 +403,7 @@
                                  (< index iteration-limit))
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
-                       do (with-arguments (client (pop-argument))
+                       do (with-arguments (client (pop-argument) :outer t)
                             (interpret-items client items)))))
               (at-sign-p
                (with-remaining-arguments ()
