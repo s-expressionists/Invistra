@@ -30,23 +30,24 @@
 (defun write-radix-numeral
     (client value colon-p at-sign-p radix mincol padchar commachar comma-interval)
   (if (integerp value)
-      (loop with magnitude = (abs value)
-            with digit-count = (quaviver.math:count-digits radix magnitude)
-            repeat (max 0 (- mincol digit-count
+      (let* ((magnitude (abs value))
+             (digit-count (quaviver.math:count-digits radix magnitude)))
+        (loop repeat (max 0
+                          (- mincol digit-count
                              (if colon-p
                                  (1- (ceiling digit-count comma-interval))
                                  0)
                              (if (or (minusp value) at-sign-p) 1 0)))
-            do (write-char padchar *format-output*)
-            finally (cond ((minusp value)
-                           (write-char #\- *format-output*))
-                          (at-sign-p
-                           (write-char #\+ *format-output*)))
-                    (if colon-p
-                        (quaviver:write-digits radix magnitude *format-output*
-                                               :digit-grouping (vector comma-interval)
-                                               :group-marker commachar)
-                        (quaviver:write-digits radix magnitude *format-output*)))
+              do (write-char padchar *format-output*))
+        (cond ((minusp value)
+               (write-char #\- *format-output*))
+              (at-sign-p
+               (write-char #\+ *format-output*)))
+        (if colon-p
+            (quaviver:write-digits radix magnitude *format-output*
+                                   :digit-grouping (vector comma-interval)
+                                   :group-marker commachar)
+            (quaviver:write-digits radix magnitude *format-output*)))
       (let ((*print-base* radix)
             (*print-escape* nil)
             (*print-readably* nil))
