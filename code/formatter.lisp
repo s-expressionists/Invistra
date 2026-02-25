@@ -11,6 +11,7 @@
     (let ((items (parse-control-string client control-string)))
       (if (reduce #'calculate-argument-position items :initial-value 0)
           (let* ((args (make-array 8 :adjustable t :fill-pointer 0))
+                 (restp t)
                  (guts (let* ((pos 0)
                               (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
                               (*outer-exit* *inner-exit*)
@@ -38,13 +39,15 @@
                                         (lambda-argument-name arg)))))
                               (pop-remaining-arguments-hook
                                 (lambda ()
-                                  (if (< pos (length args))
-                                      (nconc (list 'list*)
-                                             (loop for i from pos
-                                                     below (length args)
-                                                   collect (lambda-argument-name (aref args i)))
-                                             (list rest))
-                                      rest)))
+                                  (when restp
+                                    (setf restp nil)
+                                    (if (< pos (length args))
+                                        (nconc (list 'list*)
+                                               (loop for i from pos
+                                                       below (length args)
+                                                     collect (lambda-argument-name (aref args i)))
+                                               (list rest))
+                                      rest))))
                               (*pop-remaining-arguments* pop-remaining-arguments-hook)
                               (*go-to-argument*
                                 (lambda (index &optional absolutep)
