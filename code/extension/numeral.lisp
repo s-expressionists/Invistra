@@ -36,6 +36,7 @@
     #("" "C" "CC" "CCC" "CD" "D" "DC" "DCC" "DCCC" "CM")
     #("" "M" "MM" "MMM" "MMMM")))
 
+;;; etruscan
 (defmethod numeral-pattern ((name (eql #\E)))
   '(#(nil "𐌠" "𐌠𐌠" "𐌠𐌠𐌠" "𐌠𐌠𐌠𐌠")
     #("" "𐌡")
@@ -43,11 +44,19 @@
     #("" "𐌣")
     #("" "𐌟" "𐌟𐌟" "𐌟𐌟𐌟" "𐌟𐌟𐌟𐌟")))
 
+;;; Kaktovik
 (defmethod numeral-pattern ((name (eql #\K)))
   '#1=(#("𝋀" "𝋁" "𝋂" "𝋃" "𝋄"
          "𝋅" "𝋆" "𝋇" "𝋈" "𝋉"
          "𝋊" "𝋋" "𝋌" "𝋍" "𝋎"
          "𝋏" "𝋐" "𝋑" "𝋒" "𝋓")
+        . #1#))
+
+(defmethod numeral-pattern ((name (eql #\M)))
+  '#1=(#("𝋠" "𝋡" "𝋢" "𝋣" "𝋤"
+         "𝋥" "𝋦" "𝋧" "𝋨" "𝋩"
+         "𝋪" "𝋫" "𝋬" "𝋭" "𝋮"
+         "𝋯" "𝋰" "𝋱" "𝋲" "𝋳")
         . #1#))
 
 (defun print-numeral-arg (client colon-p at-sign-p name mincol padchar commachar comma-interval)

@@ -27,30 +27,30 @@
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
-  (let ((char (pop-argument 'character)))
-    (cond (colon-p
-           ;; We have a colon modifier.
-           ;; The HyperSpec says to do what WRITE-CHAR does for
-           ;; printing characters, and what char-name does otherwise.
-           ;; The definition of "printing char" is a graphic character
-           ;; other than space.
-           (if (and (graphic-char-p char) (not (eql char #\Space)))
-               (write-char char *format-output*)
-               (write-string (char-name char) *format-output*))
-           (when at-sign-p
-             ;; Allow client specific key sequence for at sign modifier.
-             (print-key-sequence client char *format-output*)))
-          (at-sign-p
-           ;; We have only an at-sign modifier.
-           ;; The HyperSpec says to print it the way the Lisp
-           ;; reader can understand, which I take to mean "use PRIN1".
-           ;; It also says to bind *PRINT-ESCAPE* to t.
-           (let ((*print-escape* t))
-             (incless:write-object client char *format-output*)))
-          (t
-           ;; Neither colon nor at-sign.
-           ;; The HyperSpec says to do what WRITE-CHAR does.
-           (write-char char *format-output*))))))
+    (let ((char (pop-argument 'character)))
+      (cond (colon-p
+             ;; We have a colon modifier.
+             ;; The HyperSpec says to do what WRITE-CHAR does for
+             ;; printing characters, and what char-name does otherwise.
+             ;; The definition of "printing char" is a graphic character
+             ;; other than space.
+             (if (and (graphic-char-p char) (not (eql char #\Space)))
+                 (write-char char *format-output*)
+                 (write-string (char-name char) *format-output*))
+             (when at-sign-p
+               ;; Allow client specific key sequence for at sign modifier.
+               (print-key-sequence client char *format-output*)))
+            (at-sign-p
+             ;; We have only an at-sign modifier.
+             ;; The HyperSpec says to print it the way the Lisp
+             ;; reader can understand, which I take to mean "use PRIN1".
+             ;; It also says to bind *PRINT-ESCAPE* to t.
+             (let ((*print-escape* t))
+               (incless:write-object client char *format-output*)))
+            (t
+             ;; Neither colon nor at-sign.
+             ;; The HyperSpec says to do what WRITE-CHAR does.
+             (write-char char *format-output*))))))
 
 (defmethod compile-item
     ((client standard-client) (directive character-directive) &optional parameters)

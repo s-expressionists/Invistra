@@ -29,40 +29,28 @@
 
 (defun write-radix-numeral
     (client value colon-p at-sign-p radix mincol padchar commachar comma-interval)
-  (if (not (integerp value))
+  (if (integerp value)
+      (loop with magnitude = (abs value)
+            with digit-count = (quaviver.math:count-digits radix magnitude)
+            repeat (max 0 (- mincol digit-count
+                             (if colon-p
+                                 (1- (ceiling digit-count comma-interval))
+                                 0)
+                             (if (or (minusp value) at-sign-p) 1 0)))
+            do (write-char padchar *format-output*)
+            finally (cond ((minusp value)
+                           (write-char #\- *format-output*))
+                          (at-sign-p
+                           (write-char #\+ *format-output*)))
+                    (if colon-p
+                        (quaviver:write-digits radix magnitude *format-output*
+                                               :digit-grouping (vector comma-interval)
+                                               :group-marker commachar)
+                        (quaviver:write-digits radix magnitude *format-output*)))
       (let ((*print-base* radix)
             (*print-escape* nil)
             (*print-readably* nil))
-        (incless:write-object client value *format-output*))
-      (let* ((string (let ((*print-base* radix)
-                           (*print-radix* nil)
-                           (*print-escape* nil)
-                           (*print-readably* nil))
-                       (with-output-to-string (stream)
-                         (incless:write-object client (abs value) stream))))
-             (comma-length (if colon-p
-                               (max 0 (floor (1- (length string)) comma-interval))
-                               0))
-             (sign-length (if (or at-sign-p (minusp value)) 1 0))
-             (total-length (+ (length string) comma-length sign-length))
-             (pad-length (max 0 (- mincol total-length))))
-        ;; Print the padding.
-        (loop repeat pad-length
-              do (write-char padchar *format-output*))
-        ;; Possibliy print a sign.
-        (cond ((minusp value)
-               (write-char #\- *format-output*))
-              (at-sign-p
-               (write-char #\+ *format-output*))
-              (t nil))
-        ;; Print the string in reverse order
-        (loop for index downfrom (1- (length string)) to 0
-              for c across string
-              do (write-char c *format-output*)
-              do (when (and colon-p
-                            (plusp index)
-                            (zerop (mod index comma-interval)))
-                   (write-char commachar *format-output*))))))
+        (incless:write-object client value *format-output*))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
