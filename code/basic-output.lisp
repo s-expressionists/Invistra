@@ -58,20 +58,21 @@
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p))
       directive
-    (cond (colon-p
-           `((let ((char ,(pop-argument-form 'character)))
-               (if (and (graphic-char-p char) (not (eql char #\Space)))
-                   (write-char char *format-output*)
-                   (write-string (char-name char) *format-output*))
-               ,@(when at-sign-p
-                   `((print-key-sequence ,(trinsic:client-form client) char
-                                         *format-output*))))))
-          (at-sign-p
-           `((let ((*print-escape* t))
-               (incless:write-object ,(trinsic:client-form client)
-                                     ,(pop-argument-form 'character) *format-output*))))
-          (t
-           `((write-char ,(pop-argument-form 'character) *format-output*))))))
+    (let ((arg-form (pop-argument-form 'character)))
+      (cond (colon-p
+             `((let ((char ,arg-form))
+                 (if (and (graphic-char-p char) (not (eql char #\Space)))
+                     (write-char char *format-output*)
+                     (write-string (char-name char) *format-output*))
+                 ,@(when at-sign-p
+                     `((print-key-sequence ,(trinsic:client-form client) char
+                                           *format-output*))))))
+            (at-sign-p
+             `((let ((*print-escape* t))
+                 (incless:write-object ,(trinsic:client-form client)
+                                       ,arg-form *format-output*))))
+            (t
+             `((write-char ,arg-form *format-output*)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
