@@ -358,14 +358,15 @@
   (declare (ignore parameters))
   (loop for parameter in (parameters item)
         for compiled-parameter = (compile-parameter parameter)
-        for name = (parameter-name parameter)
+        for name = (gensym (symbol-name (parameter-name parameter)))
         finally (return (if bindings
                             `((let* ,bindings
                                 (declare (ignorable ,@(mapcar #'first bindings)))
                                 ,@(call-next-method client item forms)))
                             (call-next-method client item forms)))
         when (or (not (parameter-bind-p parameter))
-                 (constantp compiled-parameter))
+                 (constantp compiled-parameter)
+                 (symbolp compiled-parameter))
           collect compiled-parameter into forms
         else
           collect name into forms

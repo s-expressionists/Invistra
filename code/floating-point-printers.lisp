@@ -4,7 +4,7 @@
 
 (in-package #:invistra)
 
-(defun print-float-arg (client func value)
+(defun %format-float (client func value)
   (if (or (complexp value)
           (and (floatp value)
                #+abcl
@@ -83,8 +83,8 @@
 (defmethod calculate-argument-position (position (directive fixed-format-directive))
   (1+ (call-next-method)))
 
-(defun print-fixed-arg (client value significand exponent sign
-                        colon-p at-sign-p w d k overflowchar padchar)
+(defun %format-fixed-format-float
+    (client colon-p at-sign-p w d k overflowchar padchar value significand exponent sign)
   (declare (ignore client colon-p))
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
@@ -152,24 +152,22 @@
                    do (write-char overflowchar *format-output*))
              t)))))
 
+(defun format-fixed-format-float (client colon-p at-sign-p w d k overflowchar padchar value)
+  (%format-float client
+                 (lambda (client value significand exponent sign)
+                   (%format-fixed-format-float client colon-p at-sign-p w d k overflowchar
+                                               padchar value significand exponent sign))
+                 value))
+
 (defmethod interpret-item
     ((client standard-client) (directive fixed-format-directive) &optional parameters)
-  (print-float-arg client
-                   (lambda (client value significand exponent sign)
-                     (apply #'print-fixed-arg
-                            client value significand exponent sign
-                            (colon-p directive) (at-sign-p directive)
-                            parameters))
-                    (pop-argument)))
+  (multiple-value-call #'format-fixed-format-float
+    client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive fixed-format-directive) &optional parameters)
-  `((print-float-arg ,(trinsic:client-form client)
-                     (lambda (client value significand exponent sign)
-                       (print-fixed-arg client value significand exponent sign
-                                        ,(colon-p directive) ,(at-sign-p directive)
-                                        ,@parameters))
-                     ,(pop-argument-form))))
+  `((format-fixed-format-float ,(trinsic:client-form client) ,(colon-p directive)
+                               ,(at-sign-p directive) ,@parameters ,(pop-argument-form))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -193,8 +191,9 @@
 (defmethod calculate-argument-position (position (directive exponential-directive))
   (1+ (call-next-method)))
 
-(defun print-exponent-arg (client value significand exponent sign
-                           colon-p at-sign-p w d e k overflowchar padchar exponentchar)
+(defun %format-exponential-float
+    (client colon-p at-sign-p w d e k overflowchar padchar exponentchar value significand
+     exponent sign)
   (declare (ignore client colon-p))
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
@@ -275,24 +274,24 @@
              (loop repeat w
                    do (write-char overflowchar *format-output*)))))))
 
+(defun format-exponential-float
+    (client colon-p at-sign-p w d e k overflowchar padchar exponentchar value)
+  (%format-float client
+                 (lambda (client value significand exponent sign)
+                   (%format-exponential-float client colon-p at-sign-p w d e k overflowchar
+                                              padchar exponentchar value significand exponent
+                                              sign))
+                 value))
+
 (defmethod interpret-item
     ((client standard-client) (directive exponential-directive) &optional parameters)
-  (print-float-arg client
-                   (lambda (client value significand exponent sign)
-                     (apply #'print-exponent-arg
-                            client value significand exponent sign
-                            (colon-p directive) (at-sign-p directive)
-                            parameters))
-                    (pop-argument)))
+  (multiple-value-call #'format-exponential-float
+    client (values-list parameters) (colon-p directive) (at-sign-p directive) (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive exponential-directive) &optional parameters)
-  `((print-float-arg ,(trinsic:client-form client)
-                     (lambda (client value significand exponent sign)
-                       (print-exponent-arg client value significand exponent sign
-                                           ,(colon-p directive) ,(at-sign-p directive)
-                                           ,@parameters))
-                      ,(pop-argument-form))))
+  `((format-exponential-float ,(trinsic:client-form client) ,(colon-p directive)
+                              ,(at-sign-p directive) ,@parameters ,(pop-argument-form))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -316,9 +315,9 @@
 (defmethod calculate-argument-position (position (directive general-directive))
   (1+ (call-next-method)))
 
-(defun print-general-arg (client value significand exponent sign
-                          colon-p at-sign-p w d e k
-                          overflowchar padchar exponentchar)
+(defun %format-general-float
+    (client colon-p at-sign-p w d e k overflowchar padchar exponentchar value significand
+     exponent sign)
   (unless d
     (let ((q (if (minusp exponent)
                  (- (quaviver.math:count-digits 10 significand) exponent)
@@ -328,35 +327,33 @@
          (ww (if w (- w ee) nil))
          (dd (- d exponent)))
     (cond ((<= 0 dd d)
-           (let ((char (if (print-fixed-arg client value significand exponent sign
-                                            colon-p at-sign-p ww dd 0
-                                            overflowchar padchar)
+           (let ((char (if (%format-fixed-format-float client colon-p at-sign-p ww dd 0
+                                                       overflowchar padchar value significand
+                                                       exponent sign)
                            overflowchar
                            #\space)))
              (dotimes (i ee) (write-char char *format-output*))))
           (t
-           (print-exponent-arg client value significand exponent sign
-                               colon-p at-sign-p w d e k
-                               overflowchar padchar exponentchar)))))
+           (%format-exponential-float client colon-p at-sign-p w d e k overflowchar padchar
+                                      exponentchar value significand exponent sign)))))
+
+(defun format-general-float
+    (client colon-p at-sign-p w d e k overflowchar padchar exponentchar value)
+  (%format-float client
+                 (lambda (client value significand exponent sign)
+                   (%format-general-float client colon-p at-sign-p w d e k overflowchar padchar
+                                          exponentchar value significand exponent sign))
+                 value))
 
 (defmethod interpret-item
     ((client standard-client) (directive general-directive) &optional parameters)
-  (print-float-arg client
-                   (lambda (client value significand exponent sign)
-                     (apply #'print-general-arg
-                            client value significand exponent sign
-                            (colon-p directive) (at-sign-p directive)
-                            parameters))
-                    (pop-argument)))
+  (multiple-value-call #'format-general-float
+    client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive general-directive) &optional parameters)
-  `((print-float-arg ,(trinsic:client-form client)
-                     (lambda (client value significand exponent sign)
-                       (print-general-arg client value significand exponent sign
-                                          ,(colon-p directive) ,(at-sign-p directive)
-                                          ,@parameters))
-                     ,(pop-argument-form))))
+  `((format-general-float ,(trinsic:client-form client) ,(colon-p directive)
+                          ,(at-sign-p directive) ,@parameters ,(pop-argument-form))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -378,8 +375,8 @@
 (defmethod calculate-argument-position (position (directive monetary-directive))
   (1+ (call-next-method)))
 
-(defun print-monetary-arg (client value significand exponent sign
-                           colon-p at-sign-p d n w padchar)
+(defun %format-monetary-float
+    (client colon-p at-sign-p d n w padchar value significand exponent sign)
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
          (digit-count (quaviver.math:count-digits 10 significand))
@@ -394,9 +391,9 @@
         (trim-fractional my-significand digit-count fractional-position d))
       (setf leading-zeros (max 0 (- n (max 0 fractional-position))))
       (cond ((> (compute-width) (if w (max w 100) 100))
-             (print-exponent-arg client value significand exponent sign
-                                 colon-p at-sign-p w (+ d n -1) nil 1
-                                 #\Space padchar nil))
+             (%format-exponential-float client value significand exponent sign
+                                        colon-p at-sign-p w (+ d n -1) nil 1
+                                        #\Space padchar nil))
             (t
              (when (and colon-p sign-char)
                (write-char sign-char *format-output*))
@@ -410,21 +407,20 @@
                                     :fractional-position fractional-position
                                     :fractional-marker #\.))))))
 
+(defun format-monetary-float
+    (client colon-p at-sign-p d n w padchar value)
+  (%format-float client
+                 (lambda (client value significand exponent sign)
+                   (%format-monetary-float client colon-p at-sign-p d n w padchar value
+                                           significand exponent sign))
+                 value))
+
 (defmethod interpret-item
     ((client standard-client) (directive monetary-directive) &optional parameters)
-  (print-float-arg client
-                   (lambda (client value significand exponent sign)
-                     (apply #'print-monetary-arg
-                            client value significand exponent sign
-                            (colon-p directive) (at-sign-p directive)
-                            parameters))
-                    (pop-argument)))
+  (multiple-value-call #'format-monetary-float
+    client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive monetary-directive) &optional parameters)
-  `((print-float-arg ,(trinsic:client-form client)
-                     (lambda (client value significand exponent sign)
-                       (print-monetary-arg client value significand exponent sign
-                                           ,(colon-p directive) ,(at-sign-p directive)
-                                           ,@parameters))
-                      ,(pop-argument-form))))
+  `((format-monetary-float ,(trinsic:client-form client) ,(colon-p directive)
+                           ,(at-sign-p directive) ,@parameters ,(pop-argument-form))))

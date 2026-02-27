@@ -34,59 +34,47 @@
                         parent group position)
       (call-next-method)))
 
-(defun format-relative-tab (client colnum colinc)
-  (if #+sicl nil #-sicl (inravina:pretty-stream-p client *format-output*)
-      #+sicl nil #-sicl (inravina:pprint-tab client *format-output* :line-relative colnum
-                                             colinc)
-      (let* ((cur (ngray:stream-line-column *format-output*)))
-        (ngray:stream-advance-to-column *format-output*
-                                        (if (and cur (plusp colinc))
-                                            (* (ceiling (+ cur colnum) colinc) colinc)
-                                            colnum)))))
-
-(defun format-absolute-tab (client colnum colinc)
-  (if #+sicl nil #-sicl (inravina:pretty-stream-p client *format-output*)
-      #+sicl nil #-sicl (inravina:pprint-tab client *format-output* :line colnum colinc)
+(defun format-tab (client colon-p at-sign-p colnum colinc)
+  (if (and (not colon-p) #-sicl (not (inravina:pretty-stream-p client *format-output*)))
       (let ((cur (ngray:stream-line-column *format-output*)))
-        (cond ((null cur)
+        (cond (at-sign-p
+               (ngray:stream-advance-to-column *format-output*
+                                               (if (and cur (plusp colinc))
+                                                   (* (ceiling (+ cur colnum) colinc) colinc)
+                                                   colnum)))
+              ((null cur)
                (write-string "  " *format-output*))
               ((< cur colnum)
                (ngray:stream-advance-to-column *format-output* colnum))
               ((plusp colinc)
                (ngray:stream-advance-to-column *format-output*
                                                (+ cur
-                                                  (- colinc (rem (- cur colnum) colinc)))))))))
+                                                  (- colinc (rem (- cur colnum) colinc)))))))
+      #-sicl
+      (inravina:pprint-tab client *format-output*
+                           (cond ((and colon-p at-sign-p) :section-relative)
+                                 (colon-p :section)
+                                 (at-sign-p :line-relative)
+                                 (t :line))
+                           colnum colinc)))
+
+(define-compiler-macro format-tab (&whole form client colon-p at-sign-p colnum colinc)
+  (if (and (constantp colon-p) colon-p)
+      `(inravina:pprint-tab ,client *format-output*
+                            ,(if (constantp at-sign-p)
+                                 (if at-sign-p :section-relative :section)
+                                 `(if ,at-sign-p :section-relative :section))
+                            ,colnum ,colinc)
+      form))
 
 (defmethod interpret-item
     ((client standard-client) (directive tabulate-directive) &optional parameters)
-  (with-accessors ((colon-p colon-p)
-                   (at-sign-p at-sign-p))
-      directive
-    (cond (colon-p
-           #-sicl
-           (apply #'inravina:pprint-tab
-                  client *format-output*
-                  (if at-sign-p :section-relative :section)
-                  parameters))
-          (at-sign-p
-           (apply #'format-relative-tab client parameters))
-          (t
-           (apply #'format-absolute-tab client parameters)))))
+  (apply #'format-tab client (colon-p directive) (at-sign-p directive) parameters))
 
 (defmethod compile-item
     ((client standard-client) (directive tabulate-directive) &optional parameters)
-  (with-accessors ((colon-p colon-p)
-                   (at-sign-p at-sign-p))
-      directive
-    (cond (colon-p
-           #-sicl
-           `((inravina:pprint-tab ,(trinsic:client-form client) *format-output*
-                                  ,(if at-sign-p :section-relative :section)
-                                  ,@parameters)))
-          (at-sign-p
-           `((format-relative-tab ,(trinsic:client-form client) ,@parameters)))
-          (t
-           `((format-absolute-tab ,(trinsic:client-form client) ,@parameters))))))
+  `((format-tab ,(trinsic:client-form client) ,(colon-p directive) ,(at-sign-p directive)
+                ,@parameters)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

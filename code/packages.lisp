@@ -6,6 +6,7 @@
            #:*roman-digits*
            #:argument-type-error
            #:at-sign-p
+           #:character-start
            #:check-clause-count
            #:check-end-of-control-string
            #:check-item-syntax
@@ -18,18 +19,18 @@
            #:directive
            #:duplicate-modifiers
            #:end
-           #:start
-           #:suffix-start
-           #:parse-suffix
-           #:modifiers-start
-           #:character-start
            #:end-of-control-string
            #:format
            #:format-compiler-macro
            #:format-error
+           #:format-exponential-float
+           #:format-fixed-format-float
+           #:format-general-float
+           #:format-monentary-float
            #:format-parse-error
            #:format-runtime-error
            #:format-syntax-error
+           #:format-tab
            #:formatter
            #:go-to-argument
            #:go-to-argument-forms
@@ -45,6 +46,7 @@
            #:invalid-destination
            #:make-argument-cursor
            #:missing-directive
+           #:modifiers-start
            #:no-more-arguments
            #:no-such-package
            #:no-such-symbol
@@ -53,6 +55,7 @@
            #:outer-exit-if-exhausted
            #:parameter-specifications
            #:parse-directive-suffix
+           #:parse-suffix
            #:pop-argument
            #:pop-argument-form
            #:pop-remaining-arguments
@@ -70,6 +73,8 @@
            #:signal-unknown-directive-character
            #:specialize-directive
            #:standard-client
+           #:start
+           #:suffix-start
            #:symbol-not-external
            #:unknown-directive-character
            #:write-cardinal-numeral
