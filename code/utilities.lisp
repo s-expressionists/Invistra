@@ -99,12 +99,16 @@
             (t
              (write-char char (target stream)))))))
 
-(defun write-string-with-padding (string stream pad-left-p mincol colinc minpad padchar)
-  (let ((pad-length (max minpad (* colinc (ceiling (- mincol (length string)) colinc)))))
-    (if pad-left-p
-        (loop repeat pad-length
-              finally (write-string string stream)
-              do (write-char padchar stream))
-        (loop repeat pad-length
-                initially (write-string string stream)
-              do (write-char padchar stream)))))
+(defmacro write-with-padding ((pad-left-p mincol colinc minpad padchar) &body body)
+  (with-unique-names (string pad-length)
+    `(let* ((,string (with-output-to-string (*format-output*) ,@body))
+            (,pad-length (max ,minpad
+                              (* ,colinc (ceiling (- ,mincol (length ,string)) ,colinc)))))
+       (if ,pad-left-p
+           (loop repeat ,pad-length
+                 finally (write-string ,string *format-output*)
+                 do (write-char ,padchar *format-output*))
+           (loop repeat ,pad-length
+                 initially (write-string ,string *format-output*)
+                 do (write-char ,padchar *format-output*))))))
+

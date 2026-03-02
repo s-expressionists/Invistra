@@ -7,8 +7,7 @@
 (defclass base-radix-directive (directive)
   ())
 
-(defmethod parameter-specifications (client (directive base-radix-directive))
-  (declare (ignore client))
+(defmethod parameter-specifications ((client standard-client) (directive base-radix-directive))
   '((:name mincol
      :type integer
      :bind nil
@@ -67,9 +66,10 @@
     ((client standard-client) (char (eql #\R)) directive (end-directive t))
   (change-class directive 'radix-directive))
 
-(defmethod parameter-specifications ((client t) (directive radix-directive))
+(defmethod parameter-specifications ((client standard-client) (directive radix-directive))
   (list* '(:name radix
            :type (or null (integer 2 36))
+           :bind nil
            :default nil)
          (call-next-method)))
 

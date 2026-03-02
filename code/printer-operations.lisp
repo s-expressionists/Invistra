@@ -14,29 +14,46 @@
     ((client standard-client) (char (eql #\A)) directive (end-directive t))
   (change-class directive 'aesthetic-directive))
 
-(defmethod parameter-specifications ((client t) (directive aesthetic-directive))
-  '((:name mincol :type integer :default 0)
-    (:name colinc :type (integer 0) :default 1)
-    (:name minpad :type integer :default 0)
-    (:name padchar :type character :default #\Space)))
+(defmethod parameter-specifications ((client standard-client) (directive aesthetic-directive))
+  '((:name mincol
+     :type integer
+     :bind nil
+     :default 0)
+    (:name colinc
+     :type (integer 0)
+     :bind nil
+     :default 1)
+    (:name minpad
+     :type integer
+     :bind nil
+     :default 0)
+    (:name padchar
+     :type character
+     :bind nil
+     :default #\Space)))
 
 (defmethod calculate-argument-position (position (directive aesthetic-directive))
   (setf position (call-next-method))
   (when position
     (1+ position)))
 
+(defun format-aesthetic (client colon-p at-sign-p mincol colinc minpad padchar value)
+  (flet ((write-value ()
+           (let ((*print-escape* nil)
+                 (*print-readably* nil))
+             (if (and colon-p (null value))
+                 (write-string "()" *format-output*)
+                 (incless:write-object client value *format-output*)))))
+    (if (and (zerop mincol)
+             (zerop minpad))
+        (write-value)
+        (write-with-padding (at-sign-p mincol colinc minpad padchar)
+          (write-value)))))
+
 (defmethod interpret-item
     ((client standard-client) (directive aesthetic-directive) &optional parameters)
-  (let ((*print-escape* nil)
-        (*print-readably* nil)
-        (arg (pop-argument)))
-    (apply #'write-string-with-padding
-           (if (and (colon-p directive) (null arg))
-               "()"
-               (with-output-to-string (stream)
-                 (incless:write-object client arg stream)))
-           *format-output*
-           (at-sign-p directive) parameters)))
+  (multiple-value-call #'format-aesthetic
+    client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive aesthetic-directive) &optional parameters)
@@ -45,45 +62,37 @@
       directive
     (destructuring-bind (mincol colinc minpad padchar)
         parameters
-      (cond ((and colon-p
-                  (eql 0 mincol)
-                  (eql 0 minpad))
-             `((let ((*print-escape* nil)
-                     (*print-readably* nil)
-                     (arg ,(pop-argument-form)))
-                 (if (null arg)
-                     (write-string "()" *format-output*)
-                     (incless:write-object ,(trinsic:client-form client)
-                                           arg
-                                           *format-output*)))))
-            ((and (eql 0 mincol)
-                  (eql 0 minpad))
+      (cond ((or (not (constantp colinc))
+                 (not (constantp padchar))
+                 (not (eql 0 mincol))
+                 (not (eql 0 minpad)))
+             `((format-aesthetic ,(trinsic:client-form client) ,colon-p ,at-sign-p ,@parameters
+                                 ,(pop-argument-form))))
+            (colon-p
+             (let ((arg-form (pop-argument-form)))
+               (if (symbolp arg-form)
+                   `((let ((*print-escape* nil)
+                           (*print-readably* nil))
+                       (if (null ,arg-form)
+                           (write-string "()" *format-output*)
+                           (incless:write-object ,(trinsic:client-form client)
+                                                 ,arg-form
+                                                 *format-output*))))
+                   (with-unique-names (arg)
+                     `((let ((*print-escape* nil)
+                             (*print-readably* nil)
+                             (,arg ,arg-form))
+                         (if (null ,arg)
+                             (write-string "()" *format-output*)
+                             (incless:write-object ,(trinsic:client-form client)
+                                                   ,arg
+                                                   *format-output*))))))))
+            (t
              `((let ((*print-escape* nil)
                      (*print-readably* nil))
                  (incless:write-object ,(trinsic:client-form client)
                                        ,(pop-argument-form)
-                                       *format-output*))))
-            (colon-p
-             `((let ((*print-escape* nil)
-                     (*print-readably* nil)
-                     (arg ,(pop-argument-form)))
-                 (write-string-with-padding
-                  (if (null arg)
-                      "()"
-                      (with-output-to-string (stream)
-                        (incless:write-object ,(trinsic:client-form client) arg stream)))
-                  *format-output*
-                  ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))
-            (t
-             `((let ((*print-escape* nil)
-                     (*print-readably* nil))
-                 (write-string-with-padding
-                  (with-output-to-string (stream)
-                    (incless:write-object ,(trinsic:client-form client)
-                                          ,(pop-argument-form)
-                                          stream))
-                  *format-output*
-                  ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))))))
+                                       *format-output*))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -106,17 +115,22 @@
   (when position
     (1+ position)))
 
+(defun format-standard (client colon-p at-sign-p mincol colinc minpad padchar value)
+  (flet ((write-value ()
+           (let ((*print-escape* t))
+             (if (and colon-p (null value))
+                 (write-string "()" *format-output*)
+                 (incless:write-object client value *format-output*)))))
+    (if (and (zerop mincol)
+             (zerop minpad))
+        (write-value)
+        (write-with-padding (at-sign-p mincol colinc minpad padchar)
+          (write-value)))))
+
 (defmethod interpret-item
     ((client standard-client) (directive standard-directive) &optional parameters)
-  (let ((*print-escape* t)
-        (arg (pop-argument)))
-    (apply #'write-string-with-padding
-           (if (and (colon-p directive) (null arg))
-               "()"
-               (with-output-to-string (stream)
-                 (incless:write-object client arg stream)))
-           *format-output*
-           (at-sign-p directive) parameters)))
+  (multiple-value-call #'format-standard
+    client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive standard-directive) &optional parameters)
@@ -125,41 +139,34 @@
       directive
     (destructuring-bind (mincol colinc minpad padchar)
         parameters
-      (cond ((and colon-p
-                  (eql 0 mincol)
-                  (eql 0 minpad))
-             `((let ((*print-escape* t)
-                     (arg ,(pop-argument-form)))
-                 (if (null arg)
-                     (write-string "()" *format-output*)
-                     (incless:write-object ,(trinsic:client-form client)
-                                           arg
-                                           *format-output*)))))
-            ((and (eql 0 mincol)
-                  (eql 0 minpad))
+      (cond ((or (not (constantp colinc))
+                 (not (constantp padchar))
+                 (not (eql 0 mincol))
+                 (not (eql 0 minpad)))
+             `((format-standard ,(trinsic:client-form client) ,colon-p ,at-sign-p ,@parameters
+                                ,(pop-argument-form))))
+            (colon-p
+             (let ((arg-form (pop-argument-form)))
+               (if (symbolp arg-form)
+                   `((let ((*print-escape* t))
+                       (if (null ,arg-form)
+                           (write-string "()" *format-output*)
+                           (incless:write-object ,(trinsic:client-form client)
+                                                 ,arg-form
+                                                 *format-output*))))
+                   (with-unique-names (arg)
+                     `((let ((*print-escape* t)
+                             (,arg ,arg-form))
+                         (if (null ,arg)
+                             (write-string "()" *format-output*)
+                             (incless:write-object ,(trinsic:client-form client)
+                                                   ,arg
+                                                   *format-output*))))))))
+            (t
              `((let ((*print-escape* t))
                  (incless:write-object ,(trinsic:client-form client)
                                        ,(pop-argument-form)
-                                       *format-output*))))
-            (colon-p
-             `((let ((*print-escape* t)
-                     (arg ,(pop-argument-form)))
-                 (write-string-with-padding
-                  (if (null arg)
-                      "()"
-                      (with-output-to-string (stream)
-                        (incless:write-object ,(trinsic:client-form client) arg stream)))
-                  *format-output*
-                  ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))
-            (t
-             `((let ((*print-escape* t))
-                 (write-string-with-padding
-                  (with-output-to-string (stream)
-                    (incless:write-object ,(trinsic:client-form client)
-                                          ,(pop-argument-form)
-                                          stream))
-                  *format-output*
-                  ,at-sign-p ,mincol ,colinc ,minpad ,padchar))))))))
+                                       *format-output*))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -183,43 +190,46 @@
   (when position
     (1+ position)))
 
-(defmethod interpret-item ((client standard-client) (directive write-directive) &optional parameters)
-  (declare (ignore parameters))
-  (with-accessors ((colon-p colon-p)
-                   (at-sign-p at-sign-p))
-      directive
-    (let ((arg (pop-argument)))
-      (cond ((and colon-p at-sign-p)
-             (let ((*print-pretty* t)
-                   (*print-level* nil)
-                   (*print-length* nil))
-               (incless:write-object client arg *format-output*)))
-            (colon-p
-             (let ((*print-pretty* t))
-               (incless:write-object client arg *format-output*)))
-            (at-sign-p
-             (let ((*print-level* nil)
-                   (*print-length* nil))
-               (incless:write-object client arg *format-output*)))
-            (t
-             (incless:write-object client arg *format-output*))))))
+(defun format-write (client colon-p at-sign-p value)
+  (cond ((and colon-p at-sign-p)
+         (let ((*print-pretty* t)
+               (*print-level* nil)
+               (*print-length* nil))
+           (incless:write-object client value *format-output*)))
+        (colon-p
+         (let ((*print-pretty* t))
+           (incless:write-object client value *format-output*)))
+        (at-sign-p
+         (let ((*print-level* nil)
+               (*print-length* nil))
+           (incless:write-object client value *format-output*)))
+        (t
+         (incless:write-object client value *format-output*))))
 
-(defmethod compile-item ((client standard-client) (directive write-directive) &optional parameters)
+(defmethod interpret-item
+    ((client standard-client) (directive write-directive) &optional parameters)
+  (declare (ignore parameters))
+  (format-write client (colon-p directive) (at-sign-p directive) (pop-argument)))
+
+(defmethod compile-item
+    ((client standard-client) (directive write-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
-    (cond ((and colon-p at-sign-p)
-           `((let ((*print-pretty* t)
-                   (*print-level* nil)
-                   (*print-length* nil))
-               (incless:write-object ,(trinsic:client-form client) ,(pop-argument-form) *format-output*))))
-          (colon-p
-           `((let ((*print-pretty* t))
-               (incless:write-object ,(trinsic:client-form client) ,(pop-argument-form) *format-output*))))
-          (at-sign-p
-           `((let ((*print-level* nil)
-                   (*print-length* nil))
-               (incless:write-object ,(trinsic:client-form client) ,(pop-argument-form) *format-output*))))
-          (t
-           `((incless:write-object ,(trinsic:client-form client) ,(pop-argument-form) *format-output*))))))
+    (let ((write-form `(incless:write-object ,(trinsic:client-form client) ,(pop-argument-form)
+                                             *format-output*)))
+      (cond ((and colon-p at-sign-p)
+             `((let ((*print-pretty* t)
+                     (*print-level* nil)
+                     (*print-length* nil))
+                 ,write-form)))
+            (colon-p
+             `((let ((*print-pretty* t))
+                 ,write-form)))
+            (at-sign-p
+             `((let ((*print-level* nil)
+                     (*print-length* nil))
+                 ,write-form)))
+            (t
+             `(,write-form))))))

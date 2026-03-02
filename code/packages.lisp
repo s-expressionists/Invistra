@@ -21,6 +21,7 @@
            #:end
            #:end-of-control-string
            #:format
+           #:format-aesthetic
            #:format-cardinal-numeral
            #:format-compiler-macro
            #:format-error
@@ -35,8 +36,10 @@
            #:format-radix-numeral
            #:format-roman-numeral
            #:format-runtime-error
+           #:format-standard
            #:format-syntax-error
            #:format-tab
+           #:format-write
            #:formatter
            #:go-to-argument
            #:go-to-argument-forms
