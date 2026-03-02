@@ -1,5 +1,9 @@
 (cl:in-package #:invistra)
 
+;;; During runtime, this variable is bound to a stream to which
+;;; all the output goes.
+(defvar *format-output*)
+
 (defun unique-name (&rest args)
   (gensym (apply #'concatenate 'string
                  (mapcar (lambda (arg)
@@ -61,11 +65,17 @@
 (defmethod ngray:stream-write-char ((stream upcase-stream) char)
   (write-char (char-upcase char) (target stream)))
 
+(defun make-upcase-stream ()
+  (make-instance 'upcase-stream :target *format-output*))
+
 (defclass downcase-stream (case-conversion-stream)
   ())
 
 (defmethod ngray:stream-write-char ((stream downcase-stream) char)
   (write-char (char-downcase char) (target stream)))
+
+(defun make-downcase-stream ()
+  (make-instance 'downcase-stream :target *format-output*))
 
 (defclass capitalize-stream (case-conversion-stream)
   ((capitalize-next :accessor capitalize-next
@@ -84,8 +94,14 @@
              (setf capitalize-next t)
              (write-char char (target stream)))))))
 
+(defun make-capitalize-stream ()
+  (make-instance 'capitalize-stream :target *format-output*))
+
 (defclass first-capitalize-stream (capitalize-stream)
   ())
+
+(defun make-first-capitalize-stream ()
+  (make-instance 'first-capitalize-stream :target *format-output*))
 
 (defmethod ngray:stream-write-char ((stream first-capitalize-stream) char)
   (with-accessors ((capitalize-next capitalize-next))

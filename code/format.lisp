@@ -31,10 +31,6 @@
 
 (cl:in-package #:invistra)
 
-;;; During runtime, this variable is bound to a stream to which
-;;; all the output goes.
-(defvar *format-output*)
-
 (defun interpret-items (client items)
   (loop for item across items
         do (interpret-item client item)))

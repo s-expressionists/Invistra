@@ -44,14 +44,13 @@
                    (at-sign-p at-sign-p))
       directive
     (let ((*format-output* (cond ((and colon-p at-sign-p)
-                                (make-instance 'upcase-stream :target *format-output*))
-                               (colon-p
-                                (make-instance 'capitalize-stream :target *format-output*))
-                               (at-sign-p
-                                (make-instance 'first-capitalize-stream
-                                               :target *format-output*))
-                               (t
-                                (make-instance 'downcase-stream :target *format-output*)))))
+                                  (make-upcase-stream))
+                                 (colon-p
+                                  (make-capitalize-stream))
+                                 (at-sign-p
+                                  (make-first-capitalize-stream))
+                                 (t
+                                  (make-downcase-stream)))))
       (interpret-items client (aref (clauses directive) 0)))))
 
 (defmethod compile-item
@@ -61,14 +60,13 @@
                    (at-sign-p at-sign-p))
       directive
     `((let ((*format-output* ,(cond ((and colon-p at-sign-p)
-                                   '(make-instance 'upcase-stream :target *format-output*))
-                                  (colon-p
-                                   '(make-instance 'capitalize-stream :target *format-output*))
-                                  (at-sign-p
-                                   '(make-instance 'first-capitalize-stream
-                                     :target *format-output*))
-                                  (t
-                                   '(make-instance 'downcase-stream :target *format-output*)))))
+                                     '(make-upcase-stream))
+                                    (colon-p
+                                     '(make-capitalize-stream))
+                                    (at-sign-p
+                                     '(make-first-capitalize-stream))
+                                    (t
+                                     '(make-downcase-stream)))))
         ,@(compile-items client (aref (clauses directive) 0))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;

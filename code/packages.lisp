@@ -54,6 +54,10 @@
            #:interpret-item
            #:invalid-destination
            #:make-argument-cursor
+           #:make-capitalize-stream
+           #:make-downcase-stream
+           #:make-first-capitalize-stream
+           #:make-upcase-stream
            #:missing-directive
            #:modifiers-start
            #:no-more-arguments

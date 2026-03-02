@@ -191,7 +191,8 @@
   (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
          (write-string (subseq (control-string directive) (suffix-start directive)
-                               (end directive)) *format-output*))
+                               (end directive))
+                       *format-output*))
         ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
          (terpri *format-output*))
@@ -205,7 +206,8 @@
   (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
          `((write-string ,(subseq (control-string directive) (suffix-start directive)
-                                  (end directive)) *format-output*)))
+                                  (end directive))
+                         *format-output*)))
         ((at-sign-p directive)
          ;; Print the newline, but remove the following whitespace.
          `((terpri *format-output*)))
