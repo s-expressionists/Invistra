@@ -21,13 +21,19 @@
            #:end
            #:end-of-control-string
            #:format
+           #:format-cardinal-numeral
            #:format-compiler-macro
            #:format-error
            #:format-exponential-float
            #:format-fixed-format-float
            #:format-general-float
            #:format-monentary-float
+           #:format-numeral
+           #:format-old-roman-numeral
+           #:format-ordinal-numeral
            #:format-parse-error
+           #:format-radix-numeral
+           #:format-roman-numeral
            #:format-runtime-error
            #:format-syntax-error
            #:format-tab

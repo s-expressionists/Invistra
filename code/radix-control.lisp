@@ -11,15 +11,19 @@
   (declare (ignore client))
   '((:name mincol
      :type integer
+     :bind nil
      :default 0)
     (:name padchar
      :type character
+     :bind nil
      :default #\Space)
     (:name commachar
      :type character
+     :bind nil
      :default #\,)
     (:name comma-interval
      :type integer
+     :bind nil
      :default 3)))
 
 (defmethod calculate-argument-position (position (directive base-radix-directive))
@@ -27,8 +31,8 @@
   (when position
     (1+ position)))
 
-(defun write-radix-numeral
-    (client value colon-p at-sign-p radix mincol padchar commachar comma-interval)
+(defun format-radix-numeral
+    (client colon-p at-sign-p radix mincol padchar commachar comma-interval value)
   (if (integerp value)
       (let* ((magnitude (abs value))
              (digit-count (quaviver.math:count-digits radix magnitude)))
@@ -91,7 +95,7 @@
                           (if (zerop r) 1 5)))))
       '(integer 1)))
 
-(defun write-roman-numeral (value)
+(defun format-roman-numeral (value)
   (declare (type (roman-number 7) value))
   (labels ((write-digit (value digits)
              (multiple-value-bind (q r)
@@ -114,7 +118,7 @@
                           do (write-string (car digits) *format-output*))))))))
     (write-digit value *roman-digits*)))
 
-(defun write-old-roman-numeral (value)
+(defun format-old-roman-numeral (value)
   (declare (type (old-roman-number 7) value))
   (labels ((write-digit (value digits)
              (multiple-value-bind (q r)
@@ -140,7 +144,7 @@
   #(nil nil "twenty" "thirty" "forty"
     "fifty" "sixty" "seventy" "eighty" "ninety"))
 
-(defparameter *groups-of-three*
+(defparameter *scale-names*
   #(nil "thousand" "million" "billion" "trillion" "quadrillion"
     "quintillion" "sextillion" "septillion" "octillion" "nonillion"
     "decillion" "undecillion" "duodecillion" "tredecillion"
@@ -149,32 +153,37 @@
 
 ;;; Print a cardinal number between 1 and 99.
 (defun write-cardinal-tenths (n)
-  (cond ((< n 10)
-         (write-string (aref *cardinal-ones* n) *format-output*))
-        ((< n 20)
-         (write-string (aref *cardinal-teens* (- n 10)) *format-output*))
-        (t
-         (multiple-value-bind (tens ones) (floor n 10)
-           (write-string (aref *cardinal-tens* tens) *format-output*)
-           (unless (zerop ones)
-             (write-char #\- *format-output*)
-             (write-string (aref *cardinal-ones* ones) *format-output*))))))
+  (multiple-value-bind (tens ones)
+      (floor n 10)
+    (case tens
+      (0
+       (write-string (aref *cardinal-ones* ones) *format-output*))
+      (1
+       (write-string (aref *cardinal-teens* ones) *format-output*))
+      (otherwise
+       (write-string (aref *cardinal-tens* tens) *format-output*)
+       (unless (zerop ones)
+         (write-char #\- *format-output*)
+         (write-string (aref *cardinal-ones* ones) *format-output*))))))
 
 ;;; Print a cardinal number between 1 and 999.
 (defun write-cardinal-hundreds (n)
-  (cond ((< n 100)
-         (write-cardinal-tenths n))
-        (t
-         (multiple-value-bind (hundreds rest) (floor n 100)
-           (write-string (aref *cardinal-ones* hundreds) *format-output*)
-           (write-string " hundred" *format-output*)
-           (unless (zerop rest)
-             (write-char #\Space *format-output*)
-             (write-cardinal-tenths rest))))))
+  (multiple-value-bind (hundreds rest)
+      (floor n 100)
+    (case hundreds
+      (0
+       (write-cardinal-tenths rest))
+      (otherwise
+       (write-string (aref *cardinal-ones* hundreds) *format-output*)
+       (write-string " hundred" *format-output*)
+       (unless (zerop rest)
+         (write-char #\Space *format-output*)
+         (write-cardinal-tenths rest))))))
 
 ;;; Print a cardinal number n such that 0 < n < 10^65.
 (defun write-cardinal-non-zero (n magnitude)
-  (multiple-value-bind (thousands rest) (floor n 1000)
+  (multiple-value-bind (thousands rest)
+      (floor n 1000)
     (unless (zerop thousands)
       (write-cardinal-non-zero thousands (1+ magnitude)))
     (unless (or (zerop thousands) (zerop rest))
@@ -183,13 +192,13 @@
       (write-cardinal-hundreds rest)
       (unless (zerop magnitude)
         (write-char #\Space *format-output*)
-        (write-string (aref *groups-of-three* magnitude) *format-output*)))))
+        (write-string (aref *scale-names* magnitude) *format-output*)))))
 
 (deftype english-number ()
   `(integer ,(1+ (- (expt 10 65))) ,(1- (expt 10 65))))
 
 ;;; Print a cardinal number n such that - 10^65 < n < 10^65.
-(defun write-cardinal-numeral (n)
+(defun format-cardinal-numeral (n)
   (declare (type english-number n))
   (cond ((minusp n)
          (write-string "negative " *format-output*)
@@ -212,36 +221,41 @@
 
 ;;; Print an ordinal number between 1 and 99.
 (defun write-ordinal-tenths (n)
-  (cond ((< n 10)
-         (write-string (aref *ordinal-ones* n) *format-output*))
-        ((< n 20)
-         (write-string (aref *ordinal-teens* (- n 10)) *format-output*))
-        (t
-         (multiple-value-bind (tens ones) (floor n 10)
-           (cond ((zerop ones)
-                  (write-string (aref *ordinal-tens* tens) *format-output*))
-                 (t
-                  (write-string (aref *cardinal-tens* tens) *format-output*)
-                  (write-char #\- *format-output*)
-                  (write-string (aref *ordinal-ones* ones) *format-output*)))))))
+  (multiple-value-bind (tens ones)
+      (floor n 10)
+    (case tens
+      (0
+       (write-string (aref *ordinal-ones* ones) *format-output*))
+      (1
+       (write-string (aref *ordinal-teens* ones) *format-output*))
+      (otherwise
+       (cond ((zerop ones)
+              (write-string (aref *ordinal-tens* tens) *format-output*))
+             (t
+              (write-string (aref *cardinal-tens* tens) *format-output*)
+              (write-char #\- *format-output*)
+              (write-string (aref *ordinal-ones* ones) *format-output*)))))))
 
 ;;; Print an ordinal number n such that 0 < n < 1000.
 (defun write-ordinal-hundreds (n)
-  (cond ((< n 100)
-         (write-ordinal-tenths n))
-        (t
-         (multiple-value-bind (hundreds rest) (floor n 100)
-           (write-string (aref *cardinal-ones* hundreds) *format-output*)
-           (write-string " hundred" *format-output*)
-           (cond ((zerop rest)
-                  (write-string "th" *format-output*))
-                 (t
-                  (write-char #\Space *format-output*)
-                  (write-ordinal-tenths rest)))))))
+  (multiple-value-bind (hundreds rest)
+      (floor n 100)
+    (case hundreds
+      (0
+       (write-ordinal-tenths rest))
+      (otherwise
+       (write-string (aref *cardinal-ones* hundreds) *format-output*)
+       (write-string " hundred" *format-output*)
+       (cond ((zerop rest)
+              (write-string "th" *format-output*))
+             (t
+              (write-char #\Space *format-output*)
+              (write-ordinal-tenths rest)))))))
 
 ;;; Print an ordinal number n such that 0 < n < 10^65.
 (defun write-ordinal-non-zero (n)
-  (multiple-value-bind (hundreds rest) (floor n 100)
+  (multiple-value-bind (hundreds rest)
+      (floor n 100)
     (cond ((zerop rest)
            ;; Hudreds is nonzero.
            (write-cardinal-non-zero n 0)
@@ -255,7 +269,7 @@
            (write-ordinal-tenths rest)))))
 
 ;;; Print an ordinal number n such that - 10^65 < n < 10^65.
-(defun write-ordinal-numeral (n)
+(defun format-ordinal-numeral (n)
   (declare (type english-number n))
   (cond ((minusp n)
          (write-string "negative " *format-output*)
@@ -265,22 +279,24 @@
         (t
          (write-ordinal-non-zero n))))
 
+(defun format-numeral
+    (client colon-p at-sign-p radix mincol padchar commachar comma-interval value)
+  (cond (radix
+         (format-radix-numeral client colon-p at-sign-p radix mincol padchar commachar
+                               comma-interval value))
+        ((and at-sign-p colon-p)
+         (format-old-roman-numeral value))
+        (at-sign-p
+         (format-roman-numeral value))
+        (colon-p
+         (format-ordinal-numeral value))
+        (t
+         (format-cardinal-numeral value))))
+
 (defmethod interpret-item
     ((client standard-client) (directive radix-directive) &optional parameters)
-  (with-accessors ((colon-p colon-p)
-                   (at-sign-p at-sign-p))
-      directive
-    (let ((radix (car parameters)))
-      (cond (radix
-             (apply #'write-radix-numeral client (pop-argument) colon-p at-sign-p parameters))
-            ((and at-sign-p colon-p)
-             (write-old-roman-numeral (pop-argument)))
-            (at-sign-p
-             (write-roman-numeral (pop-argument)))
-            (colon-p
-             (write-ordinal-numeral (pop-argument)))
-            (t
-             (write-cardinal-numeral (pop-argument)))))))
+  (multiple-value-call #'format-radix-numeral
+    client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive radix-directive) &optional parameters)
@@ -290,29 +306,20 @@
     (let ((radix (car parameters))
           (arg-form (pop-argument-form)))
       (cond ((numberp radix)
-             `((write-radix-numeral ,(trinsic:client-form client) ,arg-form
-                                    ,colon-p ,at-sign-p ,@parameters)))
-            ((null radix)
-             (cond ((and at-sign-p colon-p)
-                    `((write-old-roman-numeral ,arg-form)))
-                   (at-sign-p
-                    `((write-roman-numeral ,arg-form)))
-                   (colon-p
-                    `((write-ordinal-numeral ,arg-form)))
-                   (t
-                    `((write-cardinal-numeral ,arg-form)))))
+             `((format-radix-numeral ,(trinsic:client-form client) ,colon-p ,at-sign-p
+                                     ,@parameters ,arg-form)))
+            ((or radix
+                 (notevery #'constantp parameters))
+             `((format-numeral ,(trinsic:client-form client) ,colon-p ,at-sign-p ,@parameters
+                               ,arg-form)))
+            ((and at-sign-p colon-p)
+             `((format-old-roman-numeral ,arg-form)))
+            (at-sign-p
+             `((format-roman-numeral ,arg-form)))
+            (colon-p
+             `((format-ordinal-numeral ,arg-form)))
             (t
-             `((if ,radix
-                   (write-radix-numeral ,(trinsic:client-form client) ,arg-form
-                                        ,colon-p ,at-sign-p ,@parameters)
-                   ,(cond ((and at-sign-p colon-p)
-                           `(write-old-roman-numeral ,arg-form))
-                          (at-sign-p
-                           `(write-roman-numeral ,arg-form))
-                          (colon-p
-                           `(write-ordinal-numeral ,arg-form))
-                          (t
-                           `(write-cardinal-numeral ,arg-form))))))))))
+             `((format-cardinal-numeral ,arg-form)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -327,13 +334,14 @@
 
 (defmethod interpret-item
     ((client standard-client) (directive decimal-directive) &optional parameters)
-  (apply #'write-radix-numeral
-         client (pop-argument) (colon-p directive) (at-sign-p directive) 10 parameters))
+  (multiple-value-call #'format-radix-numeral
+    client (colon-p directive) (at-sign-p directive) 10 (values-list parameters)
+    (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive decimal-directive) &optional parameters)
-  `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form)
-                         ,(colon-p directive) ,(at-sign-p directive) 10 ,@parameters)))
+  `((format-radix-numeral ,(trinsic:client-form client) ,(colon-p directive)
+                          ,(at-sign-p directive) 10 ,@parameters ,(pop-argument-form))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -348,13 +356,13 @@
 
 (defmethod interpret-item
     ((client standard-client) (directive binary-directive) &optional parameters)
-  (apply #'write-radix-numeral
-         client (pop-argument) (colon-p directive) (at-sign-p directive) 2 parameters))
+  (multiple-value-call #'format-radix-numeral
+    client (colon-p directive) (at-sign-p directive) 2 (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive binary-directive) &optional parameters)
-  `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form)
-                         ,(colon-p directive) ,(at-sign-p directive) 2 ,@parameters)))
+  `((format-radix-numeral ,(trinsic:client-form client) ,(colon-p directive)
+                          ,(at-sign-p directive) 2 ,@parameters ,(pop-argument-form))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -369,13 +377,13 @@
 
 (defmethod interpret-item
     ((client standard-client) (directive octal-directive) &optional parameters)
-  (apply #'write-radix-numeral
-         client (pop-argument) (colon-p directive) (at-sign-p directive) 8 parameters))
+  (multiple-value-call #'format-radix-numeral
+    client (colon-p directive) (at-sign-p directive) 8 (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive octal-directive) &optional parameters)
-  `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form)
-                         ,(colon-p directive) ,(at-sign-p directive) 8 ,@parameters)))
+  `((format-radix-numeral ,(trinsic:client-form client) ,(colon-p directive)
+                          ,(at-sign-p directive) 8 ,@parameters ,(pop-argument-form))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -390,10 +398,11 @@
 
 (defmethod interpret-item
     ((client standard-client) (directive hexadecimal-directive) &optional parameters)
-  (apply #'write-radix-numeral
-         client (pop-argument) (colon-p directive) (at-sign-p directive) 16 parameters))
+  (multiple-value-call #'format-radix-numeral
+    client (colon-p directive) (at-sign-p directive) 16 (values-list parameters)
+    (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive hexadecimal-directive) &optional parameters)
-  `((write-radix-numeral ,(trinsic:client-form client) ,(pop-argument-form)
-                         ,(colon-p directive) ,(at-sign-p directive) 16 ,@parameters)))
+  `((format-radix-numeral ,(trinsic:client-form client) ,(colon-p directive)
+                          ,(at-sign-p directive) 16 ,@parameters ,(pop-argument-form))))
