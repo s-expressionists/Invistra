@@ -286,7 +286,7 @@
 (defmethod interpret-item
     ((client standard-client) (directive exponential-directive) &optional parameters)
   (multiple-value-call #'format-exponential-float
-    client (values-list parameters) (colon-p directive) (at-sign-p directive) (pop-argument)))
+    client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
     ((client standard-client) (directive exponential-directive) &optional parameters)
