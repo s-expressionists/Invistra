@@ -295,7 +295,7 @@
 
 (defmethod interpret-item
     ((client standard-client) (directive radix-directive) &optional parameters)
-  (multiple-value-call #'format-radix-numeral
+  (multiple-value-call #'format-numeral
     client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
