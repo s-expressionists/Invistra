@@ -159,6 +159,24 @@
                               (return-from ,block-name nil))))
          ,@body))))
 
+(defmacro with-remaining-arguments-form ((&key outer) &body body)
+  (with-unique-names (body-func)
+    (let ((block-name (gensym)))
+      `(flet ((,body-func () ,@body))
+         (if *more-arguments-p*
+             (let* ((more-arguments-p-hook *more-arguments-p*)
+                    (*outer-exit-if-exhausted* ,(when outer '*inner-exit-if-exhausted*))
+                    (*outer-exit* ,(when outer '*inner-exit*))
+                    (*inner-exit-if-exhausted* (lambda ()
+                                                 (list (list 'unless (funcall more-arguments-p-hook)
+                                                       (list 'return-from ',block-name nil)))))
+                    (*inner-exit* (lambda ()
+                                    (list (list 'return-from ',block-name nil)))))
+               (list (list* 'block ',block-name (,body-func))))
+             (list (list* 'with-remaining-arguments
+                          (list :outer ,outer)
+                          (,body-func))))))))
+
 (defmacro with-dynamic-arguments ((&key outer) &body body)
   `(let ((*argument-index* nil)
          (*pop-argument* nil)

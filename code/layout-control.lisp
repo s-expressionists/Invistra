@@ -128,11 +128,10 @@
                     parent group position))
 
 (defmethod calculate-argument-position (position (directive justification-directive))
-  nil
-  #+(or)(reduce (lambda (position clauses)
-                  (reduce #'calculate-argument-position clauses :initial-value position))
-                (clauses directive)
-                :initial-value (call-next-method)))
+  (reduce (lambda (position clauses)
+            (reduce #'calculate-argument-position clauses :initial-value position))
+          (clauses directive)
+          :initial-value (call-next-method)))
 
 (defun str-line-length (stream)
   (or *print-right-margin*
@@ -140,18 +139,10 @@
       100))
 
 (defun format-justification
-    (client pad-left pad-right newline-segment-p mincol colinc minpad padchar func)
+    (client pad-left pad-right newline-segment-p mincol colinc minpad padchar segments)
   (declare (ignore client))
-  (let (*extra-space* *line-length* newline-segment segments)
-    (with-remaining-arguments ()
-      (loop for index from 0
-            for segment = (with-output-to-string (*format-output*)
-                            (funcall func index))
-            when (and (zerop index) newline-segment-p)
-              do (setf newline-segment segment)
-            else
-              do (push segment segments)))
-    (setf segments (nreverse segments))
+  (let ((newline-segment (when newline-segment-p
+                           (pop segments))))
     (when (and (not pad-left) (not pad-right) (null (cdr segments)))
       (setf pad-left t))
     (let* ((pad-count (1- (length segments)))
@@ -198,28 +189,38 @@
                    (colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
-    (multiple-value-call #'format-justification
-      client colon-p at-sign-p
-      (colon-p (aref (aref clauses 0) (1- (length (aref clauses 0)))))
-      (values-list parameters)
-      (lambda (position)
-        (if (< position (length clauses))
-            (interpret-items client (aref clauses position))
-            (funcall *inner-exit*))))))
+    (let (*extra-space* *line-length*)
+      (multiple-value-call #'format-justification
+        client colon-p at-sign-p
+        (colon-p (aref (aref clauses 0) (1- (length (aref clauses 0)))))
+        (values-list parameters)
+        (let* ((head (cons nil nil))
+               (tail head))
+          (declare (dynamic-extent head))
+          (with-remaining-arguments ()
+            (loop for clause across (clauses directive)
+                  do (setf (cdr tail) (cons (with-output-to-string (*format-output*)
+                                              (interpret-items client clause))
+                                            nil)
+                           tail (cdr tail))))
+          (cdr head))))))
 
 (defmethod compile-item
     ((client standard-client) (directive justification-directive) &optional parameters)
-  (with-unique-names (position)
-    `((format-justification ,(trinsic:client-form client) ,(colon-p directive)
-                            ,(at-sign-p directive)
-                            ,(colon-p (aref (aref (clauses directive) 0)
-                                            (1- (length (aref (clauses directive) 0)))))
-                            ,@parameters
-                            (lambda (,position)
-                              (case ,position
-                                ,@(loop for clause across (clauses directive)
-                                        for index from 0
-                                        collect `(,index
-                                                  ,@(compile-items client clause)))
-                                (otherwise
-                                 (funcall *inner-exit*))))))))
+  (with-unique-names (head tail)
+    `((let (*extra-space* *line-length*)
+        (format-justification ,(trinsic:client-form client) ,(colon-p directive)
+                              ,(at-sign-p directive)
+                              ,(colon-p (aref (aref (clauses directive) 0)
+                                              (1- (length (aref (clauses directive) 0)))))
+                              ,@parameters
+                              (let* ((,head (cons nil nil))
+                                     (,tail ,head))
+                                (declare (dynamic-extent ,head))
+                                ,@(with-remaining-arguments-form ()
+                                   (loop for clause across (clauses directive)
+                                         collect `(setf (cdr ,tail) (cons (with-output-to-string (*format-output*)
+                                                                            ,@(compile-items client clause))
+                                                                          nil)
+                                                        ,tail (cdr ,tail))))
+                                (cdr ,head)))))))

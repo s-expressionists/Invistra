@@ -16,7 +16,13 @@
                               (*outer-exit-if-exhausted* *inner-exit-if-exhausted*)
                               (*outer-exit* *inner-exit*)
                               (*more-arguments-p*
-                                (lambda () t))
+                                (lambda ()
+                                  (if (< pos (length args))
+                                      (or (lambda-argument-namep (aref args pos)) t)
+                                      (let ((arg (make-lambda-argument :namep
+                                                                       (unique-name '#:argp))))
+                                        (vector-push-extend arg args)
+                                        (or (lambda-argument-namep arg) t)))))
                               (*argument-index*
                                 (lambda () pos))
                               (*remaining-argument-count*
