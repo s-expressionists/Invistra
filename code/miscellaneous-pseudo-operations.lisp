@@ -15,7 +15,7 @@
 (defclass clause-separator-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client t) (char (eql #\;)) directive (end-directive t))
+    ((client standard-client) (char (eql #\;)) directive (end-directive t))
   (change-class directive 'clause-separator-directive))
 
 (defmethod parameter-specifications
@@ -79,7 +79,7 @@
   (change-class directive 'escape-upward-directive))
 
 (defmethod parameter-specifications
-    ((client t) (directive escape-upward-directive))
+    ((client standard-client) (directive escape-upward-directive))
   '((:name p1 :type (or null character integer))
     (:name p2 :type (or null character integer))
     (:name p3 :type (or null character integer))))

@@ -3,7 +3,7 @@
 (defclass numeral-directive (invistra:directive)
   ())
 
-(defmethod invistra:parameter-specifications ((client t) (directive numeral-directive))
+(defmethod invistra:parameter-specifications ((client extension-client) (directive numeral-directive))
   '((:type character :default #\A)
     (:type integer :default 0)
     (:type character :default #\Space)

@@ -7,9 +7,11 @@
     ((client extension-client) (char (eql #\`)) directive (end-directive t))
   (change-class directive 'call-function-directive))
 
-(defmethod invistra:parameter-specifications (client (directive call-function-directive))
-  (declare (ignore client))
-  '((:type (or null character integer) :default nil :rest t)))
+(defmethod invistra:parameter-specifications ((client standard-client) (directive call-function-directive))
+  '((:type (or null character integer)
+     :bind nil
+     :default nil
+     :rest t)))
 
 (defmethod invistra:parse-suffix
     ((client extension-client) directive (directive-character (eql #\`)))

@@ -35,6 +35,10 @@
   (loop for item across items
         do (interpret-item client item)))
 
+(defun compile-items (client items)
+  (loop for item across items
+        append (compile-item client item)))
+
 ;;; Runtime environment
 
 (defparameter *extra-space* nil)

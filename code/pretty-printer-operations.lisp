@@ -296,8 +296,10 @@
     ((client standard-client) (char (eql #\I)) directive (end-directive t))
   (change-class directive 'indent-directive))
 
-(defmethod parameter-specifications ((client t) (directive indent-directive))
-  '((:type integer :default 0)))
+(defmethod parameter-specifications ((client standard-client) (directive indent-directive))
+  '((:type integer
+     :bind nil
+     :default 0)))
 
 (defmethod check-item-syntax :around
     ((client standard-client) (directive indent-directive) global-layout local-layout parent
@@ -337,9 +339,10 @@
     ((client standard-client) (char (eql #\/)) directive (end-directive t))
   (change-class directive 'call-function-directive))
 
-(defmethod parameter-specifications (client (directive call-function-directive))
-  (declare (ignore client))
-  '((:type (or null character integer) :default nil :rest t)))
+(defmethod parameter-specifications ((client standard-client) (directive call-function-directive))
+  '((:type (or null character integer)
+     :default nil
+     :rest t)))
 
 (defmethod parse-suffix ((client standard-client) directive (directive-character (eql #\/)))
   (with-accessors ((control-string control-string)

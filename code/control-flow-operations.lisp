@@ -15,9 +15,10 @@
     ((client standard-client) (char (eql #\*)) directive (end-directive t))
   (change-class directive 'go-to-directive))
 
-(defmethod parameter-specifications ((client t) (directive go-to-directive))
+(defmethod parameter-specifications ((client standard-client) (directive go-to-directive))
   '((:name n
      :type (or null (integer 0))
+     :bind nil
      :default nil)))
 
 (defmethod calculate-argument-position (position (item go-to-directive))
@@ -106,9 +107,10 @@
   (signal-missing-end-conditional client directive))
 
 (defmethod parameter-specifications
-    ((client t) (directive conditional-expression-directive))
+    ((client standard-client) (directive conditional-expression-directive))
   '((:name n
      :type (or null integer)
+     :bind nil
      :default nil)))
 
 (defmethod calculate-argument-position (position (directive conditional-expression-directive))
@@ -158,8 +160,8 @@
                       new-position))))))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive conditional-expression-directive) global-layout local-layout parent
-     &optional group position)
+    ((client standard-client) (directive conditional-expression-directive) global-layout
+     local-layout parent &optional group position)
   (declare (ignore global-layout local-layout parent group position))
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p)
@@ -291,7 +293,7 @@
   (signal-missing-end-iteration client directive))
 
 (defmethod parameter-specifications
-            ((client t) (directive iteration-directive))
+            ((client standard-client) (directive iteration-directive))
   '((:name n
      :type (or null (integer 0))
      :default nil)))
@@ -547,66 +549,29 @@
                                            `(when (plusp ,index) do (funcall *inner-exit-if-exhausted*))
                                            `(do (funcall *inner-exit-if-exhausted*)))
                                      do (interpret-items ,(trinsic:client-form client) items)))))))))))
-        (with-unique-names (index)
-          (cond ((and colon-p at-sign-p)
-                 ;; The remaining arguments should be lists.  Each argument
-                 ;; is used in a different iteration.
-                 (let ((compiled-items (compile-items client items)))
-                   `((with-remaining-arguments ()
-                       (loop for ,index from 0
+        (flet ((expand-loop (&aux (compiled-items (compile-items client items)))
+                 (when compiled-items
+                   (with-unique-names (index limit)
+                     `((loop for ,index from 0
                              while (or (null ,iteration-limit)
                                        (< ,index ,iteration-limit))
                              ,@(if oncep
-                                   `(when (plusp ,index) do (funcall *inner-exit-if-exhausted*))
+                                   `(when (plusp ,index)
+                                      do (funcall *inner-exit-if-exhausted*))
                                    `(do (funcall *inner-exit-if-exhausted*)))
-                             do (with-arguments
-                                    (,(trinsic:client-form client) (pop-argument) :outer t)
-                                  ,@compiled-items))))))
-                (colon-p
-                 ;; We use one argument, and that should be a list of sublists.
-                 ;; Each sublist is used as arguments for one iteration.
-                 (let ((arg-form (pop-argument-form)))
-                   (with-dynamic-arguments ()
-                     (let ((compiled-items (compile-items client items)))
-                       `((with-arguments (,(trinsic:client-form client) ,arg-form)
-                           (loop for ,index from 0
-                                 while (or (null ,iteration-limit)
-                                           (< ,index ,iteration-limit))
-                                 ,@(if oncep
-                                       `(when (plusp ,index)
-                                          do (funcall *inner-exit-if-exhausted*))
-                                       `(do (funcall *inner-exit-if-exhausted*)))
-                                 do (with-arguments
-                                        (,(trinsic:client-form client) (pop-argument) :outer t)
-                                      ,@compiled-items))))))))
-                (at-sign-p
-                 (let ((compiled-items (compile-items client items)))
-                   `((with-remaining-arguments ()
-                       (loop for ,index from 0
-                             while (or (null ,iteration-limit)
-                                       (< ,index ,iteration-limit))
-                             ,@(if oncep
-                                   `(when (plusp ,index) do (funcall *inner-exit-if-exhausted*))
-                                   `(do (funcall *inner-exit-if-exhausted*)))
-                             ,@(when compiled-items
-                                 (list* 'do compiled-items)))))))
-                (t
-                 ;; no modifiers
-                 ;; We use one argument, and that should be a list.
-                 ;; The elements of that list are used by the iteration.
-                 (let ((arg-form (pop-argument-form)))
-                   (with-dynamic-arguments ()
-                     (let ((compiled-items (compile-items client items)))
-                       `((with-arguments (,(trinsic:client-form client) ,arg-form)
-                           (loop for ,index from 0
-                                 while (or (null ,iteration-limit)
-                                           (< ,index ,iteration-limit))
-                                 ,@(if oncep
-                                       `(when (plusp ,index)
-                                          do (funcall *inner-exit-if-exhausted*))
-                                       `(do (funcall *inner-exit-if-exhausted*)))
-                                 ,@(when compiled-items
-                                     (list* 'do compiled-items))))))))))))))
+                             do ,@(if colon-p
+                                      `((with-arguments
+                                            (,(trinsic:client-form client) (pop-argument)
+                                             :outer t)
+                                          ,@compiled-items))
+                                      compiled-items)))))))
+          (if at-sign-p
+              `((with-remaining-arguments ()
+                  ,@(expand-loop)))
+              (let ((arg-form (pop-argument-form)))
+                (with-dynamic-arguments ()
+                  `((with-arguments (,(trinsic:client-form client) ,arg-form)
+                      ,@(expand-loop))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

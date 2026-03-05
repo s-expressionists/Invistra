@@ -104,11 +104,23 @@
     ((client standard-client) (char (eql #\S)) directive (end-directive t))
   (change-class directive 'standard-directive))
 
-(defmethod parameter-specifications ((client t) (directive standard-directive))
-  '((:name mincol :type integer :default 0)
-    (:name colinc :type (integer 0) :default 1)
-    (:name minpad :type integer :default 0)
-    (:name padchar :type character :default #\Space)))
+(defmethod parameter-specifications ((client standard-client) (directive standard-directive))
+  '((:name mincol
+     :type integer
+     :bind nil
+     :default 0)
+    (:name colinc
+     :type (integer 0)
+     :bind nil
+     :default 1)
+    (:name minpad
+     :type integer
+     :bind nil
+     :default 0)
+    (:name padchar
+     :type character
+     :bind nil
+     :default #\Space)))
 
 (defmethod calculate-argument-position (position (directive standard-directive))
   (setf position (call-next-method))

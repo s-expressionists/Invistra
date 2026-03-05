@@ -15,7 +15,7 @@
   (change-class directive 'tabulate-directive))
 
 (defmethod parameter-specifications
-    ((client t) (directive tabulate-directive))
+    ((client standard-client) (directive tabulate-directive))
   '((:name colnum
      :type (integer 0)
      :bind nil
@@ -102,18 +102,22 @@
   (change-class directive 'justification-directive))
 
 (defmethod parameter-specifications
-    ((client t) (directive justification-directive))
+    ((client standard-client) (directive justification-directive))
   '((:name mincol
      :type integer
+     :bind nil
      :default 0)
     (:name colinc
      :type (integer 0)
+     :bind nil
      :default 1)
     (:name minpad
      :type integer
+     :bind nil
      :default 0)
     (:name padchar
      :type character
+     :bind nil
      :default #\Space)))
 
 (defmethod check-item-syntax :around

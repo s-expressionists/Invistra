@@ -85,8 +85,7 @@
   (declare (ignore end-directive))
   (change-class directive 'newline-directive))
 
-(defmethod parameter-specifications (client (directive newline-directive))
-  (declare (ignore client))
+(defmethod parameter-specifications ((client standard-client) (directive newline-directive))
   '((:name n
      :type (integer 0)
      :bind nil
@@ -122,9 +121,9 @@
   (change-class directive 'fresh-line-directive))
 
 (defmethod parameter-specifications
-    (client (directive fresh-line-directive))
-  (declare (ignore client))
+    ((client standard-client) (directive fresh-line-directive))
   '((:name n
+     :bind nil
      :type (integer 0)
      :default 1)))
 
@@ -149,10 +148,12 @@
            `((fresh-line *format-output*)
              (loop repeat ,(1- n)
                    do (terpri *format-output*)))
-           `((unless (zerop ,n)
-               (fresh-line *format-output*)
-               (loop repeat (1- ,n)
-                     do (terpri *format-output*)))))))))
+           (with-unique-names (i)
+             `((loop for ,i below ,n
+                     when (zerop ,i)
+                       do (fresh-line *format-output*)
+                     else
+                       do (terpri *format-output*)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -167,8 +168,7 @@
   (change-class directive 'page-directive))
 
 (defmethod parameter-specifications
-    (client (directive page-directive))
-  (declare (ignore client))
+    ((client standard-client) (directive page-directive))
   '((:name n
      :type (integer 0)
      :bind nil
@@ -203,8 +203,7 @@
   (declare (ignore end-directive))
   (change-class directive 'tilde-directive))
 
-(defmethod parameter-specifications (client (directive tilde-directive))
-  (declare (ignore client))
+(defmethod parameter-specifications ((client standard-client) (directive tilde-directive))
   '((:name n
      :type (integer 0)
      :bind nil

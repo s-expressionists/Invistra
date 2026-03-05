@@ -127,4 +127,3 @@
            (loop repeat ,pad-length
                  initially (write-string ,string *format-output*)
                  do (write-char ,padchar *format-output*))))))
-

@@ -73,12 +73,27 @@
     ((client standard-client) (char (eql #\F)) directive (end-directive t))
   (change-class directive 'fixed-format-directive))
 
-(defmethod parameter-specifications ((client t) (directive fixed-format-directive))
-  '((:name w :type (or null integer) :default nil :bind nil)
-    (:name d :type (or null integer) :default nil :bind nil)
-    (:name k :type (or null integer) :default 0 :bind nil)
-    (:name overflowchar :type (or null character) :default nil :bind nil)
-    (:name padchar :type character :default #\Space :bind nil)))
+(defmethod parameter-specifications ((client standard-client) (directive fixed-format-directive))
+  '((:name w
+     :type (or null integer)
+     :default nil
+     :bind nil)
+    (:name d
+     :type (or null integer)
+     :default nil
+     :bind nil)
+    (:name k
+     :type (or null integer)
+     :default 0
+     :bind nil)
+    (:name overflowchar
+     :type (or null character)
+     :default nil
+     :bind nil)
+    (:name padchar
+     :type character
+     :default #\Space
+     :bind nil)))
 
 (defmethod calculate-argument-position (position (directive fixed-format-directive))
   (1+ (call-next-method)))
@@ -179,14 +194,35 @@
     ((client standard-client) (char (eql #\E)) directive (end-directive t))
   (change-class directive 'exponential-directive))
 
-(defmethod parameter-specifications ((client t) (directive exponential-directive))
-  '((:name w :type (or null integer) :default nil :bind nil)
-    (:name d :type (or null integer) :default nil :bind nil)
-    (:name e :type (or null integer) :default nil :bind nil)
-    (:name k :type (or null integer) :default 1 :bind nil)
-    (:name overflowchar :type (or null character) :default nil :bind nil)
-    (:name padchar :type character :default #\Space :bind nil)
-    (:name exponentchar :type (or null character) :default nil :bind nil)))
+(defmethod parameter-specifications ((client standard-client) (directive exponential-directive))
+  '((:name w
+     :type (or null integer)
+     :default nil
+     :bind nil)
+    (:name d
+     :type (or null integer)
+     :default nil
+     :bind nil)
+    (:name e
+     :type (or null integer)
+     :default nil
+     :bind nil)
+    (:name k
+     :type (or null integer)
+     :default 1
+     :bind nil)
+    (:name overflowchar
+     :type (or null character)
+     :default nil
+     :bind nil)
+    (:name padchar
+     :type character
+     :default #\Space
+     :bind nil)
+    (:name exponentchar
+     :type (or null character)
+     :default nil
+     :bind nil)))
 
 (defmethod calculate-argument-position (position (directive exponential-directive))
   (1+ (call-next-method)))
@@ -303,14 +339,35 @@
     ((client standard-client) (char (eql #\G)) directive (end-directive t))
   (change-class directive 'general-directive))
 
-(defmethod parameter-specifications ((client t) (directive general-directive))
-  '((:name w :type (or null integer) :default nil :bind nil)
-    (:name d :type (or null integer) :default nil :bind nil)
-    (:name e :type (or null integer) :default nil :bind nil)
-    (:name k :type (or null integer) :default 1 :bind nil)
-    (:name overflowchar :type (or null character) :default nil :bind nil)
-    (:name padchar :type character :default #\Space :bind nil)
-    (:name exponentchar :type (or null character) :default nil :bind nil)))
+(defmethod parameter-specifications ((client standard-client) (directive general-directive))
+  '((:name w
+     :type (or null integer)
+     :default nil
+     :bind nil)
+    (:name d
+     :type (or null integer)
+     :default nil
+     :bind nil)
+    (:name e
+     :type (or null integer)
+     :default nil
+     :bind nil)
+    (:name k
+     :type (or null integer)
+     :default 1
+     :bind nil)
+    (:name overflowchar
+     :type (or null character)
+     :default nil
+     :bind nil)
+    (:name padchar
+     :type character
+     :default #\Space
+     :bind nil)
+    (:name exponentchar
+     :type (or null character)
+     :default nil
+     :bind nil)))
 
 (defmethod calculate-argument-position (position (directive general-directive))
   (1+ (call-next-method)))
@@ -366,11 +423,23 @@
   (change-class directive 'monetary-directive))
 
 (defmethod parameter-specifications
-    ((client t) (directive monetary-directive))
-  '((:name d :type integer :default 2 :bind nil)
-    (:name n :type integer :default 1 :bind nil)
-    (:name w :type (or null integer) :default nil :bind nil)
-    (:name padchar :type character :default #\Space :bind nil)))
+    ((client standard-client) (directive monetary-directive))
+  '((:name d
+     :type integer
+     :default 2
+     :bind nil)
+    (:name n
+     :type integer
+     :default 1
+     :bind nil)
+    (:name w
+     :type (or null integer)
+     :default nil
+     :bind nil)
+    (:name padchar
+     :type character
+     :default #\Space
+     :bind nil)))
 
 (defmethod calculate-argument-position (position (directive monetary-directive))
   (1+ (call-next-method)))
