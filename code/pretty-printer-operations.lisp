@@ -342,6 +342,7 @@
 (defmethod parameter-specifications ((client standard-client) (directive call-function-directive))
   '((:type (or null character integer)
      :default nil
+     :bind t
      :rest t)))
 
 (defmethod parse-suffix ((client standard-client) directive (directive-character (eql #\/)))

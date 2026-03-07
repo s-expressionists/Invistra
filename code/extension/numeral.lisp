@@ -3,12 +3,18 @@
 (defclass numeral-directive (invistra:directive)
   ())
 
+;; binds
 (defmethod invistra:parameter-specifications ((client extension-client) (directive numeral-directive))
-  '((:type character :default #\A)
-    (:type integer :default 0)
-    (:type character :default #\Space)
-    (:type character :default #\,)
-    (:type integer :default 3)))
+  '((:type character
+     :default #\A)
+    (:type integer
+     :default 0)
+    (:type character
+     :default #\Space)
+    (:type character
+     :default #\,)
+    (:type integer
+     :default 3)))
 
 (defmethod invistra:specialize-directive
     ((client extension-client) (char (eql #\N)) directive end-directive)

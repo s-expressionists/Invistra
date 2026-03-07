@@ -281,7 +281,8 @@
 
 (defclass iteration-directive
     (directive structured-directive-mixin)
-  ())
+  ((%once :accessor oncep
+          :initform nil)))
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\{)) directive
@@ -295,12 +296,84 @@
 (defmethod parameter-specifications
             ((client standard-client) (directive iteration-directive))
   '((:name n
+     :bind nil
      :type (or null (integer 0))
      :default nil)))
 
 (defmethod calculate-argument-position (position (directive iteration-directive))
   (unless (at-sign-p directive)
-    (1+ position)))
+    (+ position (if (= (length (aref (clauses directive) 0)) 1) 2 1))))
+
+(defun format-single-recursive-iteration (client colon-p oncep iteration-limit control arg)
+  (if colon-p
+      (with-arguments (client arg)
+        (if (functionp control)
+            (loop for index from 0
+                  while (or (null iteration-limit)
+                            (< index iteration-limit))
+                  when (or (not oncep) (plusp index))
+                    do (funcall *inner-exit-if-exhausted*)
+                  do (apply control *format-output* (pop-argument 'list)))
+            (loop with items = (parse-control-string client control)
+                  for index from 0
+                  while (or (null iteration-limit)
+                            (< index iteration-limit))
+                  when (or (not oncep) (plusp index))
+                    do (funcall *inner-exit-if-exhausted*)
+                  do (with-arguments (client (pop-argument) :outer t)
+                       (interpret-items client items)))))
+      (if (functionp control)
+          (loop for args = arg
+                  then (apply control *format-output* args)
+                for index from 0
+                while (and (or (null iteration-limit)
+                               (< index iteration-limit))
+                           (or args
+                               (and oncep (zerop index)))))
+          (with-arguments (client arg)
+            (loop with items = (parse-control-string client control)
+                  for index from 0
+                  while (or (null iteration-limit)
+                            (< index iteration-limit))
+                  when (or (not oncep) (plusp index))
+                    do (funcall *inner-exit-if-exhausted*)
+                  do (interpret-items client items))))))
+
+(defun format-remaining-recursive-iteration (client colon-p oncep iteration-limit control)
+  (if colon-p
+      (with-remaining-arguments ()
+        (if (functionp control)
+            (loop for index from 0
+                  while (or (null iteration-limit)
+                            (< index iteration-limit))
+                  when (or (not oncep) (plusp index))
+                    do (funcall *inner-exit-if-exhausted*)
+                  do (apply control *format-output* (pop-argument 'list)))
+            (loop with items = (parse-control-string client control)
+                  for index from 0
+                  while (or (null iteration-limit)
+                            (< index iteration-limit))
+                  when (or (not oncep) (plusp index))
+                    do (funcall *inner-exit-if-exhausted*)
+                  do (with-arguments (client (pop-argument) :outer t)
+                       (interpret-items client items))))))
+  (if (functionp control)
+      (loop for args = (pop-remaining-arguments)
+              then (apply control *format-output* args)
+            for index from 0
+            finally (go-to-argument (- (length args)))
+            while (and (or (null iteration-limit)
+                           (< index iteration-limit))
+                       (or args
+                           (and oncep (zerop index)))))
+      (with-remaining-arguments ()
+        (loop with items = (parse-control-string client control)
+              for index from 0
+              while (or (null iteration-limit)
+                        (< index iteration-limit))
+              when (or (not oncep) (plusp index))
+                do (funcall *inner-exit-if-exhausted*)
+              do (interpret-items client items)))))
 
 (defmethod interpret-item
     ((client standard-client) (directive iteration-directive) &optional parameters)
@@ -312,85 +385,12 @@
          (items (aref (clauses directive) 0))
          (oncep (colon-p (aref items (1- (length items))))))
     (if (= (length items) 1)
-        (let ((control (pop-argument '(or string function))))
-          (cond ((and colon-p at-sign-p)
-                 ;; The remaining arguments should be lists.  Each argument
-                 ;; is used in a different iteration.
-                 (with-remaining-arguments ()
-                   (if (functionp control)
-                       (loop for index from 0
-                             while (or (null iteration-limit)
-                                       (< index iteration-limit))
-                             when (or (not oncep) (plusp index))
-                               do (funcall *inner-exit-if-exhausted*)
-                             do (apply control *format-output* (pop-argument 'list)))
-                       (loop with items = (parse-control-string client control)
-                             for index from 0
-                             while (or (null iteration-limit)
-                                       (< index iteration-limit))
-                             when (or (not oncep) (plusp index))
-                               do (funcall *inner-exit-if-exhausted*)
-                             do (with-arguments (client (pop-argument) :outer t)
-                                  (interpret-items client items))))))
-                (colon-p
-                 ;; We use one argument, and that should be a list of sublists.
-                 ;; Each sublist is used as arguments for one iteration.
-                 (if (functionp control)
-                     (let ((arg (pop-argument 'list)))
-                       (if (null iteration-limit)
-                           (loop for args in arg ; a bit unusual naming perhaps
-                                 do (apply control *format-output* args))
-                           (loop for args in arg ; a bit unusual naming perhaps
-                                 repeat iteration-limit
-                                 do (apply control *format-output* args))))
-                     (let ((arg (pop-argument 'list)))
-                       (flet ((one-iteration (args)
-                                (unless (listp args)
-                                  (error 'argument-type-error
-                                         :expected-type 'list
-                                         :datum args))
-                                (with-arguments (client args :outer t)
-                                  (format-with-runtime-arguments client control))))
-                         (if (null iteration-limit)
-                             (loop for args in arg ; a bit unusual naming perhaps
-                                   do (one-iteration args))
-                             (loop for args in arg ; a bit unusual naming perhaps
-                                   repeat iteration-limit
-                                   do (one-iteration args)))))))
-                (at-sign-p
-                 (if (functionp control)
-                     (loop for args = (pop-remaining-arguments)
-                             then (apply control *format-output* args)
-                           for index from 0
-                           finally (go-to-argument (- (length args)))
-                           while (and (or (null iteration-limit)
-                                          (< index iteration-limit))
-                                      (or (and oncep (zerop index)) args)))
-                     (with-remaining-arguments ()
-                       (loop for index from 0
-                             while (or (null iteration-limit)
-                                       (< index iteration-limit))
-                             when (or (not oncep) (plusp index))
-                               do (funcall *inner-exit-if-exhausted*)
-                             do (format-with-runtime-arguments client control)))))
-                (t
-                 ;; no modifiers
-                 ;; We use one argument, and that should be a list.
-                 ;; The elements of that list are used by the iteration.
-                 (if (functionp control)
-                     (loop for args = (pop-argument 'list)
-                             then (apply control *format-output* args)
-                           for index from 0
-                           while (and (or (null iteration-limit)
-                                          (< index iteration-limit))
-                                      (or (and oncep (zerop index)) args)))
-                     (with-arguments (client (pop-argument))
-                       (loop for index from 0
-                             while (or (null iteration-limit)
-                                       (< index iteration-limit))
-                             when (or (not oncep) (plusp index))
-                               do (funcall *inner-exit-if-exhausted*)
-                             do (format-with-runtime-arguments client control)))))))
+        (if at-sign-p
+            (format-remaining-recursive-iteration client colon-p oncep iteration-limit
+                                                  (pop-argument '(or string function)))
+            (format-single-recursive-iteration client colon-p oncep iteration-limit
+                                               (pop-argument '(or string function))
+                                               (pop-argument 'list)))
         (cond ((and colon-p at-sign-p)
                ;; The remaining arguments should be lists.  Each argument
                ;; is used in a different iteration.
@@ -440,121 +440,27 @@
   (let* ((colon-p (colon-p directive))
          (at-sign-p (at-sign-p directive))
          (iteration-limit (car parameters))
+         (bind-iteration-limit-p (not (or (constantp iteration-limit)
+                                          (symbolp iteration-limit))))
          (items (aref (clauses directive) 0))
          (oncep (colon-p (aref items (1- (length items))))))
     (if (= (length items) 1)
-        (with-unique-names (control index)
-          (cond ((and colon-p at-sign-p)
-                 ;; The remaining arguments should be lists.  Each argument
-                 ;; is used in a different iteration.
-                 `((let ((,control (pop-argument '(or function string))))
-                     (with-remaining-arguments ()
-                       (if (functionp ,control)
-                           (loop for ,index from 0
-                                 while (or (null ,iteration-limit)
-                                           (< ,index ,iteration-limit))
-                                 ,@(if oncep
-                                       `(when (plusp ,index)
-                                          do (funcall *inner-exit-if-exhausted*))
-                                       `(do (funcall *inner-exit-if-exhausted*)))
-                                 do (apply ,control *format-output* (pop-argument 'list)))
-                           (loop with items = (parse-control-string ,(trinsic:client-form client)
-                                                                    ,control)
-                                 for ,index from 0
-                                 while (or (null ,iteration-limit)
-                                           (< ,index ,iteration-limit))
-                                 ,@(if oncep
-                                       `(when (plusp ,index)
-                                          do (funcall *inner-exit-if-exhausted*))
-                                       `(do (funcall *inner-exit-if-exhausted*)))
-                                 do (with-arguments (,(trinsic:client-form client) (pop-argument)
-                                                     :outer t)
-                                      (interpret-items ,(trinsic:client-form client) items))))))))
-                (colon-p
-                 ;; We use one argument, and that should be a list of sublists.
-                 ;; Each sublist is used as arguments for one iteration.
-                 (let ((control-form (pop-argument-form '(or function string)))
-                       (args-form (pop-argument-form)))
-                   (with-dynamic-arguments ()
-                     `((let ((,control ,control-form))
-                         (with-arguments (,(trinsic:client-form client) ,args-form)
-                           (if (functionp ,control)
-                               (loop for ,index from 0
-                                     while (or (null ,iteration-limit)
-                                               (< ,index ,iteration-limit))
-                                     ,@(if oncep
-                                           `(when (plusp ,index)
-                                              do (funcall *inner-exit-if-exhausted*))
-                                           `(do (funcall *inner-exit-if-exhausted*)))
-                                     do (apply ,control *format-output* (pop-argument 'list)))
-                               (loop with items = (parse-control-string ,(trinsic:client-form client)
-                                                                        ,control)
-                                     for ,index from 0
-                                     while (or (null ,iteration-limit)
-                                               (< ,index ,iteration-limit))
-                                     ,@(if oncep
-                                           `(when (plusp ,index)
-                                              do (funcall *inner-exit-if-exhausted*))
-                                           `(do (funcall *inner-exit-if-exhausted*)))
-                                     do (with-arguments (,(trinsic:client-form client)
-                                                         (pop-argument) :outer t)
-                                          (interpret-items ,(trinsic:client-form client) items))))))))))
-                (at-sign-p
-                 `((let ((,control (pop-argument '(or function string))))
-                     (if (functionp ,control)
-                         (loop for args = (pop-remaining-arguments)
-                                 then (apply ,control *format-output* args)
-                               for ,index from 0
-                               finally (go-to-argument (- (length args)))
-                               while (and (or (null ,iteration-limit)
-                                              (< ,index ,iteration-limit))
-                                          ,(if oncep
-                                               `(or (zerop ,index) args)
-                                               'args)))
-                         (with-remaining-arguments ()
-                           (loop with items = (parse-control-string ,(trinsic:client-form client)
-                                                                    ,control)
-                                 for ,index from 0
-                                 while (or (null ,iteration-limit)
-                                           (< ,index ,iteration-limit))
-                                 ,@(if oncep
-                                       `(when (plusp ,index)
-                                          do (funcall *inner-exit-if-exhausted*))
-                                       `(do (funcall *inner-exit-if-exhausted*)))
-                                 do (interpret-items ,(trinsic:client-form client) items)))))))
-                (t
-                 ;; no modifiers
-                 ;; We use one argument, and that should be a list.
-                 ;; The elements of that list are used by the iteration.
-                 (let ((control-form (pop-argument-form '(or function string)))
-                       (args-form (pop-argument-form)))
-                   (with-dynamic-arguments ()
-                     `((let ((,control ,control-form))
-                         (if (functionp ,control)
-                             (loop for args = ,args-form
-                                     then (apply ,control *format-output* args)
-                                   for ,index from 0
-                                   while (and (or (null ,iteration-limit)
-                                                  (< ,index ,iteration-limit))
-                                              ,(if oncep
-                                                   `(or (zerop ,index) args)
-                                                   'args)))
-                             (with-arguments (,(trinsic:client-form client) ,args-form)
-                               (loop with items = (parse-control-string ,(trinsic:client-form client)
-                                                                        ,control)
-                                     for ,index from 0
-                                     while (or (null ,iteration-limit)
-                                               (< ,index ,iteration-limit))
-                                     ,@(if oncep
-                                           `(when (plusp ,index) do (funcall *inner-exit-if-exhausted*))
-                                           `(do (funcall *inner-exit-if-exhausted*)))
-                                     do (interpret-items ,(trinsic:client-form client) items)))))))))))
+        (if at-sign-p
+            `((format-remaining-recursive-iteration ,(trinsic:client-form client) ,colon-p
+                                                    ,oncep ,iteration-limit
+                                                    ,(pop-argument-form '(or function string))))
+            `((format-single-recursive-iteration ,(trinsic:client-form client) ,colon-p
+                                                 ,oncep ,iteration-limit
+                                                 ,(pop-argument-form '(or function string))
+                                                 ,(pop-argument-form 'list))))
         (flet ((expand-loop (&aux (compiled-items (compile-items client items)))
                  (when compiled-items
                    (with-unique-names (index limit)
-                     `((loop for ,index from 0
-                             while (or (null ,iteration-limit)
-                                       (< ,index ,iteration-limit))
+                     `((loop ,@(when bind-iteration-limit-p
+                                 `(with ,limit = ,iteration-limit))
+                             for ,index from 0
+                             while (or (null ,(if bind-iteration-limit-p limit iteration-limit))
+                                       (< ,index ,(if bind-iteration-limit-p limit iteration-limit)))
                              ,@(if oncep
                                    `(when (plusp ,index)
                                       do (funcall *inner-exit-if-exhausted*))

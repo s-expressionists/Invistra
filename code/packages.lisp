@@ -34,8 +34,10 @@
            #:format-ordinal-numeral
            #:format-parse-error
            #:format-radix-numeral
+           #:format-remaining-recursive-iteration
            #:format-roman-numeral
            #:format-runtime-error
+           #:format-single-recursive-iteration
            #:format-standard
            #:format-syntax-error
            #:format-tab

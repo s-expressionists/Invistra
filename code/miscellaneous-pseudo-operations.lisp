@@ -80,9 +80,15 @@
 
 (defmethod parameter-specifications
     ((client standard-client) (directive escape-upward-directive))
-  '((:name p1 :type (or null character integer))
-    (:name p2 :type (or null character integer))
-    (:name p3 :type (or null character integer))))
+  '((:name p1
+     :bind t
+     :type (or null character integer))
+    (:name p2
+     :bind t
+     :type (or null character integer))
+    (:name p3
+     :bind t
+     :type (or null character integer))))
 
 (defmethod check-item-syntax progn
     ((client standard-client) (directive escape-upward-directive) global-layout local-layout parent
