@@ -307,13 +307,7 @@
 (defun format-single-recursive-iteration (client colon-p oncep iteration-limit control arg)
   (if colon-p
       (with-arguments (client arg)
-        (if (functionp control)
-            (loop for index from 0
-                  while (or (null iteration-limit)
-                            (< index iteration-limit))
-                  when (or (not oncep) (plusp index))
-                    do (funcall *inner-exit-if-exhausted*)
-                  do (apply control *format-output* (pop-argument 'list)))
+        (if (stringp control)
             (loop with items = (parse-control-string client control)
                   for index from 0
                   while (or (null iteration-limit)
@@ -321,15 +315,14 @@
                   when (or (not oncep) (plusp index))
                     do (funcall *inner-exit-if-exhausted*)
                   do (with-arguments (client (pop-argument) :outer t)
-                       (interpret-items client items)))))
-      (if (functionp control)
-          (loop for args = arg
-                  then (apply control *format-output* args)
-                for index from 0
-                while (and (or (null iteration-limit)
-                               (< index iteration-limit))
-                           (or args
-                               (and oncep (zerop index)))))
+                       (interpret-items client items)))
+            (loop for index from 0
+                  while (or (null iteration-limit)
+                            (< index iteration-limit))
+                  when (or (not oncep) (plusp index))
+                    do (funcall *inner-exit-if-exhausted*)
+                  do (apply control *format-output* (pop-argument 'list)))))
+      (if (stringp control)
           (with-arguments (client arg)
             (loop with items = (parse-control-string client control)
                   for index from 0
@@ -337,18 +330,19 @@
                             (< index iteration-limit))
                   when (or (not oncep) (plusp index))
                     do (funcall *inner-exit-if-exhausted*)
-                  do (interpret-items client items))))))
+                  do (interpret-items client items)))
+          (loop for args = arg
+                  then (apply control *format-output* args)
+                for index from 0
+                while (and (or (null iteration-limit)
+                               (< index iteration-limit))
+                           (or args
+                               (and oncep (zerop index))))))))
 
 (defun format-remaining-recursive-iteration (client colon-p oncep iteration-limit control)
   (if colon-p
       (with-remaining-arguments ()
-        (if (functionp control)
-            (loop for index from 0
-                  while (or (null iteration-limit)
-                            (< index iteration-limit))
-                  when (or (not oncep) (plusp index))
-                    do (funcall *inner-exit-if-exhausted*)
-                  do (apply control *format-output* (pop-argument 'list)))
+        (if (stringp control)
             (loop with items = (parse-control-string client control)
                   for index from 0
                   while (or (null iteration-limit)
@@ -356,16 +350,14 @@
                   when (or (not oncep) (plusp index))
                     do (funcall *inner-exit-if-exhausted*)
                   do (with-arguments (client (pop-argument) :outer t)
-                       (interpret-items client items))))))
-  (if (functionp control)
-      (loop for args = (pop-remaining-arguments)
-              then (apply control *format-output* args)
-            for index from 0
-            finally (go-to-argument (- (length args)))
-            while (and (or (null iteration-limit)
-                           (< index iteration-limit))
-                       (or args
-                           (and oncep (zerop index)))))
+                       (interpret-items client items)))
+            (loop for index from 0
+                  while (or (null iteration-limit)
+                            (< index iteration-limit))
+                  when (or (not oncep) (plusp index))
+                    do (funcall *inner-exit-if-exhausted*)
+                  do (apply control *format-output* (pop-argument 'list)))))
+  (if (stringp control)
       (with-remaining-arguments ()
         (loop with items = (parse-control-string client control)
               for index from 0
@@ -373,7 +365,15 @@
                         (< index iteration-limit))
               when (or (not oncep) (plusp index))
                 do (funcall *inner-exit-if-exhausted*)
-              do (interpret-items client items)))))
+              do (interpret-items client items)))
+      (loop for args = (pop-remaining-arguments)
+              then (apply control *format-output* args)
+            for index from 0
+            finally (go-to-argument (- (length args)))
+            while (and (or (null iteration-limit)
+                           (< index iteration-limit))
+                       (or args
+                           (and oncep (zerop index))))))))
 
 (defmethod interpret-item
     ((client standard-client) (directive iteration-directive) &optional parameters)
