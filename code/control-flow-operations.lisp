@@ -387,10 +387,10 @@
     (if (= (length items) 1)
         (if at-sign-p
             (format-remaining-recursive-iteration client colon-p oncep iteration-limit
-                                                  (pop-argument '(or string function)))
+                                                  (pop-argument 'format-control))
             (format-single-recursive-iteration client colon-p oncep iteration-limit
-                                               (pop-argument '(or string function))
-                                               (pop-argument 'list)))
+                                               (pop-argument 'format-control)
+                                               (pop-argument)))
         (cond ((and colon-p at-sign-p)
                ;; The remaining arguments should be lists.  Each argument
                ;; is used in a different iteration.
@@ -448,11 +448,11 @@
         (if at-sign-p
             `((format-remaining-recursive-iteration ,(trinsic:client-form client) ,colon-p
                                                     ,oncep ,iteration-limit
-                                                    ,(pop-argument-form '(or function string))))
+                                                    ,(pop-argument-form 'format-control)))
             `((format-single-recursive-iteration ,(trinsic:client-form client) ,colon-p
                                                  ,oncep ,iteration-limit
-                                                 ,(pop-argument-form '(or function string))
-                                                 ,(pop-argument-form 'list))))
+                                                 ,(pop-argument-form 'format-control)
+                                                 ,(pop-argument-form))))
         (flet ((expand-loop (&aux (compiled-items (compile-items client items)))
                  (when compiled-items
                    (with-unique-names (index limit)
@@ -498,25 +498,16 @@
 (defmethod interpret-item
     ((client standard-client) (directive recursive-processing-directive) &optional parameters)
   (declare (ignore parameters))
-  (let ((control (pop-argument 'string)))
-    (if (at-sign-p directive)
-        ;; reuse the arguments from the parent control-string
-        (with-remaining-arguments ()
-            (format-with-runtime-arguments client control))
-        ;;
-        (with-arguments (client (pop-argument))
-          (format-with-runtime-arguments client control)))))
-
-(defmethod compile-item
-    ((client standard-client) (directive recursive-processing-directive) &optional parameters)
-  (declare (ignore parameters))
   (if (at-sign-p directive)
-      ;; reuse the arguments from the parent control-string
-      `((with-remaining-arguments ()
-          (format-with-runtime-arguments ,(trinsic:client-form client)
-                                         (pop-argument 'string))))
-      ;;
-      (with-unique-names (control)
-        `((let ((,control ,(pop-argument-form 'string)))
-            (with-arguments (,(trinsic:client-form client) ,(pop-argument-form))
-              (format-with-runtime-arguments ,(trinsic:client-form client) ,control)))))))
+      (format-remaining-recursive client (pop-argument 'format-control))
+      (format-single-recursive client (pop-argument 'format-control) (pop-argument))))
+
+  (defmethod compile-item
+      ((client standard-client) (directive recursive-processing-directive) &optional parameters)
+    (declare (ignore parameters))
+    (if (at-sign-p directive)
+        `((format-remaining-recursive ,(trinsic:client-form client)
+                                      ,(pop-argument-form 'format-control)))
+        `((format-single-recursive ,(trinsic:client-form client)
+                                   ,(pop-argument-form 'format-control)
+                                   ,(pop-argument-form)))))

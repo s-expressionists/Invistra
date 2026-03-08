@@ -296,13 +296,24 @@
 (defmethod compile-parameter ((parameter literal-parameter))
   (parameter-value parameter))
 
-;;; The reason we define this function is that the ~? directive
-;;; (recursive processing), when a @ modifier is used, reuses
-;;; the arguments of the parent control string, so we need
-;;; to call a version of format that doesn't initialize the
-;;; *arguments* runtime environment variable.
-(defun format-with-runtime-arguments (client control-string)
-  (interpret-items client (parse-control-string client control-string)))
+(deftype format-control ()
+  `(or string function))
+
+(declaim (ftype (function (t format-control t) t) format-single-recursive)
+         (ftype (function (t format-control) t) format-remaining-recursive))
+
+(defun format-single-recursive (client control args)
+  (if (stringp control)
+      (with-arguments (client args)
+        (interpret-items client (parse-control-string client control)))
+      (apply control *format-output* args)))
+
+(defun format-remaining-recursive (client control)
+  (if (stringp control)
+      (with-remaining-arguments ()
+        (interpret-items client (parse-control-string client control)))
+      (go-to-argument (- (length (apply control
+                                        *format-output* (pop-remaining-arguments)))))))
 
 (defun format (client destination control &rest args)
   (let ((*format-output* (cond ((or (streamp destination)
@@ -317,10 +328,7 @@
                              (t
                               (error 'invalid-destination
                                      :destination destination)))))
-    (if (functionp control)
-        (apply control *format-output* args)
-        (with-arguments (client args)
-          (format-with-runtime-arguments client control)))
+    (format-single-recursive client control args)
     (if (null destination)
         (get-output-stream-string *format-output*)
         nil)))
