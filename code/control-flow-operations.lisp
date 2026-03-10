@@ -357,23 +357,23 @@
                   when (or (not oncep) (plusp index))
                     do (funcall *inner-exit-if-exhausted*)
                   do (apply control *format-output* (pop-argument 'list)))))
-  (if (stringp control)
-      (with-remaining-arguments ()
-        (loop with items = (parse-control-string client control)
-              for index from 0
-              while (or (null iteration-limit)
-                        (< index iteration-limit))
-              when (or (not oncep) (plusp index))
+      (if (stringp control)
+          (with-remaining-arguments ()
+            (loop with items = (parse-control-string client control)
+                  for index from 0
+                  while (or (null iteration-limit)
+                            (< index iteration-limit))
+                  when (or (not oncep) (plusp index))
                 do (funcall *inner-exit-if-exhausted*)
-              do (interpret-items client items)))
-      (loop for args = (pop-remaining-arguments)
-              then (apply control *format-output* args)
-            for index from 0
-            finally (go-to-argument (- (length args)))
-            while (and (or (null iteration-limit)
-                           (< index iteration-limit))
-                       (or args
-                           (and oncep (zerop index))))))))
+                  do (interpret-items client items)))
+          (loop for args = (pop-remaining-arguments)
+                  then (apply control *format-output* args)
+                for index from 0
+                finally (go-to-argument (- (length args)))
+                while (and (or (null iteration-limit)
+                               (< index iteration-limit))
+                           (or args
+                               (and oncep (zerop index))))))))
 
 (defmethod interpret-item
     ((client standard-client) (directive iteration-directive) &optional parameters)
