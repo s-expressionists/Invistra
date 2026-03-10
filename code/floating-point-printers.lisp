@@ -473,7 +473,9 @@
                (write-char sign-char *format-output*))
              (quaviver:write-digits 10 my-significand *format-output*
                                     :leading-zeros leading-zeros
-                                    :fractional-position fractional-position
+                                    :fractional-position (if (zerop my-significand)
+                                                             (1+ fractional-position)
+                                                             fractional-position)
                                     :fractional-marker #\.))))))
 
 (defun format-monetary-float
