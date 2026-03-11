@@ -1,11 +1,7 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; 22.3.4 Printer operations
+;;;; 22.3.4 Printer operations
 
 (in-package #:invistra)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.4.1 ~a Aesthetic.
 
 (defclass aesthetic-directive (directive) nil)
@@ -94,8 +90,6 @@
                                        ,(pop-argument-form)
                                        *format-output*))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.4.2 ~s Standard.
 
 (defclass standard-directive (directive) nil)
@@ -180,8 +174,6 @@
                                        ,(pop-argument-form)
                                        *format-output*))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.4.3 ~w Write.
 
 (defclass write-directive (directive) nil)

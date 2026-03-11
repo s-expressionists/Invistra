@@ -1,11 +1,7 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; 22.3.1 Basic output
+;;;; 22.3.1 Basic output
 
 (in-package #:invistra)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.1.1 ~c Character
 
 (defclass character-directive (directive)
@@ -23,27 +19,25 @@
 
 (defun format-char (client colon-p at-sign-p char)
   (cond (colon-p
-         ;; We have a colon modifier.
-         ;; The HyperSpec says to do what WRITE-CHAR does for
-         ;; printing characters, and what char-name does otherwise.
-         ;; The definition of "printing char" is a graphic character
-         ;; other than space.
-         (if (and (graphic-char-p char) (not (eql char #\Space)))
+         ;; We have a colon modifier.  The HyperSpec says to do what WRITE-CHAR does for
+         ;; printing characters, and what char-name does otherwise.  The definition of "printing
+         ;; char" is a graphic character other than space, which Invistra interprets and any
+         ;; space like character since there is clearly no reason to treat an em or an en space
+         ;; differently than a normal width space.
+         (if (and (graphic-char-p char) (not (whitespace-char-p client char)))
              (write-char char *format-output*)
              (write-string (char-name char) *format-output*))
          (when at-sign-p
            ;; Allow client specific key sequence for at sign modifier.
            (print-key-sequence client char *format-output*)))
         (at-sign-p
-         ;; We have only an at-sign modifier.
-         ;; The HyperSpec says to print it the way the Lisp
-         ;; reader can understand, which I take to mean "use PRIN1".
-         ;; It also says to bind *PRINT-ESCAPE* to t.
+         ;; We have only an at-sign modifier.  The HyperSpec says to print it the way the Lisp
+         ;; reader can understand, which I take to mean "use PRIN1".  It also says to bind
+         ;; *PRINT-ESCAPE* to t.
          (let ((*print-escape* t))
            (incless:write-object client char *format-output*)))
         (t
-         ;; Neither colon nor at-sign.
-         ;; The HyperSpec says to do what WRITE-CHAR does.
+         ;; Neither colon nor at-sign.  The HyperSpec says to do what WRITE-CHAR does.
          (write-char char *format-output*))))
 
 (defmethod interpret-item
@@ -59,13 +53,15 @@
       directive
     (let ((arg-form (pop-argument-form 'character)))
       (cond (colon-p
-             `((let ((char ,arg-form))
-                 (if (and (graphic-char-p char) (not (eql char #\Space)))
-                     (write-char char *format-output*)
-                     (write-string (char-name char) *format-output*))
-                 ,@(when at-sign-p
-                     `((print-key-sequence ,(trinsic:client-form client) char
-                                           *format-output*))))))
+             (with-unique-names (char)
+               `((let ((,char ,arg-form))
+                   (if (and (graphic-char-p ,char)
+                            (not (whitespace-char-p ,(trinsic:client-form client) ,char)))
+                       (write-char ,char *format-output*)
+                       (write-string (char-name ,char) *format-output*))
+                   ,@(when at-sign-p
+                       `((print-key-sequence ,(trinsic:client-form client) ,char
+                                             *format-output*)))))))
             (at-sign-p
              `((let ((*print-escape* t))
                  (incless:write-object ,(trinsic:client-form client)
@@ -73,8 +69,6 @@
             (t
              `((write-char ,arg-form *format-output*)))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.1.2 ~% Newline.
 
 (defclass newline-directive (directive no-modifiers-mixin)
@@ -108,8 +102,6 @@
        `((loop repeat ,n
                do (terpri *format-output*)))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.1.3 ~& Fresh line and newlines.
 
 (defclass fresh-line-directive (directive no-modifiers-mixin)
@@ -155,8 +147,6 @@
                      else
                        do (terpri *format-output*)))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.1.4 ~| Page separators.
 
 (defclass page-directive (directive no-modifiers-mixin)
@@ -191,8 +181,6 @@
        `((loop repeat ,n
                do (write-char #\Page *format-output*)))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.1.5 ~~ Tildes.
 
 (defclass tilde-directive (directive no-modifiers-mixin)

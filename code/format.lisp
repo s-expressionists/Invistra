@@ -1,34 +1,3 @@
-;;; A portable implementation of the Common Lisp FORMAT function.
-;;;
-;;; Status:
-;;;
-;;;   Not all directives are implemented.
-;;;
-;;; TODO:
-;;;
-;;;   * Implement the last couple of directives.
-;;;
-;;;   * Implement the directive compiler.
-;;;
-;;;   * Improve some of the condition reports.
-;;;
-;;;   * We might want to use reader conditionals to determine how
-;;;     to handle things like counting colums (for the TAB directive),
-;;;     because it could be costly (and/or imprecise) to count each
-;;;     character output.
-;;;
-;;;
-;;; To think about:
-;;;
-;;;   * Should we use ASSERT as opposed to ERROR to get correctable
-;;;     errors?
-;;;
-;;;   * Should we put in restarts?
-;;;
-;;;   * What do we do about the possibility that the syntax categories
-;;;     of some characters might be altered (for ignored newline
-;;;     directive)?
-
 (cl:in-package #:invistra)
 
 (defun interpret-items (client items)

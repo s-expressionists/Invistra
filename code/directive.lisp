@@ -147,8 +147,6 @@
 (defmethod calculate-argument-position (position (item directive))
   (reduce #'calculate-argument-position (parameters item) :initial-value position))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; Checking syntax, interpreting, and compiling directives.
 
 (defmethod check-item-syntax progn

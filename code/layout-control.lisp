@@ -1,11 +1,7 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; 22.3.6 Layout control
+;;;; 22.3.6 Layout control
 
 (in-package #:invistra)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.6.1 ~TAB Tabulate
 
 (defclass tabulate-directive (directive) ())
@@ -76,8 +72,6 @@
   `((format-tab ,(trinsic:client-form client) ,(colon-p directive) ,(at-sign-p directive)
                 ,@parameters)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.6.3 ~> End of justification or of logical block
 
 (defclass end-justification-directive
@@ -89,8 +83,6 @@
       (change-class directive 'end-logical-block-directive)
       (change-class directive 'end-justification-directive)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.6.2 ~< Justification
 
 (defclass justification-directive

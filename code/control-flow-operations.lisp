@@ -1,11 +1,7 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; 22.3.7 Control-flow operations
+;;;; 22.3.7 Control-flow operations
 
 (in-package #:invistra)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.7.1 ~* Go to
 
 (defclass go-to-directive
@@ -74,8 +70,6 @@
                                    (number n)
                                    (t `(or ,n 1))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.7.3 ~] End of conditional expression
 
 (defclass end-conditional-expression-directive
@@ -87,8 +81,6 @@
     ((client standard-client) (char (eql #\])) directive (end-directive t))
   (change-class directive 'end-conditional-expression-directive))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.7.2 ~[ Conditional expression
 
 (defclass conditional-expression-directive
@@ -262,8 +254,6 @@
                    ((last-clause-is-default-p directive)
                     (compile-items client (aref clauses (1- (length clauses)))))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.7.5 ~} End of iteration
 
 (defclass end-iteration-directive
@@ -275,8 +265,6 @@
     ((client standard-client) (char (eql #\})) directive (end-directive t))
   (change-class directive 'end-iteration-directive))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.7.4 ~{ Iteration
 
 (defclass iteration-directive
@@ -460,7 +448,9 @@
                                  `(with ,limit = ,iteration-limit))
                              for ,index from 0
                              while (or (null ,(if bind-iteration-limit-p limit iteration-limit))
-                                       (< ,index ,(if bind-iteration-limit-p limit iteration-limit)))
+                                       (< ,index ,(if bind-iteration-limit-p
+                                                      limit
+                                                      iteration-limit)))
                              ,@(if oncep
                                    `(when (plusp ,index)
                                       do (funcall *inner-exit-if-exhausted*))
@@ -479,8 +469,6 @@
                   `((with-arguments (,(trinsic:client-form client) ,arg-form)
                       ,@(expand-loop))))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.7.6 ~? Recursive processing
 
 (defclass recursive-processing-directive

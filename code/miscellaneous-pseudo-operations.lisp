@@ -1,15 +1,7 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; 22.3.9 Miscellaneous pseudo-operations
+;;;; 22.3.9 Miscellaneous pseudo-operations
 
 (in-package #:invistra)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; 22.3.9.1 ~; Clause separator
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.9.1 ~; Clause separator
 
 (defclass clause-separator-directive (directive) nil)
@@ -68,8 +60,6 @@
                `((setf *line-length* (or ,line-length
                                          *line-length*))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.9.2 ~^ Escape upward
 
 (defclass escape-upward-directive (directive) nil)
@@ -155,8 +145,6 @@
                                           (eql ,p1 ,p2)))))
                         ,@exit-forms)))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.9.3 ~Newline Igored newline
 
 (defclass ignored-newline-directive

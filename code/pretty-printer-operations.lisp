@@ -1,11 +1,7 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; 22.3.5 Pretty printer operations
+;;;; 22.3.5 Pretty printer operations
 
 (in-package #:invistra)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.5.1 ~_ Conditional newline
 
 (defclass conditional-newline-directive (directive) nil)
@@ -52,8 +48,6 @@
 (defclass end-logical-block-directive
     (directive end-structured-directive-mixin) nil)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.5.2 ~< Logical block
 
 (defclass logical-block-directive
@@ -286,8 +280,6 @@
            :prefix ,prefix :suffix ,suffix
            :per-line-prefix-p ,per-line-prefix-p))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.5.3 ~i Indent
 
 (defclass indent-directive (directive) nil)
@@ -322,10 +314,7 @@
                             ,(if (colon-p directive) :current :block)
                             ,(car parameters))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.5.4 ~/ Call function
-
 ;;; This directive is particular in two different ways.  First, as
 ;;; with the "ignored newline" directive, there are characters
 ;;; belonging to the directive beyond the directive character itself,

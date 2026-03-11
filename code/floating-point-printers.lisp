@@ -1,6 +1,4 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; 22.3.3 Floating-point printers
+;;;; 22.3.3 Floating-point printers
 
 (in-package #:invistra)
 
@@ -63,8 +61,6 @@
                  digit-count (quaviver.math:count-digits 10 significand)))))
   (values significand digit-count fractional-position))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.3.1 ~f Fixed-format floating point.
 
 (defclass fixed-format-directive (directive) nil)
@@ -73,7 +69,8 @@
     ((client standard-client) (char (eql #\F)) directive (end-directive t))
   (change-class directive 'fixed-format-directive))
 
-(defmethod parameter-specifications ((client standard-client) (directive fixed-format-directive))
+(defmethod parameter-specifications
+    ((client standard-client) (directive fixed-format-directive))
   '((:name w
      :type (or null integer)
      :default nil
@@ -184,8 +181,6 @@
   `((format-fixed-format-float ,(trinsic:client-form client) ,(colon-p directive)
                                ,(at-sign-p directive) ,@parameters ,(pop-argument-form))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.3.2 ~e Exponential floating point.
 
 (defclass exponential-directive (directive) ())
@@ -329,8 +324,6 @@
   `((format-exponential-float ,(trinsic:client-form client) ,(colon-p directive)
                               ,(at-sign-p directive) ,@parameters ,(pop-argument-form))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.3.3 ~g General floating point.
 
 (defclass general-directive (directive) ())
@@ -412,8 +405,6 @@
   `((format-general-float ,(trinsic:client-form client) ,(colon-p directive)
                           ,(at-sign-p directive) ,@parameters ,(pop-argument-form))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.3.4 ~$ Monetary floating point.
 
 (defclass monetary-directive (directive) nil)

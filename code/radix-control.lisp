@@ -1,8 +1,6 @@
-(in-package #:invistra)
+;;;; 22.3.2 Radix control
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; 22.3.2 Radix control
+(in-package #:invistra)
 
 (defclass base-radix-directive (directive)
   ())
@@ -56,8 +54,6 @@
             (*print-readably* nil))
         (incless:write-object client value *format-output*))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.2.1 ~r Radix.
 
 (defclass radix-directive (base-radix-directive) nil)
@@ -321,8 +317,6 @@
             (t
              `((format-cardinal-numeral ,arg-form)))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.2.2 ~d Decimal.
 
 (defclass decimal-directive (base-radix-directive)
@@ -343,8 +337,6 @@
   `((format-radix-numeral ,(trinsic:client-form client) ,(colon-p directive)
                           ,(at-sign-p directive) 10 ,@parameters ,(pop-argument-form))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.2.3 ~b Binary.
 
 (defclass binary-directive (base-radix-directive)
@@ -364,8 +356,6 @@
   `((format-radix-numeral ,(trinsic:client-form client) ,(colon-p directive)
                           ,(at-sign-p directive) 2 ,@parameters ,(pop-argument-form))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.2.4 ~o Octal.
 
 (defclass octal-directive (base-radix-directive)
@@ -385,8 +375,6 @@
   `((format-radix-numeral ,(trinsic:client-form client) ,(colon-p directive)
                           ,(at-sign-p directive) 8 ,@parameters ,(pop-argument-form))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.2.5 ~x Hexadecimal.
 
 (defclass hexadecimal-directive (base-radix-directive)

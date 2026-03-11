@@ -1,24 +1,17 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; 22.3.8 Miscellaneous operations
+;;;; 22.3.8 Miscellaneous operations
 
 (in-package #:invistra)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.8.2 ~) End of case conversion
 
 (defclass end-case-conversion-directive
-    (directive no-modifiers-mixin
-     end-structured-directive-mixin)
+    (directive no-modifiers-mixin end-structured-directive-mixin)
   nil)
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\))) directive (end-directive t))
   (change-class directive 'end-case-conversion-directive))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.8.1 ~( Case conversion
 
 (defclass case-conversion-directive
@@ -69,8 +62,6 @@
                                      '(make-downcase-stream)))))
         ,@(compile-items client (aref (clauses directive) 0))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;; 22.3.8.3 ~p Plural
 
 (defclass plural-directive (directive) nil)

@@ -7,7 +7,8 @@
     ((client extension-client) (char (eql #\`)) directive (end-directive t))
   (change-class directive 'call-function-directive))
 
-(defmethod invistra:parameter-specifications ((client standard-client) (directive call-function-directive))
+(defmethod invistra:parameter-specifications
+    ((client extension-client) (directive call-function-directive))
   '((:type (or null character integer)
      :bind nil
      :default nil
@@ -45,7 +46,9 @@
         (t
          ch)))
 
-(defmethod invistra:check-item-syntax progn ((client extension-client) (directive call-function-directive) global-layout local-layout parent &optional group position)
+(defmethod invistra:check-item-syntax progn
+    ((client extension-client) (directive call-function-directive) global-layout local-layout
+     parent &optional group position)
   (declare (ignore global-layout local-layout parent group position))
   (with-accessors ((control-string invistra:control-string)
                    (start invistra:start)
@@ -73,10 +76,12 @@
                       (multiple-value-bind (symbol status)
                           (find-symbol token package)
                         (cond ((null symbol)
-                               (invistra:signal-no-such-symbol client directive token start (1+ position)))
+                               (invistra:signal-no-such-symbol client directive token start
+                                                               (1+ position)))
                               ((and (not internalp)
                                     (not (eq status :external)))
-                               (invistra:signal-symbol-not-external client directive symbol start (1+ position)))
+                               (invistra:signal-symbol-not-external client directive symbol
+                                                                    start (1+ position)))
                               (t
                                (setf function-name symbol)))))
           do (case mode
@@ -120,11 +125,13 @@
                          package (find-package token)
                          (fill-pointer token) 0)
                    (when (null package)
-                     (invistra:signal-no-such-package client directive token start (1+ position))))
+                     (invistra:signal-no-such-package client directive token start
+                                                      (1+ position))))
                   (otherwise
                    (vector-push (funcall char-case char) token))))))))
 
-(defmethod invistra:interpret-item (client (directive call-function-directive) &optional parameters)
+(defmethod invistra:interpret-item
+    ((client extension-client) (directive call-function-directive) &optional parameters)
   (apply (invistra:coerce-function-designator client (function-name directive))
          invistra:*format-output*
          (invistra:pop-argument)
@@ -132,9 +139,11 @@
          (invistra:at-sign-p directive)
          parameters))
 
-(defmethod invistra:compile-item (client (directive call-function-directive) &optional parameters)
-  `((funcall (invistra:coerce-function-designator ,(trinsic:client-form client) ',(function-name directive))
-            invistra:*format-output*
+(defmethod invistra:compile-item
+    ((client extension-client) (directive call-function-directive) &optional parameters)
+  `((funcall (invistra:coerce-function-designator ,(trinsic:client-form client)
+                                                  ',(function-name directive))
+             invistra:*format-output*
              (invistra:pop-argument)
              ,(invistra:colon-p directive)
              ,(invistra:at-sign-p directive)
