@@ -73,6 +73,11 @@
 
 (defgeneric whitespace-char-p (client ch))
 
+(defgeneric printing-char-p (client ch)
+  (:method (client ch)
+    (declare (ignore client))
+    (and (graphic-char-p ch) (not (eql ch #\space)))))
+
 (defgeneric end (directive))
 
 (defgeneric structured-end (directive)

@@ -15,4 +15,5 @@
                 :components ((:file "packages")
                              (:file "arguments")
                              (:file "call-function")
-                             (:file "numeral")))))
+                             (:file "numeral")
+                             (:file "properties")))))

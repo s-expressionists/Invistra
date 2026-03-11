@@ -21,10 +21,10 @@
   (cond (colon-p
          ;; We have a colon modifier.  The HyperSpec says to do what WRITE-CHAR does for
          ;; printing characters, and what char-name does otherwise.  The definition of "printing
-         ;; char" is a graphic character other than space, which Invistra interprets and any
-         ;; space like character since there is clearly no reason to treat an em or an en space
-         ;; differently than a normal width space.
-         (if (and (graphic-char-p char) (not (whitespace-char-p client char)))
+         ;; char" is a graphic character other than space. We use a generic function to do this
+         ;; test leaving open the possibility that the client interprets any space like
+         ;; character as non-printing.
+         (if (printing-char-p client char)
              (write-char char *format-output*)
              (write-string (char-name char) *format-output*))
          (when at-sign-p
@@ -55,8 +55,7 @@
       (cond (colon-p
              (with-unique-names (char)
                `((let ((,char ,arg-form))
-                   (if (and (graphic-char-p ,char)
-                            (not (whitespace-char-p ,(trinsic:client-form client) ,char)))
+                   (if (printing-char-p ,(trinsic:client-form client) ,char)
                        (write-char ,char *format-output*)
                        (write-string (char-name ,char) *format-output*))
                    ,@(when at-sign-p
