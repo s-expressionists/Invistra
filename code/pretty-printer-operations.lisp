@@ -7,18 +7,18 @@
 (defclass conditional-newline-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\_)) directive (end-directive t))
+    ((client client) (char (eql #\_)) directive (end-directive t))
   (change-class directive 'conditional-newline-directive))
 
 (defmethod check-item-syntax :around
-    ((client standard-client) (directive conditional-newline-directive) global-layout
+    ((client client) (directive conditional-newline-directive) global-layout
      local-layout parent &optional group position)
   (call-next-method client directive global-layout
                     (merge-layout client directive global-layout local-layout :logical-block t)
                     parent group position))
 
 (defmethod interpret-item
-    ((client standard-client) (directive conditional-newline-directive) &optional parameters)
+    ((client client) (directive conditional-newline-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -32,7 +32,7 @@
                                    (t :linear)))))
 
 (defmethod compile-item
-    ((client standard-client) (directive conditional-newline-directive) &optional parameters)
+    ((client client) (directive conditional-newline-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -54,12 +54,12 @@
     (directive structured-directive-mixin) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\<)) directive
+    ((client client) (char (eql #\<)) directive
      (end-directive end-logical-block-directive))
   (change-class directive 'logical-block-directive))
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\<)) directive (end-directive t))
+    ((client client) (char (eql #\<)) directive (end-directive t))
   (signal-missing-end-logical-block-or-end-justification client directive))
 
 (defmethod calculate-argument-position (position (directive logical-block-directive))
@@ -74,14 +74,14 @@
          (1+ position))))
 
 (defmethod check-item-syntax :around
-    ((client standard-client) (directive logical-block-directive) global-layout local-layout
+    ((client client) (directive logical-block-directive) global-layout local-layout
      parent &optional group position)
   (call-next-method client directive global-layout
                     (merge-layout client directive global-layout local-layout :logical-block t)
                     parent group position))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive directive) global-layout local-layout
+    ((client client) (directive directive) global-layout local-layout
      (parent logical-block-directive) &optional group position)
   (declare (ignore global-layout local-layout position))
   (when (and (> (length (clauses parent)) 1)
@@ -92,13 +92,13 @@
     (signal-illegal-fix-directive client directive)))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive logical-block-directive) global-layout local-layout
+    ((client client) (directive logical-block-directive) global-layout local-layout
      parent &optional group position)
   (declare (ignore global-layout local-layout parent group position))
   (check-clause-count client directive 1 3))
 
 (defmethod interpret-item
-    ((client standard-client) (directive logical-block-directive) &optional parameters)
+    ((client client) (directive logical-block-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -187,7 +187,7 @@
      :suffix suffix)))
 
 (defmethod compile-item
-    ((client standard-client) (directive logical-block-directive) &optional parameters)
+    ((client client) (directive logical-block-directive) &optional parameters)
   (declare (ignore parameters)
            (ignorable client))
   #-sicl
@@ -285,29 +285,29 @@
 (defclass indent-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\I)) directive (end-directive t))
+    ((client client) (char (eql #\I)) directive (end-directive t))
   (change-class directive 'indent-directive))
 
-(defmethod parameter-specifications ((client standard-client) (directive indent-directive))
+(defmethod parameter-specifications ((client client) (directive indent-directive))
   '((:type integer
      :bind nil
      :default 0)))
 
 (defmethod check-item-syntax :around
-    ((client standard-client) (directive indent-directive) global-layout local-layout parent
+    ((client client) (directive indent-directive) global-layout local-layout parent
      &optional group position)
   (call-next-method client directive global-layout
                     (merge-layout client directive global-layout local-layout :logical-block t)
                     parent group position))
 
-(defmethod interpret-item ((client standard-client) (directive indent-directive) &optional parameters)
+(defmethod interpret-item ((client client) (directive indent-directive) &optional parameters)
   (declare (ignorable client parameters))
   #-sicl
   (inravina:pprint-indent client *format-output*
                           (if (colon-p directive) :current :block)
                           (car parameters)))
 
-(defmethod compile-item ((client standard-client) (directive indent-directive) &optional parameters)
+(defmethod compile-item ((client client) (directive indent-directive) &optional parameters)
   (declare (ignorable client parameters))
   #-sicl
   `((inravina:pprint-indent ,(trinsic:client-form client) *format-output*
@@ -325,16 +325,16 @@
   ((%function-name :accessor function-name)))
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\/)) directive (end-directive t))
+    ((client client) (char (eql #\/)) directive (end-directive t))
   (change-class directive 'call-function-directive))
 
-(defmethod parameter-specifications ((client standard-client) (directive call-function-directive))
+(defmethod parameter-specifications ((client client) (directive call-function-directive))
   '((:type (or null character integer)
      :default nil
      :bind t
      :rest t)))
 
-(defmethod parse-suffix ((client standard-client) directive (directive-character (eql #\/)))
+(defmethod parse-suffix ((client client) directive (directive-character (eql #\/)))
   (with-accessors ((control-string control-string)
                    (end end))
       directive
@@ -342,7 +342,7 @@
                       (signal-end-of-control-string client directive))))))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive call-function-directive) global-layout local-layout parent
+    ((client client) (directive call-function-directive) global-layout local-layout parent
      &optional group position)
   (declare (ignore global-layout local-layout parent group position))
   ;; Check that there is at most one package marker in the function name.
@@ -389,7 +389,7 @@
             (setf (function-name directive) symbol))))))
 
 (defmethod interpret-item
-    ((client standard-client) (directive call-function-directive) &optional parameters)
+    ((client client) (directive call-function-directive) &optional parameters)
   (apply (coerce-function-designator client (function-name directive))
          *format-output*
          (pop-argument)
@@ -398,7 +398,7 @@
          parameters))
 
 (defmethod compile-item
-    ((client standard-client) (directive call-function-directive) &optional parameters)
+    ((client client) (directive call-function-directive) &optional parameters)
   `((funcall (coerce-function-designator ,(trinsic:client-form client)
                                          ',(function-name directive))
              *format-output*

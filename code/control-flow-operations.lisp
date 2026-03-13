@@ -8,10 +8,10 @@
     (directive at-most-one-modifier-mixin) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\*)) directive (end-directive t))
+    ((client client) (char (eql #\*)) directive (end-directive t))
   (change-class directive 'go-to-directive))
 
-(defmethod parameter-specifications ((client standard-client) (directive go-to-directive))
+(defmethod parameter-specifications ((client client) (directive go-to-directive))
   '((:name n
      :type (or null (integer 0))
      :bind nil
@@ -29,7 +29,7 @@
              (+ position (or n 1)))))))
 
 (defmethod interpret-item
-    ((client standard-client) (directive go-to-directive) &optional parameters)
+    ((client client) (directive go-to-directive) &optional parameters)
   (let ((n (car parameters)))
     (cond ((colon-p directive)
            ;; Back up in the list of arguments.
@@ -45,7 +45,7 @@
            (go-to-argument (or n 1))))))
 
 (defmethod compile-item
-    ((client standard-client) (directive go-to-directive) &optional parameters)
+    ((client client) (directive go-to-directive) &optional parameters)
   (let ((n (car parameters)))
     (cond ((colon-p directive)
            ;; Back up in the list of arguments.
@@ -78,7 +78,7 @@
   nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\])) directive (end-directive t))
+    ((client client) (char (eql #\])) directive (end-directive t))
   (change-class directive 'end-conditional-expression-directive))
 
 ;;; 22.3.7.2 ~[ Conditional expression
@@ -90,16 +90,16 @@
                               :accessor last-clause-is-default-p)))
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\[)) directive
+    ((client client) (char (eql #\[)) directive
      (end-directive end-conditional-expression-directive))
   (change-class directive 'conditional-expression-directive))
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\[)) directive (end-directive t))
+    ((client client) (char (eql #\[)) directive (end-directive t))
   (signal-missing-end-conditional client directive))
 
 (defmethod parameter-specifications
-    ((client standard-client) (directive conditional-expression-directive))
+    ((client client) (directive conditional-expression-directive))
   '((:name n
      :type (or null integer)
      :bind nil
@@ -152,7 +152,7 @@
                       new-position))))))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive conditional-expression-directive) global-layout
+    ((client client) (directive conditional-expression-directive) global-layout
      local-layout parent &optional group position)
   (declare (ignore global-layout local-layout parent group position))
   (with-accessors ((at-sign-p at-sign-p)
@@ -191,7 +191,7 @@
             do (setf (last-clause-is-default-p directive) t))))
 
 (defmethod interpret-item
-    ((client standard-client) (directive conditional-expression-directive) &optional parameters)
+    ((client client) (directive conditional-expression-directive) &optional parameters)
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p)
                    (clauses clauses))
@@ -217,7 +217,7 @@
                                            (1- (length clauses)))))))))))
 
 (defmethod compile-item
-    ((client standard-client) (directive conditional-expression-directive) &optional parameters)
+    ((client client) (directive conditional-expression-directive) &optional parameters)
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p)
                    (clauses clauses))
@@ -262,7 +262,7 @@
   ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\})) directive (end-directive t))
+    ((client client) (char (eql #\})) directive (end-directive t))
   (change-class directive 'end-iteration-directive))
 
 ;;; 22.3.7.4 ~{ Iteration
@@ -273,16 +273,16 @@
           :initform nil)))
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\{)) directive
+    ((client client) (char (eql #\{)) directive
      (end-directive end-iteration-directive))
   (change-class directive 'iteration-directive))
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\{)) directive (end-directive t))
+    ((client client) (char (eql #\{)) directive (end-directive t))
   (signal-missing-end-iteration client directive))
 
 (defmethod parameter-specifications
-            ((client standard-client) (directive iteration-directive))
+            ((client client) (directive iteration-directive))
   '((:name n
      :bind nil
      :type (or null (integer 0))
@@ -364,7 +364,7 @@
                                (and oncep (zerop index))))))))
 
 (defmethod interpret-item
-    ((client standard-client) (directive iteration-directive) &optional parameters)
+    ((client client) (directive iteration-directive) &optional parameters)
   ;; eliminate the end-of-iteration directive from the
   ;; list of items
   (let* ((colon-p (colon-p directive))
@@ -422,7 +422,7 @@
                        do (interpret-items client items))))))))
 
 (defmethod compile-item
-    ((client standard-client) (directive iteration-directive) &optional parameters)
+    ((client client) (directive iteration-directive) &optional parameters)
   ;; eliminate the end-of-iteration directive from the
   ;; list of items
   (let* ((colon-p (colon-p directive))
@@ -476,7 +476,7 @@
   ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\?)) directive (end-directive t))
+    ((client client) (char (eql #\?)) directive (end-directive t))
   (change-class directive 'recursive-processing-directive))
 
 (defmethod calculate-argument-position (position (directive recursive-processing-directive))
@@ -484,14 +484,14 @@
     (1+ position)))
 
 (defmethod interpret-item
-    ((client standard-client) (directive recursive-processing-directive) &optional parameters)
+    ((client client) (directive recursive-processing-directive) &optional parameters)
   (declare (ignore parameters))
   (if (at-sign-p directive)
       (format-remaining-recursive client (pop-argument 'format-control))
       (format-single-recursive client (pop-argument 'format-control) (pop-argument))))
 
   (defmethod compile-item
-      ((client standard-client) (directive recursive-processing-directive) &optional parameters)
+      ((client client) (directive recursive-processing-directive) &optional parameters)
     (declare (ignore parameters))
     (if (at-sign-p directive)
         `((format-remaining-recursive ,(trinsic:client-form client)

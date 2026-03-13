@@ -66,11 +66,11 @@
 (defclass fixed-format-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\F)) directive (end-directive t))
+    ((client client) (char (eql #\F)) directive (end-directive t))
   (change-class directive 'fixed-format-directive))
 
 (defmethod parameter-specifications
-    ((client standard-client) (directive fixed-format-directive))
+    ((client client) (directive fixed-format-directive))
   '((:name w
      :type (or null integer)
      :default nil
@@ -172,12 +172,12 @@
                  value))
 
 (defmethod interpret-item
-    ((client standard-client) (directive fixed-format-directive) &optional parameters)
+    ((client client) (directive fixed-format-directive) &optional parameters)
   (multiple-value-call #'format-fixed-format-float
     client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive fixed-format-directive) &optional parameters)
+    ((client client) (directive fixed-format-directive) &optional parameters)
   `((format-fixed-format-float ,(trinsic:client-form client) ,(colon-p directive)
                                ,(at-sign-p directive) ,@parameters ,(pop-argument-form))))
 
@@ -186,10 +186,10 @@
 (defclass exponential-directive (directive) ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\E)) directive (end-directive t))
+    ((client client) (char (eql #\E)) directive (end-directive t))
   (change-class directive 'exponential-directive))
 
-(defmethod parameter-specifications ((client standard-client) (directive exponential-directive))
+(defmethod parameter-specifications ((client client) (directive exponential-directive))
   '((:name w
      :type (or null integer)
      :default nil
@@ -315,12 +315,12 @@
                  value))
 
 (defmethod interpret-item
-    ((client standard-client) (directive exponential-directive) &optional parameters)
+    ((client client) (directive exponential-directive) &optional parameters)
   (multiple-value-call #'format-exponential-float
     client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive exponential-directive) &optional parameters)
+    ((client client) (directive exponential-directive) &optional parameters)
   `((format-exponential-float ,(trinsic:client-form client) ,(colon-p directive)
                               ,(at-sign-p directive) ,@parameters ,(pop-argument-form))))
 
@@ -329,10 +329,10 @@
 (defclass general-directive (directive) ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\G)) directive (end-directive t))
+    ((client client) (char (eql #\G)) directive (end-directive t))
   (change-class directive 'general-directive))
 
-(defmethod parameter-specifications ((client standard-client) (directive general-directive))
+(defmethod parameter-specifications ((client client) (directive general-directive))
   '((:name w
      :type (or null integer)
      :default nil
@@ -396,12 +396,12 @@
                  value))
 
 (defmethod interpret-item
-    ((client standard-client) (directive general-directive) &optional parameters)
+    ((client client) (directive general-directive) &optional parameters)
   (multiple-value-call #'format-general-float
     client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive general-directive) &optional parameters)
+    ((client client) (directive general-directive) &optional parameters)
   `((format-general-float ,(trinsic:client-form client) ,(colon-p directive)
                           ,(at-sign-p directive) ,@parameters ,(pop-argument-form))))
 
@@ -410,11 +410,11 @@
 (defclass monetary-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\$)) directive (end-directive t))
+    ((client client) (char (eql #\$)) directive (end-directive t))
   (change-class directive 'monetary-directive))
 
 (defmethod parameter-specifications
-    ((client standard-client) (directive monetary-directive))
+    ((client client) (directive monetary-directive))
   '((:name d
      :type integer
      :default 2
@@ -478,11 +478,11 @@
                  value))
 
 (defmethod interpret-item
-    ((client standard-client) (directive monetary-directive) &optional parameters)
+    ((client client) (directive monetary-directive) &optional parameters)
   (multiple-value-call #'format-monetary-float
     client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive monetary-directive) &optional parameters)
+    ((client client) (directive monetary-directive) &optional parameters)
   `((format-monetary-float ,(trinsic:client-form client) ,(colon-p directive)
                            ,(at-sign-p directive) ,@parameters ,(pop-argument-form))))

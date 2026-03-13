@@ -10,6 +10,7 @@
            #:check-clause-count
            #:check-end-of-control-string
            #:check-item-syntax
+           #:client
            #:coerce-function-designator
            #:colon-p
            #:compile-item
@@ -90,7 +91,6 @@
            #:signal-symbol-not-external
            #:signal-unknown-directive-character
            #:specialize-directive
-           #:standard-client
            #:start
            #:suffix-start
            #:symbol-not-external

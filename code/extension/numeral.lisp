@@ -4,7 +4,7 @@
   ())
 
 ;; binds
-(defmethod invistra:parameter-specifications ((client extension-client) (directive numeral-directive))
+(defmethod invistra:parameter-specifications ((client client) (directive numeral-directive))
   '((:type character
      :default #\A)
     (:type integer
@@ -17,7 +17,7 @@
      :default 3)))
 
 (defmethod invistra:specialize-directive
-    ((client extension-client) (char (eql #\N)) directive end-directive)
+    ((client client) (char (eql #\N)) directive end-directive)
   (declare (ignore end-directive))
      (change-class directive 'numeral-directive))
 
@@ -94,13 +94,13 @@
      (write-string result invistra:*format-output*)))
 
 (defmethod invistra:interpret-item
-    ((client extension-client) (directive numeral-directive) &optional parameters)
+    ((client client) (directive numeral-directive) &optional parameters)
   (apply #'print-numeral-arg client
          (invistra:colon-p directive) (invistra:at-sign-p directive)
          parameters))
 
 (defmethod invistra:compile-item
-    ((client extension-client) (directive numeral-directive) &optional parameters)
+    ((client client) (directive numeral-directive) &optional parameters)
   `((print-numeral-arg ,(trinsic:client-form client)
                        ,(invistra:colon-p directive) ,(invistra:at-sign-p directive)
                        ,@parameters)))

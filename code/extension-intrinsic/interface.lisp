@@ -1,15 +1,11 @@
 (in-package #:invistra-extension-intrinsic)
 
-(defclass intrinsic-client
-    (inravina-extension-intrinsic:intrinsic-client invista:standard-client)
-  ())
+(defclass client (inravina-extension-intrinsic:client invista:client) ())
 
-(defclass intrinsic-client-impl
-    (intrinsic-client quaviver/schubfach:client)
-  ())
+(defclass client-impl (client quaviver/schubfach:client) ())
 
-(change-class incless-extension-intrinsic:*client* 'intrinsic-client-impl)
+(change-class incless-extension-intrinsic:*client* 'client-impl)
 
 (invistra:define-interface :client-form incless-intrinsic:*client*
-                           :client-class intrinsic-client
+                           :client-class client
                            :intrinsic t)

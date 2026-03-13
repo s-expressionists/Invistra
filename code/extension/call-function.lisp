@@ -4,18 +4,18 @@
   ((%function-name :accessor function-name)))
 
 (defmethod invistra:specialize-directive
-    ((client extension-client) (char (eql #\`)) directive (end-directive t))
+    ((client client) (char (eql #\`)) directive (end-directive t))
   (change-class directive 'call-function-directive))
 
 (defmethod invistra:parameter-specifications
-    ((client extension-client) (directive call-function-directive))
+    ((client client) (directive call-function-directive))
   '((:type (or null character integer)
      :bind nil
      :default nil
      :rest t)))
 
 (defmethod invistra:parse-suffix
-    ((client extension-client) directive (directive-character (eql #\`)))
+    ((client client) directive (directive-character (eql #\`)))
   (with-accessors ((end invistra:end)
                    (control-string invistra:control-string))
       directive
@@ -47,7 +47,7 @@
          ch)))
 
 (defmethod invistra:check-item-syntax progn
-    ((client extension-client) (directive call-function-directive) global-layout local-layout
+    ((client client) (directive call-function-directive) global-layout local-layout
      parent &optional group position)
   (declare (ignore global-layout local-layout parent group position))
   (with-accessors ((control-string invistra:control-string)
@@ -131,7 +131,7 @@
                    (vector-push (funcall char-case char) token))))))))
 
 (defmethod invistra:interpret-item
-    ((client extension-client) (directive call-function-directive) &optional parameters)
+    ((client client) (directive call-function-directive) &optional parameters)
   (apply (invistra:coerce-function-designator client (function-name directive))
          invistra:*format-output*
          (invistra:pop-argument)
@@ -140,7 +140,7 @@
          parameters))
 
 (defmethod invistra:compile-item
-    ((client extension-client) (directive call-function-directive) &optional parameters)
+    ((client client) (directive call-function-directive) &optional parameters)
   `((funcall (invistra:coerce-function-designator ,(trinsic:client-form client)
                                                   ',(function-name directive))
              invistra:*format-output*

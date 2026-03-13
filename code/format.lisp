@@ -36,10 +36,10 @@
 
 (defvar *outer-exit* nil)
 
-(defmethod make-argument-cursor ((client standard-client) object)
+(defmethod make-argument-cursor ((client client) object)
   (error 'type-error :datum object :expected-type 'list))
 
-(defmethod make-argument-cursor ((client standard-client) (object null))
+(defmethod make-argument-cursor ((client client) (object null))
   (values (lambda ()
             nil)
           (lambda ()
@@ -58,7 +58,7 @@
                      :argument-position index
                      :argument-count 0)))))
 
-(defmethod make-argument-cursor ((client standard-client) (object cons))
+(defmethod make-argument-cursor ((client client) (object cons))
   (let ((head object)
         (position 0)
         (len (dotted-list-length object)))
@@ -302,7 +302,7 @@
         (get-output-stream-string *format-output*)
         nil)))
 
-(defmethod interpret-item ((client standard-client) (item string) &optional parameters)
+(defmethod interpret-item ((client client) (item string) &optional parameters)
   (declare (ignore parameters))
   (if *newline-kind*
       (loop with start = 0
@@ -320,7 +320,7 @@
             do (setf in-blank-p blankp))
       (write-string item *format-output*)))
 
-(defmethod compile-item ((client standard-client) (item string) &optional parameters)
+(defmethod compile-item ((client client) (item string) &optional parameters)
   (declare (ignore parameters))
   (if *newline-kind*
       #+sicl nil #-sicl
@@ -343,13 +343,13 @@
       `((write-string ,item *format-output*))))
 
 (defmethod interpret-item :around
-    ((client standard-client) (item directive) &optional parameters)
+    ((client client) (item directive) &optional parameters)
   (declare (ignore parameters))
   (call-next-method client item
                     (mapcar #'interpret-parameter (parameters item))))
 
 (defmethod compile-item :around
-    ((client standard-client) (item directive) &optional parameters)
+    ((client client) (item directive) &optional parameters)
   (declare (ignore parameters))
   (loop for parameter in (parameters item)
         for compiled-parameter = (compile-parameter parameter)

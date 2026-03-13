@@ -11,7 +11,7 @@
              :initarg :dynamic
              :initform nil)))
 
-(defmethod merge-layout ((client standard-client) directive global local
+(defmethod merge-layout ((client client) directive global local
                          &rest args
                          &key ((:logical-block logical-block-p) nil)
                               ((:justification justificationp) nil)
@@ -150,7 +150,7 @@
 ;;; Checking syntax, interpreting, and compiling directives.
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive structured-directive-mixin) global-layout local-layout parent
+    ((client client) (directive structured-directive-mixin) global-layout local-layout parent
      &optional group position)
   (declare (ignore parent group position))
   (loop for items across (clauses directive)
@@ -160,7 +160,7 @@
                  do (check-item-syntax client item global-layout local-layout directive group position))))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive directive) global-layout local-layout parent &optional group position)
+    ((client client) (directive directive) global-layout local-layout parent &optional group position)
   (declare (ignore parent group position))
   (loop for remaining-parameters = (parameters directive) then (cdr remaining-parameters)
         for parameter = (car remaining-parameters)
@@ -194,7 +194,7 @@
 
 ;;; Signal an error if a modifier has been given for such a directive.
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive no-modifiers-mixin) global-layout local-layout parent &optional group position)
+    ((client client) (directive no-modifiers-mixin) global-layout local-layout parent &optional group position)
   (declare (ignore global-layout local-layout parent group position))
   (cond ((and (colon-p directive) (at-sign-p directive))
          (signal-illegal-modifiers client directive #\@ #\:))
@@ -205,21 +205,21 @@
 
 ;;; Signal an error if an at-sign has been given for such a directive.
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive only-colon-mixin) global-layout local-layout parent &optional group position)
+    ((client client) (directive only-colon-mixin) global-layout local-layout parent &optional group position)
   (declare (ignore global-layout local-layout parent group position))
   (when (at-sign-p directive)
     (signal-illegal-modifiers client directive #\@)))
 
 ;;; Signal an error if a colon has been given for such a directive.
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive only-at-sign-mixin) global-layout local-layout parent &optional group position)
+    ((client client) (directive only-at-sign-mixin) global-layout local-layout parent &optional group position)
   (declare (ignore global-layout local-layout parent group position))
   (when (colon-p directive)
     (signal-illegal-modifiers client directive #\:)))
 
 ;;; Signal an error if both modifiers have been given for such a directive.
 (defmethod check-item-syntax progn
-    ((client standard-client)(directive at-most-one-modifier-mixin) global-layout local-layout parent
+    ((client client)(directive at-most-one-modifier-mixin) global-layout local-layout parent
      &optional group position)
   (declare (ignore global-layout local-layout parent group position))
   (when (and (colon-p directive) (at-sign-p directive))

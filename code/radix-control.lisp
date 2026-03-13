@@ -5,7 +5,7 @@
 (defclass base-radix-directive (directive)
   ())
 
-(defmethod parameter-specifications ((client standard-client) (directive base-radix-directive))
+(defmethod parameter-specifications ((client client) (directive base-radix-directive))
   '((:name mincol
      :type integer
      :bind nil
@@ -59,10 +59,10 @@
 (defclass radix-directive (base-radix-directive) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\R)) directive (end-directive t))
+    ((client client) (char (eql #\R)) directive (end-directive t))
   (change-class directive 'radix-directive))
 
-(defmethod parameter-specifications ((client standard-client) (directive radix-directive))
+(defmethod parameter-specifications ((client client) (directive radix-directive))
   (list* '(:name radix
            :type (or null (integer 2 36))
            :bind nil
@@ -290,12 +290,12 @@
          (format-cardinal-numeral value))))
 
 (defmethod interpret-item
-    ((client standard-client) (directive radix-directive) &optional parameters)
+    ((client client) (directive radix-directive) &optional parameters)
   (multiple-value-call #'format-numeral
     client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive radix-directive) &optional parameters)
+    ((client client) (directive radix-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
@@ -323,17 +323,17 @@
   ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\D)) directive (end-directive t))
+    ((client client) (char (eql #\D)) directive (end-directive t))
   (change-class directive 'decimal-directive))
 
 (defmethod interpret-item
-    ((client standard-client) (directive decimal-directive) &optional parameters)
+    ((client client) (directive decimal-directive) &optional parameters)
   (multiple-value-call #'format-radix-numeral
     client (colon-p directive) (at-sign-p directive) 10 (values-list parameters)
     (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive decimal-directive) &optional parameters)
+    ((client client) (directive decimal-directive) &optional parameters)
   `((format-radix-numeral ,(trinsic:client-form client) ,(colon-p directive)
                           ,(at-sign-p directive) 10 ,@parameters ,(pop-argument-form))))
 
@@ -343,16 +343,16 @@
   ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\B)) directive (end-directive t))
+    ((client client) (char (eql #\B)) directive (end-directive t))
   (change-class directive 'binary-directive))
 
 (defmethod interpret-item
-    ((client standard-client) (directive binary-directive) &optional parameters)
+    ((client client) (directive binary-directive) &optional parameters)
   (multiple-value-call #'format-radix-numeral
     client (colon-p directive) (at-sign-p directive) 2 (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive binary-directive) &optional parameters)
+    ((client client) (directive binary-directive) &optional parameters)
   `((format-radix-numeral ,(trinsic:client-form client) ,(colon-p directive)
                           ,(at-sign-p directive) 2 ,@parameters ,(pop-argument-form))))
 
@@ -362,16 +362,16 @@
   ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\O)) directive (end-directive t))
+    ((client client) (char (eql #\O)) directive (end-directive t))
   (change-class directive 'octal-directive))
 
 (defmethod interpret-item
-    ((client standard-client) (directive octal-directive) &optional parameters)
+    ((client client) (directive octal-directive) &optional parameters)
   (multiple-value-call #'format-radix-numeral
     client (colon-p directive) (at-sign-p directive) 8 (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive octal-directive) &optional parameters)
+    ((client client) (directive octal-directive) &optional parameters)
   `((format-radix-numeral ,(trinsic:client-form client) ,(colon-p directive)
                           ,(at-sign-p directive) 8 ,@parameters ,(pop-argument-form))))
 
@@ -381,16 +381,16 @@
   ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\X)) directive (end-directive t))
+    ((client client) (char (eql #\X)) directive (end-directive t))
   (change-class directive 'hexadecimal-directive))
 
 (defmethod interpret-item
-    ((client standard-client) (directive hexadecimal-directive) &optional parameters)
+    ((client client) (directive hexadecimal-directive) &optional parameters)
   (multiple-value-call #'format-radix-numeral
     client (colon-p directive) (at-sign-p directive) 16 (values-list parameters)
     (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive hexadecimal-directive) &optional parameters)
+    ((client client) (directive hexadecimal-directive) &optional parameters)
   `((format-radix-numeral ,(trinsic:client-form client) ,(colon-p directive)
                           ,(at-sign-p directive) 16 ,@parameters ,(pop-argument-form))))

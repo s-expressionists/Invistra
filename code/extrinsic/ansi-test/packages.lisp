@@ -2,5 +2,5 @@
 
 (defpackage #:invistra-extrinsic/ansi-test
   (:use #:cl)
-  (:export #:extrinsic-client
+  (:export #:client
            #:test))

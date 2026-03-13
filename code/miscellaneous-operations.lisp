@@ -9,7 +9,7 @@
   nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\))) directive (end-directive t))
+    ((client client) (char (eql #\))) directive (end-directive t))
   (change-class directive 'end-case-conversion-directive))
 
 ;;; 22.3.8.1 ~( Case conversion
@@ -17,12 +17,12 @@
 (defclass case-conversion-directive (directive structured-directive-mixin) ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\()) directive
+    ((client client) (char (eql #\()) directive
      (end-directive end-case-conversion-directive))
   (change-class directive 'case-conversion-directive))
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\()) directive (end-directive t))
+    ((client client) (char (eql #\()) directive (end-directive t))
   (signal-missing-end-case-conversion client directive))
 
 (defmethod calculate-argument-position (position (directive case-conversion-directive))
@@ -30,7 +30,7 @@
           :initial-value (call-next-method)))
 
 (defmethod interpret-item
-    ((client standard-client) (directive case-conversion-directive) &optional parameters)
+    ((client client) (directive case-conversion-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
@@ -46,7 +46,7 @@
       (interpret-items client (aref (clauses directive) 0)))))
 
 (defmethod compile-item
-    ((client standard-client) (directive case-conversion-directive) &optional parameters)
+    ((client client) (directive case-conversion-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
@@ -66,7 +66,7 @@
 (defclass plural-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\P)) directive (end-directive t))
+    ((client client) (char (eql #\P)) directive (end-directive t))
   (change-class directive 'plural-directive))
 
 (defmethod calculate-argument-position (position (directive plural-directive))
@@ -75,7 +75,7 @@
       (1+ position)))
 
 (defmethod interpret-item
-    ((client standard-client) (directive plural-directive) &optional parameters)
+    ((client client) (directive plural-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
@@ -91,7 +91,7 @@
           (write-char #\s *format-output*)))))
 
 (defmethod compile-item
-    ((client standard-client) (directive plural-directive) &optional parameters)
+    ((client client) (directive plural-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))

@@ -7,11 +7,11 @@
 (defclass tabulate-directive (directive) ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\T)) directive (end-directive t))
+    ((client client) (char (eql #\T)) directive (end-directive t))
   (change-class directive 'tabulate-directive))
 
 (defmethod parameter-specifications
-    ((client standard-client) (directive tabulate-directive))
+    ((client client) (directive tabulate-directive))
   '((:name colnum
      :type (integer 0)
      :bind nil
@@ -22,7 +22,7 @@
      :default 1)))
 
 (defmethod check-item-syntax :around
-    ((client standard-client) (directive tabulate-directive) global-layout local-layout parent
+    ((client client) (directive tabulate-directive) global-layout local-layout parent
      &optional group position)
   (if (colon-p directive)
       (call-next-method client directive global-layout
@@ -65,11 +65,11 @@
       form))
 
 (defmethod interpret-item
-    ((client standard-client) (directive tabulate-directive) &optional parameters)
+    ((client client) (directive tabulate-directive) &optional parameters)
   (apply #'format-tab client (colon-p directive) (at-sign-p directive) parameters))
 
 (defmethod compile-item
-    ((client standard-client) (directive tabulate-directive) &optional parameters)
+    ((client client) (directive tabulate-directive) &optional parameters)
   `((format-tab ,(trinsic:client-form client) ,(colon-p directive) ,(at-sign-p directive)
                 ,@parameters)))
 
@@ -79,7 +79,7 @@
     (directive end-structured-directive-mixin no-modifiers-mixin) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\>)) directive (end-directive t))
+    ((client client) (char (eql #\>)) directive (end-directive t))
   (if (colon-p directive)
       (change-class directive 'end-logical-block-directive)
       (change-class directive 'end-justification-directive)))
@@ -90,12 +90,12 @@
     (directive structured-directive-mixin) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\<)) directive
+    ((client client) (char (eql #\<)) directive
      (end-directive end-justification-directive))
   (change-class directive 'justification-directive))
 
 (defmethod parameter-specifications
-    ((client standard-client) (directive justification-directive))
+    ((client client) (directive justification-directive))
   '((:name mincol
      :type integer
      :bind nil
@@ -114,7 +114,7 @@
      :default #\Space)))
 
 (defmethod check-item-syntax :around
-    ((client standard-client) (directive justification-directive) global-layout local-layout
+    ((client client) (directive justification-directive) global-layout local-layout
      parent &optional group position)
   (call-next-method client directive global-layout
                     (merge-layout client directive global-layout local-layout
@@ -181,7 +181,7 @@
           (write-padding nil))))))
 
 (defmethod interpret-item
-    ((client standard-client) (directive justification-directive) &optional parameters)
+    ((client client) (directive justification-directive) &optional parameters)
   (with-accessors ((clauses clauses)
                    (colon-p colon-p)
                    (at-sign-p at-sign-p))
@@ -203,7 +203,7 @@
           (cdr head))))))
 
 (defmethod compile-item
-    ((client standard-client) (directive justification-directive) &optional parameters)
+    ((client client) (directive justification-directive) &optional parameters)
   (with-unique-names (head tail)
     `((let (*extra-space* *line-length*)
         (format-justification ,(trinsic:client-form client) ,(colon-p directive)

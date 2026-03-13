@@ -3,7 +3,6 @@
   (:shadow #:format
            #:formatter)
   (:export #:*client*
-           #:extrinsic-client
+           #:client
            #:format
-           #:formatter
-           #:initialize-invistra))
+           #:formatter))

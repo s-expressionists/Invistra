@@ -7,7 +7,7 @@
 (defclass clause-separator-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\;)) directive (end-directive t))
+    ((client client) (char (eql #\;)) directive (end-directive t))
   (change-class directive 'clause-separator-directive))
 
 (defmethod parameter-specifications
@@ -23,21 +23,21 @@
   t)
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive clause-separator-directive)
+    ((client client) (directive clause-separator-directive)
      global-layout local-layout (parent iteration-directive)
      &optional group position)
   (declare (ignore global-layout local-layout group position))
   (signal-illegal-clause-separator client directive))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive clause-separator-directive)
+    ((client client) (directive clause-separator-directive)
      global-layout local-layout (parent case-conversion-directive)
      &optional group position)
   (declare (ignore global-layout local-layout group position))
   (signal-illegal-clause-separator client directive))
 
 (defmethod interpret-item
-    ((client standard-client) (directive clause-separator-directive) &optional parameters)
+    ((client client) (directive clause-separator-directive) &optional parameters)
   (destructuring-bind (extra-space line-length)
       parameters
     (when extra-space
@@ -46,7 +46,7 @@
       (setf *line-length* line-length))))
 
 (defmethod compile-item
-    ((client standard-client) (directive clause-separator-directive) &optional parameters)
+    ((client client) (directive clause-separator-directive) &optional parameters)
   (destructuring-bind (extra-space line-length)
       parameters
     `(,@(cond ((numberp extra-space)
@@ -65,11 +65,11 @@
 (defclass escape-upward-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\^)) directive (end-directive t))
+    ((client client) (char (eql #\^)) directive (end-directive t))
   (change-class directive 'escape-upward-directive))
 
 (defmethod parameter-specifications
-    ((client standard-client) (directive escape-upward-directive))
+    ((client client) (directive escape-upward-directive))
   '((:name p1
      :bind t
      :type (or null character integer))
@@ -81,7 +81,7 @@
      :type (or null character integer))))
 
 (defmethod check-item-syntax progn
-    ((client standard-client) (directive escape-upward-directive) global-layout local-layout parent
+    ((client client) (directive escape-upward-directive) global-layout local-layout parent
      &optional group position)
   (declare (ignore global-layout local-layout group position))
   (when (and (colon-p directive)
@@ -90,7 +90,7 @@
     (signal-illegal-outer-modifier client directive)))
 
 (defmethod interpret-item
-    ((client standard-client) (directive escape-upward-directive) &optional parameters)
+    ((client client) (directive escape-upward-directive) &optional parameters)
   (with-accessors ((colon-p colon-p))
       directive
     (destructuring-bind (p1 p2 p3)
@@ -107,7 +107,7 @@
              (funcall (if colon-p *outer-exit* *inner-exit*)))))))
 
 (defmethod compile-item
-    ((client standard-client) (directive escape-upward-directive) &optional parameters)
+    ((client client) (directive escape-upward-directive) &optional parameters)
   (with-accessors ((colon-p colon-p))
       directive
     (destructuring-bind (p1 p2 p3)
@@ -151,10 +151,10 @@
     (directive at-most-one-modifier-mixin) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\Newline)) directive (end-directive t))
+    ((client client) (char (eql #\Newline)) directive (end-directive t))
   (change-class directive 'ignored-newline-directive))
 
-(defmethod whitespace-char-p ((client standard-client) ch)
+(defmethod whitespace-char-p ((client client) ch)
   #+ccl (ccl::whitespacep ch)
   #+clasp
     (eq (core:syntax-type *readtable* ch) :whitespace)
@@ -170,7 +170,7 @@
          t))
 
 (defmethod parse-suffix
-    ((client standard-client) directive (directive-character (eql #\Newline)))
+    ((client client) directive (directive-character (eql #\Newline)))
   (with-accessors ((control-string control-string)
                    (end end))
       directive
@@ -180,7 +180,7 @@
           do (incf end))))
 
 (defmethod interpret-item
-    ((client standard-client) (directive ignored-newline-directive) &optional parameters)
+    ((client client) (directive ignored-newline-directive) &optional parameters)
   (declare (ignore parameters))
   (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.
@@ -195,7 +195,7 @@
          nil)))
 
 (defmethod compile-item
-    ((client standard-client) (directive ignored-newline-directive) &optional parameters)
+    ((client client) (directive ignored-newline-directive) &optional parameters)
   (declare (ignore parameters))
   (cond ((colon-p directive)
          ;; Remove the newline but print the following whitespace.

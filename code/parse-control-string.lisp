@@ -1,6 +1,6 @@
 (cl:in-package #:invistra)
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\,)))
+(defmethod parse-parameter ((client client) directive (character (eql #\,)))
   (with-accessors ((end end)
                    (parameters parameters))
       directive
@@ -11,7 +11,7 @@
                                       :end end))))
     t))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\V)))
+(defmethod parse-parameter ((client client) directive (character (eql #\V)))
   (with-accessors ((end end)
                    (parameters parameters))
       directive
@@ -22,7 +22,7 @@
                                       :end (incf end)))))
     t))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\#)))
+(defmethod parse-parameter ((client client) directive (character (eql #\#)))
   (with-accessors ((end end)
                    (parameters parameters))
       directive
@@ -33,7 +33,7 @@
                                       :end (incf end)))))
     t))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\')))
+(defmethod parse-parameter ((client client) directive (character (eql #\')))
   (with-accessors ((control-string control-string)
                    (end end)
                    (parameters parameters))
@@ -64,40 +64,40 @@
             end end-position)
       t)))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\-)))
+(defmethod parse-parameter ((client client) directive (character (eql #\-)))
   (parse-integer-parameter client directive))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\+)))
+(defmethod parse-parameter ((client client) directive (character (eql #\+)))
   (parse-integer-parameter client directive))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\0)))
+(defmethod parse-parameter ((client client) directive (character (eql #\0)))
   (parse-integer-parameter client directive))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\1)))
+(defmethod parse-parameter ((client client) directive (character (eql #\1)))
   (parse-integer-parameter client directive))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\2)))
+(defmethod parse-parameter ((client client) directive (character (eql #\2)))
   (parse-integer-parameter client directive))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\3)))
+(defmethod parse-parameter ((client client) directive (character (eql #\3)))
   (parse-integer-parameter client directive))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\4)))
+(defmethod parse-parameter ((client client) directive (character (eql #\4)))
   (parse-integer-parameter client directive))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\5)))
+(defmethod parse-parameter ((client client) directive (character (eql #\5)))
   (parse-integer-parameter client directive))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\6)))
+(defmethod parse-parameter ((client client) directive (character (eql #\6)))
   (parse-integer-parameter client directive))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\7)))
+(defmethod parse-parameter ((client client) directive (character (eql #\7)))
   (parse-integer-parameter client directive))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\8)))
+(defmethod parse-parameter ((client client) directive (character (eql #\8)))
   (parse-integer-parameter client directive))
 
-(defmethod parse-parameter ((client standard-client) directive (character (eql #\9)))
+(defmethod parse-parameter ((client client) directive (character (eql #\9)))
   (parse-integer-parameter client directive))
 
 (defun parse-parameters (client directive)
@@ -115,7 +115,7 @@
          (incf end)
          (go next)))))
 
-(defmethod parse-modifier ((client standard-client) directive (character (eql #\@)))
+(defmethod parse-modifier ((client client) directive (character (eql #\@)))
   (with-accessors ((end end)
                    (at-sign-p at-sign-p))
       directive
@@ -125,7 +125,7 @@
         (setf at-sign-p t))
     t))
 
-(defmethod parse-modifier ((client standard-client) directive (character (eql #\:)))
+(defmethod parse-modifier ((client client) directive (character (eql #\:)))
   (with-accessors ((end end)
                    (colon-p colon-p))
       directive
@@ -148,7 +148,7 @@
          (go next)))))
 
 (defmethod parse-directive
-    ((client standard-client) (character (eql #\~)) control-string position)
+    ((client client) (character (eql #\~)) control-string position)
   (let ((directive (make-instance 'directive
                                   :start position
                                   :end (1+ position)

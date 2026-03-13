@@ -7,10 +7,10 @@
 (defclass aesthetic-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\A)) directive (end-directive t))
+    ((client client) (char (eql #\A)) directive (end-directive t))
   (change-class directive 'aesthetic-directive))
 
-(defmethod parameter-specifications ((client standard-client) (directive aesthetic-directive))
+(defmethod parameter-specifications ((client client) (directive aesthetic-directive))
   '((:name mincol
      :type integer
      :bind nil
@@ -47,12 +47,12 @@
           (write-value)))))
 
 (defmethod interpret-item
-    ((client standard-client) (directive aesthetic-directive) &optional parameters)
+    ((client client) (directive aesthetic-directive) &optional parameters)
   (multiple-value-call #'format-aesthetic
     client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive aesthetic-directive) &optional parameters)
+    ((client client) (directive aesthetic-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
@@ -95,10 +95,10 @@
 (defclass standard-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\S)) directive (end-directive t))
+    ((client client) (char (eql #\S)) directive (end-directive t))
   (change-class directive 'standard-directive))
 
-(defmethod parameter-specifications ((client standard-client) (directive standard-directive))
+(defmethod parameter-specifications ((client client) (directive standard-directive))
   '((:name mincol
      :type integer
      :bind nil
@@ -134,12 +134,12 @@
           (write-value)))))
 
 (defmethod interpret-item
-    ((client standard-client) (directive standard-directive) &optional parameters)
+    ((client client) (directive standard-directive) &optional parameters)
   (multiple-value-call #'format-standard
     client (colon-p directive) (at-sign-p directive) (values-list parameters) (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive standard-directive) &optional parameters)
+    ((client client) (directive standard-directive) &optional parameters)
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))
       directive
@@ -179,11 +179,11 @@
 (defclass write-directive (directive) nil)
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\W)) directive (end-directive t))
+    ((client client) (char (eql #\W)) directive (end-directive t))
   (change-class directive 'write-directive))
 
 (defmethod check-item-syntax :around
-    ((client standard-client) (directive write-directive) global-layout local-layout parent
+    ((client client) (directive write-directive) global-layout local-layout parent
      &optional group position)
   (call-next-method client directive global-layout
                     (merge-layout client directive global-layout local-layout :logical-block t)
@@ -211,12 +211,12 @@
          (incless:write-object client value *format-output*))))
 
 (defmethod interpret-item
-    ((client standard-client) (directive write-directive) &optional parameters)
+    ((client client) (directive write-directive) &optional parameters)
   (declare (ignore parameters))
   (format-write client (colon-p directive) (at-sign-p directive) (pop-argument)))
 
 (defmethod compile-item
-    ((client standard-client) (directive write-directive) &optional parameters)
+    ((client client) (directive write-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((colon-p colon-p)
                    (at-sign-p at-sign-p))

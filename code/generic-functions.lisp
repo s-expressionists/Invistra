@@ -1,6 +1,6 @@
 (cl:in-package #:invistra)
 
-(defclass standard-client () ())
+(defclass client () ())
 
 ;;; Return the name of a subclass to be used for a particular
 ;;; directive.  Each particular directive subclass must be accompanied

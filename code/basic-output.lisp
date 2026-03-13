@@ -8,7 +8,7 @@
   ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\C)) directive end-directive)
+    ((client client) (char (eql #\C)) directive end-directive)
   (declare (ignore end-directive))
   (change-class directive 'character-directive))
 
@@ -41,12 +41,12 @@
          (write-char char *format-output*))))
 
 (defmethod interpret-item
-    ((client standard-client) (directive character-directive) &optional parameters)
+    ((client client) (directive character-directive) &optional parameters)
   (declare (ignore parameters))
   (format-char client (colon-p directive) (at-sign-p directive) (pop-argument 'character)))
 
 (defmethod compile-item
-    ((client standard-client) (directive character-directive) &optional parameters)
+    ((client client) (directive character-directive) &optional parameters)
   (declare (ignore parameters))
   (with-accessors ((at-sign-p at-sign-p)
                    (colon-p colon-p))
@@ -74,23 +74,23 @@
   ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\%)) directive end-directive)
+    ((client client) (char (eql #\%)) directive end-directive)
   (declare (ignore end-directive))
   (change-class directive 'newline-directive))
 
-(defmethod parameter-specifications ((client standard-client) (directive newline-directive))
+(defmethod parameter-specifications ((client client) (directive newline-directive))
   '((:name n
      :type (integer 0)
      :bind nil
      :default 1)))
 
 (defmethod interpret-item
-    ((client standard-client) (directive newline-directive) &optional parameters)
+    ((client client) (directive newline-directive) &optional parameters)
   (loop repeat (car parameters)
         do (terpri *format-output*)))
 
 (defmethod compile-item
-    ((client standard-client) (directive newline-directive) &optional parameters)
+    ((client client) (directive newline-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 '())
@@ -107,19 +107,19 @@
   ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\&)) directive end-directive)
+    ((client client) (char (eql #\&)) directive end-directive)
   (declare (ignore end-directive))
   (change-class directive 'fresh-line-directive))
 
 (defmethod parameter-specifications
-    ((client standard-client) (directive fresh-line-directive))
+    ((client client) (directive fresh-line-directive))
   '((:name n
      :bind nil
      :type (integer 0)
      :default 1)))
 
 (defmethod interpret-item
-    ((client standard-client) (item fresh-line-directive) &optional parameters)
+    ((client client) (item fresh-line-directive) &optional parameters)
   (let ((how-many (car parameters)))
     (unless (zerop how-many)
       (fresh-line *format-output*)
@@ -127,7 +127,7 @@
             do (terpri *format-output*)))))
 
 (defmethod compile-item
-    ((client standard-client) (item fresh-line-directive) &optional parameters)
+    ((client client) (item fresh-line-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 nil)
@@ -152,24 +152,24 @@
   ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\|)) directive end-directive)
+    ((client client) (char (eql #\|)) directive end-directive)
   (declare (ignore end-directive))
   (change-class directive 'page-directive))
 
 (defmethod parameter-specifications
-    ((client standard-client) (directive page-directive))
+    ((client client) (directive page-directive))
   '((:name n
      :type (integer 0)
      :bind nil
      :default 1)))
 
 (defmethod interpret-item
-    ((client standard-client) (directive page-directive) &optional parameters)
+    ((client client) (directive page-directive) &optional parameters)
   (loop repeat (car parameters)
         do (write-char #\Page *format-output*)))
 
 (defmethod compile-item
-    ((client standard-client) (directive page-directive) &optional parameters)
+    ((client client) (directive page-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 nil)
@@ -186,23 +186,23 @@
   ())
 
 (defmethod specialize-directive
-    ((client standard-client) (char (eql #\~)) directive end-directive)
+    ((client client) (char (eql #\~)) directive end-directive)
   (declare (ignore end-directive))
   (change-class directive 'tilde-directive))
 
-(defmethod parameter-specifications ((client standard-client) (directive tilde-directive))
+(defmethod parameter-specifications ((client client) (directive tilde-directive))
   '((:name n
      :type (integer 0)
      :bind nil
      :default 1)))
 
 (defmethod interpret-item
-    ((client standard-client) (directive tilde-directive) &optional parameters)
+    ((client client) (directive tilde-directive) &optional parameters)
   (loop repeat (car parameters)
         do (write-char #\~ *format-output*)))
 
 (defmethod compile-item
-    ((client standard-client) (directive tilde-directive) &optional parameters)
+    ((client client) (directive tilde-directive) &optional parameters)
   (let ((n (car parameters)))
     (case n
       (0 nil)
