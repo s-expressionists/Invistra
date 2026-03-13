@@ -14,8 +14,7 @@
 
 ;;; 22.3.8.1 ~( Case conversion
 
-(defclass case-conversion-directive
-    (directive structured-directive-mixin) nil)
+(defclass case-conversion-directive (directive structured-directive-mixin) ())
 
 (defmethod specialize-directive
     ((client standard-client) (char (eql #\()) directive

@@ -38,8 +38,8 @@
 
 (defmethod interpret-item
     ((client standard-client) (directive clause-separator-directive) &optional parameters)
-  (let ((extra-space (car parameters))
-        (line-length (cadr parameters)))
+  (destructuring-bind (extra-space line-length)
+      parameters
     (when extra-space
       (setf *extra-space* extra-space))
     (when line-length
@@ -47,8 +47,8 @@
 
 (defmethod compile-item
     ((client standard-client) (directive clause-separator-directive) &optional parameters)
-  (let ((extra-space (car parameters))
-        (line-length (cadr parameters)))
+  (destructuring-bind (extra-space line-length)
+      parameters
     `(,@(cond ((numberp extra-space)
                `((setf *extra-space* ,extra-space)))
               (extra-space

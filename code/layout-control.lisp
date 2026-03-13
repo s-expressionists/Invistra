@@ -26,7 +26,8 @@
      &optional group position)
   (if (colon-p directive)
       (call-next-method client directive global-layout
-                        (merge-layout client directive global-layout local-layout :logical-block t)
+                        (merge-layout client directive global-layout local-layout
+                                      :logical-block t)
                         parent group position)
       (call-next-method)))
 
