@@ -284,7 +284,7 @@
       (go-to-argument (- (length (apply control
                                         *format-output* (pop-remaining-arguments)))))))
 
-(defun format (client destination control &rest args)
+(defun format-with-client (client destination control &rest args)
   (let ((*format-output* (cond ((or (streamp destination)
                                   #-sicl (inravina:pretty-stream-p client destination)
                                   (and (stringp destination)

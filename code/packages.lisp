@@ -1,7 +1,6 @@
 (defpackage #:invistra
   (:use #:cl)
-  (:shadow #:format
-           #:formatter)
+  (:shadow #:format)
   (:export #:*format-output*
            #:*roman-digits*
            #:argument-type-error
@@ -21,10 +20,11 @@
            #:duplicate-modifiers
            #:end
            #:end-of-control-string
-           #:format
+           #:expand-format
+           #:expand-formatter
+           #:format-with-client
            #:format-aesthetic
            #:format-cardinal-numeral
-           #:format-compiler-macro
            #:format-error
            #:format-exponential-float
            #:format-fixed-format-float
@@ -45,7 +45,6 @@
            #:format-syntax-error
            #:format-tab
            #:format-write
-           #:formatter
            #:go-to-argument
            #:go-to-argument-forms
            #:go-to-out-of-bounds

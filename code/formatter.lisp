@@ -5,7 +5,7 @@
   namep
   (type t))
 
-(defun formatter (client control-string)
+(defun expand-formatter (client control-string)
   (check-type control-string string)
   (with-unique-names (block rest count)
     (let ((items (parse-control-string client control-string)))
@@ -108,10 +108,10 @@
                ,@(compile-items client items)
                (pop-remaining-arguments)))))))
 
-(defun format-compiler-macro (client form destination control-string args)
+(defun expand-format (client form destination control-string args)
   (declare (ignore form))
   `(format ,(trinsic:client-form client) ,destination
            ,(if (stringp control-string)
-                (formatter client control-string)
+                (expand-formatter client control-string)
                 control-string)
            ,@args))
