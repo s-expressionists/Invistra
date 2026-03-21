@@ -7,7 +7,7 @@
     ((format-sym cl:format)
      (formatter-sym cl:formatter))
   `((defun ,format-sym (destination control-string &rest args)
-      (apply (function format) ,client-form destination control-string args))
+      (apply (function format-with-client) ,client-form destination control-string args))
 
     (defmacro ,formatter-sym (control-string)
       (expand-formatter ,client-form control-string))
