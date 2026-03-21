@@ -1,6 +1,5 @@
 (defpackage #:invistra
   (:use #:cl)
-  (:shadow #:format)
   (:export #:*format-output*
            #:*roman-digits*
            #:argument-type-error

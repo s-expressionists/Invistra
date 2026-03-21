@@ -110,8 +110,8 @@
 
 (defun expand-format (client form destination control-string args)
   (declare (ignore form))
-  `(format ,(trinsic:client-form client) ,destination
-           ,(if (stringp control-string)
-                (expand-formatter client control-string)
-                control-string)
-           ,@args))
+  `(format-with-client ,(trinsic:client-form client) ,destination
+                       ,(if (stringp control-string)
+                            (expand-formatter client control-string)
+                            control-string)
+                       ,@args))

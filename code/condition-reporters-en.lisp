@@ -78,17 +78,17 @@
 
 (defmethod acclimation:report-condition
     ((condition unknown-directive-character) stream (language acclimation:english))
-  (cl:format stream
-             "Unknown directive ~:c character in control string.~%"
-             (directive-character condition)))
+  (format stream
+          "Unknown directive ~:c character in control string.~%"
+          (directive-character condition)))
 
 (defmethod acclimation:report-condition
     ((condition illegal-modifiers) stream (language acclimation:english))
-  (cl:format stream "~:[Illegal~;Conflicting~] modifier~p ~{~#[~;~:c~;~:c and ~
+  (format stream "~:[Illegal~;Conflicting~] modifier~p ~{~#[~;~:c~;~:c and ~
                         ~:c~:;~@{~:c~#[~;, and ~:;, ~]~}~]~} found in directive.~%"
-             (conflictingp condition)
-             (length (modifier-characters condition))
-             (modifier-characters condition)))
+          (conflictingp condition)
+          (length (modifier-characters condition))
+          (modifier-characters condition)))
 
 (defmethod acclimation:report-condition
     ((condition illegal-outer-modifier) stream (language acclimation:english))
@@ -104,31 +104,31 @@
 
 (defmethod acclimation:report-condition
     ((condition illegal-parameter) stream (language acclimation:english))
-  (cl:format stream
-             "Illegal parameter found. Directive can have no more than ~a parameter~:p.~%"
-             (maximum-count condition)))
+  (format stream
+          "Illegal parameter found. Directive can have no more than ~a parameter~:p.~%"
+          (maximum-count condition)))
 
 (defmethod acclimation:report-condition
     ((condition parameter-type-error) stream (language acclimation:english))
-  (cl:format stream
-             "A type of ~s was expected as parameter, but ~a was found.~%"
-             (type-error-expected-type condition)
-             (type-error-datum condition)))
+  (format stream
+          "A type of ~s was expected as parameter, but ~a was found.~%"
+          (type-error-expected-type condition)
+          (type-error-datum condition)))
 
 (defmethod acclimation:report-condition
     ((condition no-such-package) stream (language acclimation:english))
-  (cl:format stream "A package named ~a does not exist.~%"
-             (no-such-package-package-name condition)))
+  (format stream "A package named ~a does not exist.~%"
+          (no-such-package-package-name condition)))
 
 (defmethod acclimation:report-condition
     ((condition no-such-symbol) stream (language acclimation:english))
-  (cl:format stream "A symbol with a name of ~a does not exist.~%"
-             (no-such-symbol-symbol-name condition)))
+  (format stream "A symbol with a name of ~a does not exist.~%"
+          (no-such-symbol-symbol-name condition)))
 
 (defmethod acclimation:report-condition
     ((condition symbol-not-external) stream (language acclimation:english))
-  (cl:format stream "The symbol ~s is not external in the package.~%"
-             (symbol-not-external-symbol condition)))
+  (format stream "The symbol ~s is not external in the package.~%"
+          (symbol-not-external-symbol condition)))
 
 (defmethod acclimation:report-condition
     ((condition illegal-directive) stream (language acclimation:english))
@@ -160,7 +160,7 @@
 
 (defmethod acclimation:report-condition
     ((condition missing-directive) stream (language acclimation:english))
-  (cl:format stream "Missing ~~~c directive." (directive-character condition)))
+  (format stream "Missing ~~~c directive." (directive-character condition)))
 
 (defmethod acclimation:report-condition
     ((condition missing-end-logical-block-or-end-justification) stream (language acclimation:english))
@@ -186,24 +186,24 @@
 
 (defmethod acclimation:report-condition
     ((condition no-more-arguments) stream (language acclimation:english))
-  (cl:format stream "An attempt was made to access more arguments than available."))
+  (format stream "An attempt was made to access more arguments than available."))
 
 (defmethod acclimation:report-condition
     ((condition argument-type-error) stream (language acclimation:english))
-  (cl:format stream
-             "A type of ~s was required as argument, but ~a was found."
-             (type-error-expected-type condition)
-             (type-error-datum condition)))
+  (format stream
+          "A type of ~s was required as argument, but ~a was found."
+          (type-error-expected-type condition)
+          (type-error-datum condition)))
 
 (defmethod acclimation:report-condition
     ((condition go-to-out-of-bounds) stream (language acclimation:english))
-  (cl:format stream "An attempt was made to go to argument number ~d ~
+  (format stream "An attempt was made to go to argument number ~d ~
                      instead of one between 0 and ~d."
           (argument-position condition)
           (argument-count condition)))
 
 (defmethod acclimation:report-condition
     ((condition invalid-destination) stream (language acclimation:english))
-  (cl:format stream
+  (format stream
           "The object ~s is not a valid destination for a format operation."
           (destination condition)))
