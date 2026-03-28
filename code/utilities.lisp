@@ -2,7 +2,7 @@
 
 ;;; During runtime, this variable is bound to a stream to which
 ;;; all the output goes.
-(defvar *format-output*)
+(defvar *format-output* nil)
 
 (defun unique-name (&rest args)
   (gensym (apply #'concatenate 'string

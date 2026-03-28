@@ -28,7 +28,7 @@
            #:format-exponential-float
            #:format-fixed-format-float
            #:format-general-float
-           #:format-monentary-float
+           #:format-monetary-float
            #:format-numeral
            #:format-old-roman-numeral
            #:format-ordinal-numeral
