@@ -162,6 +162,14 @@
          (*inner-exit* nil))
      ,@body))
 
+(defmacro with-argument-branching (&body body)
+  (with-unique-names (pos)
+    `(let ((,pos (and *argument-index* (funcall *argument-index*))))
+       (flet ((reset-branching ()
+                (when ,pos
+                  (funcall *go-to-argument* ,pos t))))
+         ,@body))))
+
 ;;; The directive interpreter.
 
 (declaim (inline pop-argument pop-remaining-arguments go-to-argument remaining-argument-count

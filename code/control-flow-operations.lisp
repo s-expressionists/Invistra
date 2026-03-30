@@ -227,10 +227,14 @@
                ,@(go-to-argument-forms -1)
                ,@(compile-items client (aref clauses 0)))))
           (colon-p
-           `((cond (,(pop-argument-form)
-                    ,@(compile-items client (aref clauses 1)))
-                   (t
-                    ,@(compile-items client (aref clauses 0))))))
+           (let ((arg-form (pop-argument-form)))
+             (with-argument-branching
+               `((cond (,arg-form
+                        ,@(compile-items client (aref clauses 1)))
+                       (t
+                        ,@(progn
+                            (reset-branching)
+                            (compile-items client (aref clauses 0)))))))))
           (t
            (let ((n (car parameters)))
              (cond ((not (numberp n))
@@ -241,14 +245,16 @@
                                     n)
                                    (t
                                     `(or ,n ,(pop-argument-form 'integer))))
-                        ,@(loop for i from 0
-                                for j downfrom (1- (length clauses))
-                                for clause across clauses
-                                collect `(,(if (and (zerop j)
-                                                    (last-clause-is-default-p directive))
-                                               'otherwise
-                                               i)
-                                          ,@(compile-items client clause))))))
+                        ,@(with-argument-branching
+                            (loop for i from 0
+                                  for j downfrom (1- (length clauses))
+                                  for clause across clauses
+                                  do (reset-branching)
+                                  collect `(,(if (and (zerop j)
+                                                      (last-clause-is-default-p directive))
+                                                 'otherwise
+                                                 i)
+                                            ,@(compile-items client clause)))))))
                    ((< -1 n (length clauses))
                     (compile-items client (aref clauses n)))
                    ((last-clause-is-default-p directive)
