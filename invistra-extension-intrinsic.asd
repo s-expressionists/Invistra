@@ -1,6 +1,6 @@
 (cl:in-package #:asdf-user)
 
-(defsystem :invistra-extension-intrinsic
+(defsystem "invistra-extension-intrinsic"
   :description "System for loading Invistra intrinsically into an implementation."
   :license "BSD"
   :author ("Robert Strandh"
@@ -9,7 +9,8 @@
   :version (:read-file-form "version.sexp")
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
-  :depends-on (:invistra)
+  :depends-on ("invistra-extension"
+               "inravina-extension-intrinsic")
   :components ((:module code
                 :pathname "code/extension-intrinsic/"
                 :serial t

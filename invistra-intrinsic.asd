@@ -9,7 +9,8 @@
   :version (:read-file-form "version.sexp")
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
-  :depends-on (:invistra)
+  :depends-on ("invistra"
+               "inravina-intrinsic")
   :components ((:module code
                 :pathname "code/intrinsic/"
                 :serial t

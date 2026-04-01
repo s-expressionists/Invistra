@@ -1,6 +1,6 @@
 (in-package #:invistra-extension-intrinsic)
 
-(defclass client (inravina-extension-intrinsic:client invista:client) ())
+(defclass client (inravina-extension-intrinsic:client invistra:client) ())
 
 (defclass client-impl (client quaviver/schubfach:client) ())
 
