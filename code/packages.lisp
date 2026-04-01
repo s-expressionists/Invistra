@@ -76,7 +76,6 @@
            #:pop-argument-form
            #:pop-remaining-arguments
            #:pop-remaining-arguments-form
-           #:printing-char-p
            #:remaining-argument-count
            #:remaining-argument-count-form
            #:signal-conflicting-modifiers
@@ -93,7 +92,6 @@
            #:suffix-start
            #:symbol-not-external
            #:unknown-directive-character
-           #:whitespace-char-p
            #:write-cardinal-numeral
            #:write-old-roman-numeral
            #:write-ordinal-numeral

@@ -39,7 +39,7 @@
                                          #\^)
                                         ((range-contains-p regions i)
                                          #\=)
-                                        ((whitespace-char-p client ch)
+                                        ((incless:whitespace-char-p client ch)
                                          ch)
                                         (t
                                          #\space)))

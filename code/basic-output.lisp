@@ -24,7 +24,7 @@
          ;; char" is a graphic character other than space. We use a generic function to do this
          ;; test leaving open the possibility that the client interprets any space like
          ;; character as non-printing.
-         (if (printing-char-p client char)
+         (if (incless:printing-char-p client char)
              (write-char char *format-output*)
              (write-string (char-name char) *format-output*))
          (when at-sign-p
@@ -55,7 +55,7 @@
       (cond (colon-p
              (with-unique-names (char)
                `((let ((,char ,arg-form))
-                   (if (printing-char-p ,(trinsic:client-form client) ,char)
+                   (if (incless:printing-char-p ,(trinsic:client-form client) ,char)
                        (write-char ,char *format-output*)
                        (write-string (char-name ,char) *format-output*))
                    ,@(when at-sign-p
