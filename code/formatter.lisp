@@ -110,8 +110,24 @@
 
 (defun expand-format (client form destination control-string args)
   (declare (ignore form))
-  `(format-with-client ,(trinsic:client-form client) ,destination
-                       ,(if (stringp control-string)
-                            (expand-formatter client control-string)
-                            control-string)
-                       ,@args))
+  (flet ((funcall-expand (formatter)
+           (cond ((null destination)
+                  `(with-output-to-string (*format-output*)
+                     (funcall ,formatter *format-output* ,@args)))
+                 ((eq destination t)
+                  `(progn
+                     (funcall ,formatter *standard-output* ,@args)
+                     nil))
+                 (t
+                  `(format-with-client ,(trinsic:client-form client) ,destination
+                                       ,formatter ,@args)))))
+    (cond ((stringp control-string)
+           (funcall-expand (expand-formatter client control-string)))
+          ((and (consp control-string)
+                (eq (car control-string) 'function)
+                (cdr control-string)
+                (null (cddr control-string)))
+           (funcall-expand control-string))
+          (t
+           `(format-with-client ,(trinsic:client-form client) ,destination
+                                ,control-string ,@args)))))
