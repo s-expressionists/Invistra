@@ -3,6 +3,9 @@
 (defun ensure-symbol (name &optional (package *package*))
   (intern (string name) package))
 
+(defmethod trinsic:features-list nconc ((client client))
+  (list :format/invistra))
+
 (trinsic:make-define-interface (:client-form client-form)
     ((format-sym cl:format)
      (formatter-sym cl:formatter))
