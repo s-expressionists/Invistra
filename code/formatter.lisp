@@ -93,16 +93,15 @@
                                      for type = (lambda-argument-type arg)
                                      unless (eq type t)
                                        collect `(type ,type ,(lambda-argument-name arg)))))
-            `(lambda (*format-output*
-                      ,@lambda-args
-                      &rest ,rest
-                      &aux (,count (+ ,(loop for arg across args
-                                             count (not (lambda-argument-namep arg)))
-                                      (list-length ,rest))))
-               (declare (ignorable ,@(map 'list #'lambda-argument-name args) ,count ,rest)
+            `(lambda (*format-output* ,@lambda-args &rest ,rest)
+               (declare (ignorable ,@(map 'list #'lambda-argument-name args) ,rest)
                         ,@declarations)
-               (block ,block
-                 ,@guts)))
+               (let ((,count (+ ,(loop for arg across args
+                                       count (not (lambda-argument-namep arg)))
+                                (list-length ,rest))))
+                 (declare (ignorable ,count))
+                 (block ,block
+                   ,@guts))))
           `(lambda (*format-output* &rest ,rest)
              (with-arguments (,(trinsic:client-form client) ,rest)
                ,@(compile-items client items)
