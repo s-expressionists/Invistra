@@ -130,3 +130,20 @@
           (t
            `(format-with-client ,(trinsic:client-form client) ,destination
                                 ,control-string ,@args)))))
+
+(defun expand-error (client form datum args)
+  (if (stringp datum)
+      `(,(car form) ,(expand-formatter client datum) ,@args)
+      form))
+
+(defun expand-cerror (client form continue-format-control datum args)
+  (let ((expand nil))
+    (when (stringp continue-format-control)
+      (setf continue-format-control (expand-formatter client continue-format-control)
+            expand t))
+    (when (stringp datum)
+      (setf datum (expand-formatter client datum)
+            expand t))
+    (if expand
+        `(,(car form) ,continue-format-control ,datum ,@args)
+        form)))

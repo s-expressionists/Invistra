@@ -22,7 +22,7 @@
                              (:file "directive")
                              (:file "parse-control-string")
                              (:file "format")
-                             (:file "formatter")
+                             (:file "expansion")
                              (:file "basic-output")
                              (:file "radix-control")
                              (:file "floating-point-printers")
