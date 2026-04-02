@@ -19,17 +19,15 @@
            #:duplicate-modifiers
            #:end
            #:end-of-control-string
-           #:expand-cerror
-           #:expand-error
            #:expand-format
            #:expand-formatter
+           #:expand-function
            #:format-aesthetic
            #:format-cardinal-numeral
            #:format-error
            #:format-exponential-float
            #:format-fixed-format-float
            #:format-general-float
-           #:format-with-client
            #:format-monetary-float
            #:format-numeral
            #:format-old-roman-numeral
@@ -45,6 +43,7 @@
            #:format-standard
            #:format-syntax-error
            #:format-tab
+           #:format-with-client
            #:format-write
            #:go-to-argument
            #:go-to-argument-forms

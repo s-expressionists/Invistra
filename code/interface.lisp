@@ -6,11 +6,14 @@
 (defmethod trinsic:features-list nconc ((client client))
   (list :format/invistra))
 
-(trinsic:make-define-interface (:client-form client-form)
-    ((format-sym cl:format)
-     (formatter-sym cl:formatter)
+(trinsic:make-define-interface (:client-form client-form :intrinsic intrinsicp)
+    ((break-sym cl:break)
+     (cerror-sym cl:cerror)
      (error-sym cl:error)
-     (cerror-sym cl:cerror))
+     (format-sym cl:format)
+     (formatter-sym cl:formatter)
+     (invalid-method-error-sym cl:invalid-method-error)
+     (method-combination-error-sym cl:method-combination-error))
   `((defun ,format-sym (destination control-string &rest args)
       (apply (function format-with-client) ,client-form destination control-string args))
 
@@ -20,8 +23,38 @@
     (defmacro ,formatter-sym (control-string)
       (expand-formatter ,client-form control-string))
 
-    (define-compiler-macro ,error-sym (&whole form datum &rest args)
-      (expand-error ,client-form form datum args))
+    (define-compiler-macro ,break-sym (&whole form &optional (format-control "BREAK invoked") &rest args)
+      (declare (ignore args))
+      (expand-function ,client-form form 1 format-control))
 
     (define-compiler-macro ,cerror-sym (&whole form continue-format-control datum &rest args)
-      (expand-cerror ,client-form form continue-format-control datum args))))
+      (declare (ignore args))
+      (expand-function ,client-form form 1 continue-format-control 2 datum))
+
+    (define-compiler-macro ,error-sym (&whole form datum &rest args)
+      (declare (ignore args))
+      (expand-function ,client-form form 1 datum))
+
+    (define-compiler-macro ,invalid-method-error-sym (&whole form method format-control &rest args)
+      (declare (ignore method args))
+      (expand-function ,client-form form 2 format-control))
+
+    (define-compiler-macro ,method-combination-error-sym (&whole form format-control &rest args)
+      (declare (ignore args))
+      (expand-function ,client-form form 1 format-control))
+
+    ,@(unless intrinsicp
+        `((defun ,break-sym (&optional (format-control "BREAK invoked") &rest args)
+            (apply (function cl:break) format-control args))
+
+          (defun ,cerror-sym (continue-format-control datum &rest args)
+            (apply (function cl:cerror) continue-format-control datum args))
+
+          (defun ,error-sym (datum &rest args)
+            (apply (function cl:error) datum args))
+
+          (defun ,invalid-method-error-sym (method format-control &rest args)
+            (apply (function cl:invalid-method-error) method format-control args))
+
+          (defun ,method-combination-error-sym (format-control &rest args)
+            (apply (function cl:method-combination-error) format-control args))))))

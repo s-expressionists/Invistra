@@ -131,7 +131,18 @@
            `(format-with-client ,(trinsic:client-form client) ,destination
                                 ,control-string ,@args)))))
 
-(defun expand-error (client form datum args)
+(defun expand-function (client form &rest args)
+  (loop with expanded-form = nil
+        for (index format-control) on args by #'cddr
+        when (stringp format-control)
+          do (unless expanded-form
+               (setf expanded-form (copy-list form)))
+             (unless (< index (length expanded-form))
+               (setf expanded-form (nconc expanded-form (make-list (- index (length expanded-form) -1)))))
+             (setf (nth index expanded-form) (expand-formatter client format-control))
+        finally (return (or expanded-form form))))
+
+#|(defun expand-error (client form datum args)
   (if (stringp datum)
       `(,(car form) ,(expand-formatter client datum) ,@args)
       form))
@@ -146,4 +157,4 @@
             expand t))
     (if expand
         `(,(car form) ,continue-format-control ,datum ,@args)
-        form)))
+        form)))|#

@@ -1,12 +1,18 @@
 (defpackage #:invistra-extension-extrinsic
   (:use #:common-lisp)
-  (:shadow #:cerror
+  (:shadow #:break
+           #:cerror
            #:error
            #:format
-           #:formatter)
+           #:formatter
+           #:invalid-method-error
+           #:method-combination-error)
   (:export #:*client*
+           #:break
            #:cerror
            #:client
            #:error
            #:format
-           #:formatter))
+           #:formatter
+           #:invalid-method-error
+           #:method-combination-error))
