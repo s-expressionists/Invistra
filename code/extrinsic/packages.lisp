@@ -6,7 +6,9 @@
            #:format
            #:formatter
            #:invalid-method-error
-           #:method-combination-error)
+           #:method-combination-error
+           #:y-or-n-p
+           #:yes-or-no-p)
   (:export #:*client*
            #:break
            #:cerror
@@ -15,4 +17,6 @@
            #:format
            #:formatter
            #:invalid-method-error
-           #:method-combination-error))
+           #:method-combination-error
+           #:y-or-n-p
+           #:yes-or-no-p))

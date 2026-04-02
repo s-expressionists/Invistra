@@ -13,7 +13,9 @@
      (format-sym cl:format)
      (formatter-sym cl:formatter)
      (invalid-method-error-sym cl:invalid-method-error)
-     (method-combination-error-sym cl:method-combination-error))
+     (method-combination-error-sym cl:method-combination-error)
+     (y-or-n-p-sym cl:y-or-n-p)
+     (yes-or-no-p-sym cl:yes-or-no-p))
   `((defun ,format-sym (destination control-string &rest args)
       (apply (function format-with-client) ,client-form destination control-string args))
 
@@ -43,6 +45,14 @@
       (declare (ignore args))
       (expand-function ,client-form form 1 format-control))
 
+    (define-compiler-macro ,y-or-n-p-sym (&whole form &optional control &rest args)
+      (declare (ignore args))
+      (print (expand-function ,client-form form 1 control)))
+
+    (define-compiler-macro ,yes-or-no-p-sym (&whole form &optional control &rest args)
+      (declare (ignore args))
+      (expand-function ,client-form form 1 control))
+
     ,@(unless intrinsicp
         `((defun ,break-sym (&optional (format-control "BREAK invoked") &rest args)
             (apply (function cl:break) format-control args))
@@ -57,4 +67,10 @@
             (apply (function cl:invalid-method-error) method format-control args))
 
           (defun ,method-combination-error-sym (format-control &rest args)
-            (apply (function cl:method-combination-error) format-control args))))))
+            (apply (function cl:method-combination-error) format-control args))
+
+          (defun ,y-or-n-p-sym (&rest args)
+            (apply (function cl:y-or-n-p) args))
+
+          (defun ,yes-or-no-p-sym (&rest args)
+            (apply (function cl:yes-or-no-p) args))))))
