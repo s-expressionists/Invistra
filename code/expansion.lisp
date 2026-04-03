@@ -131,9 +131,10 @@
            `(format-with-client ,(trinsic:client-form client) ,destination
                                 ,control-string ,@args)))))
 
-(defun expand-function (client form &rest args)
+(defun expand-function (client form &rest indices)
   (loop with expanded-form = nil
-        for (index format-control) on args by #'cddr
+        for index in indices
+        for format-control = (nth index form)
         when (stringp format-control)
           do (unless expanded-form
                (setf expanded-form (copy-list form)))
