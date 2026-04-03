@@ -25,6 +25,28 @@
     (defmacro ,formatter-sym (control-string)
       (expand-formatter ,client-form control-string))
 
+    ,@(unless intrinsicp
+        `((defun ,break-sym (&optional (format-control "BREAK invoked") &rest args)
+            (apply (function cl:break) format-control args))
+
+          (defun ,cerror-sym (continue-format-control datum &rest args)
+            (apply (function cl:cerror) continue-format-control datum args))
+
+          (defun ,error-sym (datum &rest args)
+            (apply (function cl:error) datum args))
+
+          (defun ,invalid-method-error-sym (method format-control &rest args)
+            (apply (function cl:invalid-method-error) method format-control args))
+
+          (defun ,method-combination-error-sym (format-control &rest args)
+            (apply (function cl:method-combination-error) format-control args))
+
+          (defun ,y-or-n-p-sym (&rest args)
+            (apply (function cl:y-or-n-p) args))
+
+          (defun ,yes-or-no-p-sym (&rest args)
+            (apply (function cl:yes-or-no-p) args))))
+
     (define-compiler-macro ,break-sym (&whole form &optional (format-control "BREAK invoked") &rest args)
       (declare (ignore args))
       (expand-function ,client-form form 1 format-control))
@@ -47,30 +69,8 @@
 
     (define-compiler-macro ,y-or-n-p-sym (&whole form &optional control &rest args)
       (declare (ignore args))
-      (print (expand-function ,client-form form 1 control)))
+      (expand-function ,client-form form 1 control))
 
     (define-compiler-macro ,yes-or-no-p-sym (&whole form &optional control &rest args)
       (declare (ignore args))
-      (expand-function ,client-form form 1 control))
-
-    ,@(unless intrinsicp
-        `((defun ,break-sym (&optional (format-control "BREAK invoked") &rest args)
-            (apply (function cl:break) format-control args))
-
-          (defun ,cerror-sym (continue-format-control datum &rest args)
-            (apply (function cl:cerror) continue-format-control datum args))
-
-          (defun ,error-sym (datum &rest args)
-            (apply (function cl:error) datum args))
-
-          (defun ,invalid-method-error-sym (method format-control &rest args)
-            (apply (function cl:invalid-method-error) method format-control args))
-
-          (defun ,method-combination-error-sym (format-control &rest args)
-            (apply (function cl:method-combination-error) format-control args))
-
-          (defun ,y-or-n-p-sym (&rest args)
-            (apply (function cl:y-or-n-p) args))
-
-          (defun ,yes-or-no-p-sym (&rest args)
-            (apply (function cl:yes-or-no-p) args))))))
+      (expand-function ,client-form form 1 control))))
