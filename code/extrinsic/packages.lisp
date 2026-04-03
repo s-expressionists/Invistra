@@ -7,6 +7,8 @@
            #:formatter
            #:invalid-method-error
            #:method-combination-error
+           #:signal
+           #:warn
            #:y-or-n-p
            #:yes-or-no-p)
   (:export #:*client*
@@ -18,5 +20,7 @@
            #:formatter
            #:invalid-method-error
            #:method-combination-error
+           #:signal
+           #:warn
            #:y-or-n-p
            #:yes-or-no-p))

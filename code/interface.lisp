@@ -14,6 +14,8 @@
      (formatter-sym cl:formatter)
      (invalid-method-error-sym cl:invalid-method-error)
      (method-combination-error-sym cl:method-combination-error)
+     (signal-sym cl:signal)
+     (warn-sym cl:warn)
      (y-or-n-p-sym cl:y-or-n-p)
      (yes-or-no-p-sym cl:yes-or-no-p))
   `((defun ,format-sym (destination control-string &rest args)
@@ -41,6 +43,12 @@
           (defun ,method-combination-error-sym (format-control &rest args)
             (apply (function cl:method-combination-error) format-control args))
 
+          (defun ,signal-sym (datum &rest args)
+            (apply (function cl:signal) datum args))
+
+          (defun ,warn-sym (datum &rest args)
+            (apply (function cl:warn) datum args))
+
           (defun ,y-or-n-p-sym (&rest args)
             (apply (function cl:y-or-n-p) args))
 
@@ -66,6 +74,14 @@
     (define-compiler-macro ,method-combination-error-sym (&whole form format-control &rest args)
       (declare (ignore args))
       (expand-function ,client-form form 1 format-control))
+
+    (define-compiler-macro ,signal-sym (&whole form datum &rest args)
+      (declare (ignore args))
+      (expand-function ,client-form form 1 datum))
+
+    (define-compiler-macro ,warn-sym (&whole form datum &rest args)
+      (declare (ignore args))
+      (expand-function ,client-form form 1 datum))
 
     (define-compiler-macro ,y-or-n-p-sym (&whole form &optional control &rest args)
       (declare (ignore args))
