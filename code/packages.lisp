@@ -62,6 +62,7 @@
            #:make-downcase-stream
            #:make-first-capitalize-stream
            #:make-upcase-stream
+           #:maybe-expand-formatter
            #:missing-directive
            #:modifiers-start
            #:no-more-arguments

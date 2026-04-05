@@ -107,6 +107,11 @@
                ,@(compile-items client items)
                (pop-remaining-arguments)))))))
 
+(defun maybe-expand-formatter (client control-string)
+  (if (stringp control-string)
+      (values (expand-formatter client control-string) t)
+      (values control-string nil)))
+
 (defun expand-format (client form destination control-string args)
   (declare (ignore form))
   (flet ((funcall-expand (formatter)
