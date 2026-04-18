@@ -65,8 +65,7 @@
 
 (defclass fixed-format-directive (directive) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\F)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\F)) directive)
   (change-class directive 'fixed-format-directive))
 
 (defmethod parameter-specifications
@@ -185,8 +184,7 @@
 
 (defclass exponential-directive (directive) ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\E)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\E)) directive)
   (change-class directive 'exponential-directive))
 
 (defmethod parameter-specifications ((client client) (directive exponential-directive))
@@ -328,8 +326,7 @@
 
 (defclass general-directive (directive) ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\G)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\G)) directive)
   (change-class directive 'general-directive))
 
 (defmethod parameter-specifications ((client client) (directive general-directive))
@@ -409,8 +406,7 @@
 
 (defclass monetary-directive (directive) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\$)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\$)) directive)
   (change-class directive 'monetary-directive))
 
 (defmethod parameter-specifications

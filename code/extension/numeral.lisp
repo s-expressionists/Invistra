@@ -16,10 +16,8 @@
     (:type integer
      :default 3)))
 
-(defmethod invistra:specialize-directive
-    ((client client) (char (eql #\N)) directive end-directive)
-  (declare (ignore end-directive))
-     (change-class directive 'numeral-directive))
+(defmethod invistra:specialize-directive ((client client) (char (eql #\N)) directive)
+  (change-class directive 'numeral-directive))
 
 (defgeneric numeral-pattern (name))
 

@@ -6,8 +6,7 @@
 
 (defclass conditional-newline-directive (directive) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\_)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\_)) directive)
   (change-class directive 'conditional-newline-directive))
 
 (defmethod check-item-syntax :around
@@ -50,17 +49,19 @@
 
 ;;; 22.3.5.2 ~< Logical block
 
+(defclass justification-or-logical-block-directive (directive separated-directive-mixin) ())
+
+(defmethod specialize-directive ((client client) (char (eql #\<)) directive)
+  (change-class directive 'justification-or-logical-block-directive))
+
 (defclass logical-block-directive
     (directive structured-directive-mixin) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\<)) directive
-     (end-directive end-logical-block-directive))
+(defmethod append-clause
+    ((client client) (directive justification-or-logical-block-directive) items
+     (terminator end-logical-block-directive))
+  (declare (ignore items))
   (change-class directive 'logical-block-directive))
-
-(defmethod specialize-directive
-    ((client client) (char (eql #\<)) directive (end-directive t))
-  (signal-missing-end-logical-block-or-end-justification client directive))
 
 (defmethod calculate-argument-position (position (directive logical-block-directive))
   (setf position (call-next-method))
@@ -284,8 +285,7 @@
 
 (defclass indent-directive (directive) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\I)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\I)) directive)
   (change-class directive 'indent-directive))
 
 (defmethod parameter-specifications ((client client) (directive indent-directive))
@@ -324,22 +324,19 @@
 (defclass call-function-directive (directive)
   ((%function-name :accessor function-name)))
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\/)) directive (end-directive t))
-  (change-class directive 'call-function-directive))
+(defmethod specialize-directive ((client client) (char (eql #\/)) directive)
+  (change-class directive 'call-function-directive)
+  (with-accessors ((control-string control-string)
+                   (end end))
+      directive
+    (setf end (1+ (or (position #\/ control-string :start end)
+                      (signal-end-of-control-string client directive))))))
 
 (defmethod parameter-specifications ((client client) (directive call-function-directive))
   '((:type (or null character integer)
      :default nil
      :bind t
      :rest t)))
-
-(defmethod parse-suffix ((client client) directive (directive-character (eql #\/)))
-  (with-accessors ((control-string control-string)
-                   (end end))
-      directive
-    (setf end (1+ (or (position #\/ control-string :start end)
-                      (signal-end-of-control-string client directive))))))
 
 (defmethod check-item-syntax progn
     ((client client) (directive call-function-directive) global-layout local-layout parent

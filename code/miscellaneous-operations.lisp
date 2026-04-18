@@ -8,26 +8,20 @@
     (directive no-modifiers-mixin end-structured-directive-mixin)
   nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\))) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\))) directive)
   (change-class directive 'end-case-conversion-directive))
 
 ;;; 22.3.8.1 ~( Case conversion
 
 (defclass case-conversion-directive (directive structured-directive-mixin) ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\()) directive
-     (end-directive end-case-conversion-directive))
+(defmethod specialize-directive ((client client) (char (eql #\()) directive)
   (change-class directive 'case-conversion-directive))
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\()) directive (end-directive t))
-  (signal-missing-end-case-conversion client directive))
-
-(defmethod calculate-argument-position (position (directive case-conversion-directive))
-  (reduce #'calculate-argument-position (aref (clauses directive) 0)
-          :initial-value (call-next-method)))
+(defmethod append-clause
+    ((client client) (directive case-conversion-directive) items
+     (terminator end-case-conversion-directive))
+  (declare (ignore items)))
 
 (defmethod interpret-item
     ((client client) (directive case-conversion-directive) &optional parameters)
@@ -65,8 +59,7 @@
 
 (defclass plural-directive (directive) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\P)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\P)) directive)
   (change-class directive 'plural-directive))
 
 (defmethod calculate-argument-position (position (directive plural-directive))

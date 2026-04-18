@@ -122,14 +122,39 @@
 ;;; Mixin class for directives that take at most one modifier
 (defclass at-most-one-modifier-mixin () ())
 
+(defclass clause ()
+  ((%items :accessor items
+           :initarg :items
+           :initform nil)
+   (%terminator :accessor terminator
+                :initarg :terminator
+                :initform nil)))
+
 ;;; Mixin class for structured directives
 (defclass structured-directive-mixin ()
   ((%clauses :initarg :clauses
-             :initform #()
+             :initform nil
              :accessor clauses)))
+
+(defmethod append-clause
+    ((client client) (directive structured-directive-mixin) items terminator)
+  (if (structured-separator-p terminator)
+      (signal-illegal-clause-separator client terminator)
+      (signal-illegal-clause-terminator client terminator)))
+
+(defmethod append-clause
+    ((client client) (directive structured-directive-mixin) items (terminator null)))
+
+(defmethod append-final-clause :after
+    ((client client) (directive structured-directive-mixin) items terminator)
+  (setf (clauses directive)
+        (nconc (clauses directive)
+               (list (make-instance 'clause :iterms items :terminator terminator)))))
 
 (defmethod structured-start-p ((directive structured-directive-mixin))
   t)
+
+(defclass separated-directive-mixin (structured-directive-mixin) ())
 
 ;;; Mixin class for directives that end structured directives
 (defclass end-structured-directive-mixin () ())
@@ -159,7 +184,7 @@
                  for position from 0
                  do (check-item-syntax client item global-layout local-layout directive group position))))
 
-(defmethod check-item-syntax progn
+3(defmethod check-item-syntax progn
     ((client client) (directive directive) global-layout local-layout parent &optional group position)
   (declare (ignore parent group position))
   (loop for remaining-parameters = (parameters directive) then (cdr remaining-parameters)

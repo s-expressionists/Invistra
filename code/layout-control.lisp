@@ -6,8 +6,7 @@
 
 (defclass tabulate-directive (directive) ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\T)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\T)) directive)
   (change-class directive 'tabulate-directive))
 
 (defmethod parameter-specifications
@@ -78,20 +77,19 @@
 (defclass end-justification-directive
     (directive end-structured-directive-mixin no-modifiers-mixin) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\>)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\>)) directive)
   (if (colon-p directive)
       (change-class directive 'end-logical-block-directive)
       (change-class directive 'end-justification-directive)))
 
 ;;; 22.3.6.2 ~< Justification
 
-(defclass justification-directive
-    (directive structured-directive-mixin) nil)
+(defclass justification-directive (justification-or-logical-block-directive) ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\<)) directive
-     (end-directive end-justification-directive))
+(defmethod append-clause
+    ((client client) (directive justification-or-logical-block-directive) items
+     (terminator end-justification-directive))
+  (declare (ignore items))
   (change-class directive 'justification-directive))
 
 (defmethod parameter-specifications

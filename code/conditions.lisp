@@ -228,6 +228,15 @@
          :control-string (control-string directive)
          :regions (list (cons (start directive) (end directive)))))
 
+(define-condition illegal-clause-terminator (illegal-directive)
+  ())
+
+(defun signal-illegal-clause-terminator (client directive)
+  (error 'illegal-clause-terminator
+         :client client
+         :control-string (control-string directive)
+         :regions (list (cons (start directive) (end directive)))))
+
 (define-condition illegal-fix-directive (illegal-directive)
   ())
 

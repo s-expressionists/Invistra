@@ -5,12 +5,14 @@
 ;;; Return the name of a subclass to be used for a particular
 ;;; directive.  Each particular directive subclass must be accompanied
 ;;; by an eql-specialized method on this generic function.
-(defgeneric specialize-directive (client character directive end-directive))
+(defgeneric specialize-directive (client character directive))
 
 ;;; For the default case, signal an error.
-(defmethod specialize-directive (client character directive end-directive)
-  (declare (ignore character end-directive))
+(defmethod specialize-directive (client character directive)
+  (declare (ignore character))
   (signal-unknown-directive-character client directive))
+
+(defgeneric append-clause (client directive items terminator))
 
 (defgeneric parameter-specifications (client directive)
   (:method (client directive)

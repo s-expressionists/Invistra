@@ -7,8 +7,7 @@
 (defclass go-to-directive
     (directive at-most-one-modifier-mixin) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\*)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\*)) directive)
   (change-class directive 'go-to-directive))
 
 (defmethod parameter-specifications ((client client) (directive go-to-directive))
@@ -77,26 +76,24 @@
      end-structured-directive-mixin)
   nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\])) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\])) directive)
   (change-class directive 'end-conditional-expression-directive))
 
 ;;; 22.3.7.2 ~[ Conditional expression
 
 (defclass conditional-expression-directive
-    (directive structured-directive-mixin
+    (directive separated-directive-mixin
      at-most-one-modifier-mixin)
   ((%last-clause-is-default-p :initform nil
                               :accessor last-clause-is-default-p)))
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\[)) directive
-     (end-directive end-conditional-expression-directive))
+(defmethod specialize-directive ((client client) (char (eql #\[)) directive)
   (change-class directive 'conditional-expression-directive))
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\[)) directive (end-directive t))
-  (signal-missing-end-conditional client directive))
+(defmethod append-clause
+    ((client client) (directive conditional-expression-directive) items
+     (terminator end-conditional-expression-directive))
+  (declare (ignore items)))
 
 (defmethod parameter-specifications
     ((client client) (directive conditional-expression-directive))
@@ -267,25 +264,22 @@
      end-structured-directive-mixin)
   ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\})) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\})) directive)
   (change-class directive 'end-iteration-directive))
 
 ;;; 22.3.7.4 ~{ Iteration
 
 (defclass iteration-directive
-    (directive structured-directive-mixin)
+    (directive separated-directive-mixin)
   ((%once :accessor oncep
           :initform nil)))
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\{)) directive
-     (end-directive end-iteration-directive))
+(defmethod specialize-directive ((client client) (char (eql #\{)) directive)
   (change-class directive 'iteration-directive))
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\{)) directive (end-directive t))
-  (signal-missing-end-iteration client directive))
+(defmethod append-clause
+    ((client client) (directive iteration-directive) items (terminator end-iteration-directive))
+  (declare (ignore items)))
 
 (defmethod parameter-specifications
             ((client client) (directive iteration-directive))
@@ -481,8 +475,7 @@
     (directive only-at-sign-mixin)
   ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\?)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\?)) directive)
   (change-class directive 'recursive-processing-directive))
 
 (defmethod calculate-argument-position (position (directive recursive-processing-directive))

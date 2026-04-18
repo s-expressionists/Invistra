@@ -7,9 +7,7 @@
 (defclass character-directive (directive)
   ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\C)) directive end-directive)
-  (declare (ignore end-directive))
+(defmethod specialize-directive ((client client) (char (eql #\C)) directive)
   (change-class directive 'character-directive))
 
 (defmethod calculate-argument-position (position (item character-directive))
@@ -73,9 +71,7 @@
 (defclass newline-directive (directive no-modifiers-mixin)
   ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\%)) directive end-directive)
-  (declare (ignore end-directive))
+(defmethod specialize-directive ((client client) (char (eql #\%)) directive)
   (change-class directive 'newline-directive))
 
 (defmethod parameter-specifications ((client client) (directive newline-directive))
@@ -106,9 +102,7 @@
 (defclass fresh-line-directive (directive no-modifiers-mixin)
   ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\&)) directive end-directive)
-  (declare (ignore end-directive))
+(defmethod specialize-directive ((client client) (char (eql #\&)) directive)
   (change-class directive 'fresh-line-directive))
 
 (defmethod parameter-specifications
@@ -151,9 +145,7 @@
 (defclass page-directive (directive no-modifiers-mixin)
   ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\|)) directive end-directive)
-  (declare (ignore end-directive))
+(defmethod specialize-directive ((client client) (char (eql #\|)) directive)
   (change-class directive 'page-directive))
 
 (defmethod parameter-specifications
@@ -185,9 +177,7 @@
 (defclass tilde-directive (directive no-modifiers-mixin)
   ())
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\~)) directive end-directive)
-  (declare (ignore end-directive))
+(defmethod specialize-directive ((client client) (char (eql #\~)) directive)
   (change-class directive 'tilde-directive))
 
 (defmethod parameter-specifications ((client client) (directive tilde-directive))

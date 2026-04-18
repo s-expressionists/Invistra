@@ -6,8 +6,7 @@
 
 (defclass aesthetic-directive (directive) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\A)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\A)) directive)
   (change-class directive 'aesthetic-directive))
 
 (defmethod parameter-specifications ((client client) (directive aesthetic-directive))
@@ -94,8 +93,7 @@
 
 (defclass standard-directive (directive) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\S)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\S)) directive)
   (change-class directive 'standard-directive))
 
 (defmethod parameter-specifications ((client client) (directive standard-directive))
@@ -178,8 +176,7 @@
 
 (defclass write-directive (directive) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\W)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\W)) directive)
   (change-class directive 'write-directive))
 
 (defmethod check-item-syntax :around

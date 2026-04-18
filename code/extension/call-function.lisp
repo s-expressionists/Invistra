@@ -3,19 +3,8 @@
 (defclass call-function-directive (invistra:directive)
   ((%function-name :accessor function-name)))
 
-(defmethod invistra:specialize-directive
-    ((client client) (char (eql #\`)) directive (end-directive t))
-  (change-class directive 'call-function-directive))
-
-(defmethod invistra:parameter-specifications
-    ((client client) (directive call-function-directive))
-  '((:type (or null character integer)
-     :bind nil
-     :default nil
-     :rest t)))
-
-(defmethod invistra:parse-suffix
-    ((client client) directive (directive-character (eql #\`)))
+(defmethod invistra:specialize-directive ((client client) (char (eql #\`)) directive)
+  (change-class directive 'call-function-directive)
   (with-accessors ((end invistra:end)
                    (control-string invistra:control-string))
       directive
@@ -37,6 +26,13 @@
          (otherwise
           (incf end)))
        (go next))))
+
+(defmethod invistra:parameter-specifications
+    ((client client) (directive call-function-directive))
+  '((:type (or null character integer)
+     :bind nil
+     :default nil
+     :rest t)))
 
 (defun char-invert-case (ch)
   (cond ((upper-case-p ch)

@@ -6,8 +6,7 @@
 
 (defclass clause-separator-directive (directive) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\;)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\;)) directive)
   (change-class directive 'clause-separator-directive))
 
 (defmethod parameter-specifications
@@ -22,19 +21,9 @@
 (defmethod structured-separator-p ((directive clause-separator-directive))
   t)
 
-(defmethod check-item-syntax progn
-    ((client client) (directive clause-separator-directive)
-     global-layout local-layout (parent iteration-directive)
-     &optional group position)
-  (declare (ignore global-layout local-layout group position))
-  (signal-illegal-clause-separator client directive))
-
-(defmethod check-item-syntax progn
-    ((client client) (directive clause-separator-directive)
-     global-layout local-layout (parent case-conversion-directive)
-     &optional group position)
-  (declare (ignore global-layout local-layout group position))
-  (signal-illegal-clause-separator client directive))
+(defmethod append-clause
+    ((client client) (directive separated-directive-mixin) items
+     (terminator clause-separator-directive)))
 
 (defmethod interpret-item
     ((client client) (directive clause-separator-directive) &optional parameters)
@@ -64,8 +53,7 @@
 
 (defclass escape-upward-directive (directive) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\^)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\^)) directive)
   (change-class directive 'escape-upward-directive))
 
 (defmethod parameter-specifications
@@ -150,8 +138,7 @@
 (defclass ignored-newline-directive
     (directive at-most-one-modifier-mixin) nil)
 
-(defmethod specialize-directive
-    ((client client) (char (eql #\Newline)) directive (end-directive t))
+(defmethod specialize-directive ((client client) (char (eql #\Newline)) directive)
   (change-class directive 'ignored-newline-directive))
 
 (defmethod parse-suffix
