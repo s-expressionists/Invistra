@@ -92,6 +92,11 @@
   (declare (ignore items))
   (change-class directive 'justification-directive))
 
+(defmethod append-clause
+    ((client client) (directive justification-or-logical-block-directive) items (terminator null))
+  (declare (ignore items))
+  (signal-missing-directive client directive #\>))
+
 (defmethod parameter-specifications
     ((client client) (directive justification-directive))
   '((:name mincol

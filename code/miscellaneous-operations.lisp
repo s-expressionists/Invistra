@@ -23,6 +23,11 @@
      (terminator end-case-conversion-directive))
   (declare (ignore items)))
 
+(defmethod append-clause
+    ((client client) (directive case-conversion-directive) items (terminator null))
+  (declare (ignore items))
+  (signal-missing-directive client directive #\)))
+
 (defmethod interpret-item
     ((client client) (directive case-conversion-directive) &optional parameters)
   (declare (ignore parameters))

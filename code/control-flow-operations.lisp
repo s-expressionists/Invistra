@@ -96,6 +96,11 @@
   (declare (ignore items)))
 
 (defmethod append-clause
+    ((client client) (directive conditional-expression-directive) items (terminator null))
+  (declare (ignore items))
+  (signal-missing-directive client directive #\]))
+
+(defmethod append-clause
     ((client client) (directive conditional-expression-directive) items (terminator directive))
   (declare (ignore items))
   (when (at-sign-p terminator)
@@ -272,6 +277,11 @@
 (defmethod append-clause
     ((client client) (directive iteration-directive) items (terminator end-iteration-directive))
   (declare (ignore items)))
+
+(defmethod append-clause
+    ((client client) (directive iteration-directive) items (terminator null))
+  (declare (ignore items))
+  (signal-missing-directive client directive #\}))
 
 (defmethod parameter-specifications
             ((client client) (directive iteration-directive))
