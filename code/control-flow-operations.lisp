@@ -95,6 +95,20 @@
      (terminator end-conditional-expression-directive))
   (declare (ignore items)))
 
+(defmethod append-clause
+    ((client client) (directive conditional-expression-directive) items (terminator directive))
+  (declare (ignore items))
+  (when (at-sign-p terminator)
+    (signal-illegal-modifiers client terminator #\@))
+  (when (and (or (at-sign-p directive)
+                 (colon-p directive))
+             (colon-p terminator))
+    (signal-illegal-default-modifier client terminator))
+  (when (colon-p terminator)
+    (if (last-clause-is-default-p directive)
+        (signal-illegal-default-modifier client (car (last (clauses directive))))
+        (setf (last-clause-is-default-p directive) t))))
+
 (defmethod parameter-specifications
     ((client client) (directive conditional-expression-directive))
   '((:name n
@@ -108,16 +122,13 @@
     (cond ((at-sign-p directive)
            ;; consequent must consume 1 argument.
            (when (eql (1+ position)
-                      (reduce #'calculate-argument-position (aref (clauses directive) 0)
-                              :initial-value position))
+                      (calculate-argument-position position (first (clauses directive))))
              (1+ position)))
           ((colon-p directive)
            ;; alternative and consequent must consume the same number of arguments.
            (incf position)
-           (let ((pos0 (reduce #'calculate-argument-position (aref (clauses directive) 0)
-                               :initial-value position))
-                 (pos1 (reduce #'calculate-argument-position (aref (clauses directive) 1)
-                               :initial-value position)))
+           (let ((pos0 (calculate-argument-position position (first (clauses directive))))
+                 (pos1 (calculate-argument-position position (second (clauses directive)))))
              (when (eql pos0 pos1)
                pos0)))
           ((typep (car (parameters directive)) 'argument-reference-parameter)
@@ -126,25 +137,22 @@
                 (parameter-value (car (parameters directive))))
            (let ((value (parameter-value (car (parameters directive)))))
              (cond ((< -1 value (length (clauses directive)))
-                    (calculate-argument-position position (aref (clauses directive) value)))
+                    (calculate-argument-position position (nth value (clauses directive))))
                    ((last-clause-is-default-p directive)
                     (calculate-argument-position position
-                                                 (aref (clauses directive)
-                                                       (1- (length (clauses directive))))))
+                                                 (nth (1- (length (clauses directive)))
+                                                      (clauses directive))))
                    (t
                     position))))
           (t
            (when (typep (car (parameters directive)) 'literal-parameter)
              (incf position))
            (let ((new-position (if (last-clause-is-default-p directive)
-                                   (reduce #'calculate-argument-position
-                                           (aref (clauses directive) 0)
-                                           :initial-value position)
+                                   (calculate-argument-position position (first (clauses directive)))
                                    position)))
-             (when (every (lambda (clauses)
+             (when (every (lambda (clause)
                             (eql new-position
-                                 (reduce #'calculate-argument-position clauses
-                                         :initial-value position)))
+                                 (calculate-argument-position position clause)))
                           (clauses directive))
                       new-position))))))
 
@@ -172,20 +180,7 @@
     ;; Check that, if an at-sign modifier was given, then
     ;; there should be a no clause separators (a single clause).
     (when at-sign-p
-      (check-clause-count client directive 1 1))
-    (loop for clause across clauses
-          for pos from (- 2 (length clauses))
-          for last = (aref clause (1- (length clause)))
-          when (and (structured-separator-p last)
-                    (colon-p last)
-                    (or colon-p
-                        at-sign-p
-                        (minusp pos)))
-            do (signal-illegal-default-modifier client last)
-          when (and (structured-separator-p last)
-                    (colon-p last)
-                    (zerop pos))
-            do (setf (last-clause-is-default-p directive) t))))
+      (check-clause-count client directive 1 1))))
 
 (defmethod interpret-item
     ((client client) (directive conditional-expression-directive) &optional parameters)
@@ -196,22 +191,19 @@
     (cond (at-sign-p
            (when (pop-argument)
              (go-to-argument -1)
-             (interpret-items client (aref clauses 0))))
+             (interpret-item client (first clauses))))
           (colon-p
-           (interpret-items client
-                            (aref clauses
-                                  (if (pop-argument) 1 0))))
+           (interpret-item client (if (pop-argument) (second clauses) (first clauses))))
           (t
            ;; If a parameter was given, use it,
            ;; else use the next argument.
            (let ((n (or (car parameters) (pop-argument 'integer))))
              (cond ((< -1 n (length clauses))
-                    (interpret-items client
-                                     (aref clauses n)))
+                    (interpret-item client
+                                    (nth n clauses)))
                    ((last-clause-is-default-p directive)
-                    (interpret-items client
-                                     (aref clauses
-                                           (1- (length clauses)))))))))))
+                    (interpret-item client
+                                    (car (last clauses))))))))))
 
 (defmethod compile-item
     ((client client) (directive conditional-expression-directive) &optional parameters)
@@ -222,16 +214,16 @@
     (cond (at-sign-p
            `((when ,(pop-argument-form)
                ,@(go-to-argument-forms -1)
-               ,@(compile-items client (aref clauses 0)))))
+               ,@(compile-item client (first clauses)))))
           (colon-p
            (let ((arg-form (pop-argument-form)))
              (with-argument-branching
                `((cond (,arg-form
-                        ,@(compile-items client (aref clauses 1)))
+                        ,@(compile-item client (second clauses)))
                        (t
                         ,@(progn
                             (reset-branching)
-                            (compile-items client (aref clauses 0)))))))))
+                            (compile-item client (first clauses)))))))))
           (t
            (let ((n (car parameters)))
              (cond ((not (numberp n))
@@ -245,17 +237,17 @@
                         ,@(with-argument-branching
                             (loop for i from 0
                                   for j downfrom (1- (length clauses))
-                                  for clause across clauses
+                                  for clause in clauses
                                   do (reset-branching)
                                   collect `(,(if (and (zerop j)
                                                       (last-clause-is-default-p directive))
                                                  'otherwise
                                                  i)
-                                            ,@(compile-items client clause)))))))
+                                            ,@(compile-item client clause)))))))
                    ((< -1 n (length clauses))
-                    (compile-items client (aref clauses n)))
+                    (compile-item client (nth n clauses)))
                    ((last-clause-is-default-p directive)
-                    (compile-items client (aref clauses (1- (length clauses)))))))))))
+                    (compile-item client (car (last clauses))))))))))
 
 ;;; 22.3.7.5 ~} End of iteration
 
@@ -290,7 +282,8 @@
 
 (defmethod calculate-argument-position (position (directive iteration-directive))
   (unless (at-sign-p directive)
-    (+ position (if (= (length (aref (clauses directive) 0)) 1) 2 1))))
+    (+ position
+       (if (empty-clause-p (first (clauses directive))) 2 1))))
 
 (defun format-single-recursive-iteration (client colon-p oncep iteration-limit control arg)
   (if colon-p
@@ -370,9 +363,9 @@
   (let* ((colon-p (colon-p directive))
          (at-sign-p (at-sign-p directive))
          (iteration-limit (car parameters))
-         (items (aref (clauses directive) 0))
-         (oncep (colon-p (aref items (1- (length items))))))
-    (if (= (length items) 1)
+         (clause (first (clauses directive)))
+         (oncep (colon-p (terminator clause))))
+    (if (empty-clause-p clause)
         (if at-sign-p
             (format-remaining-recursive-iteration client colon-p oncep iteration-limit
                                                   (pop-argument 'format-control))
@@ -389,7 +382,7 @@
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
                        do (with-arguments (client (pop-argument) :outer t)
-                            (interpret-items client items)))))
+                            (interpret-item client clause)))))
               (colon-p
                ;; We use one argument, and that should be a list of sublists.
                ;; Each sublist is used as arguments for one iteration.
@@ -400,7 +393,7 @@
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
                        do (with-arguments (client (pop-argument) :outer t)
-                            (interpret-items client items)))))
+                            (interpret-item client clause)))))
               (at-sign-p
                (with-remaining-arguments ()
                  (loop for index from 0
@@ -408,7 +401,7 @@
                                  (< index iteration-limit))
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
-                       do (interpret-items client items))))
+                       do (interpret-item client clause))))
               (t
                ;; no modifiers
                ;; We use one argument, and that should be a list.
@@ -419,7 +412,7 @@
                                  (< index iteration-limit))
                        when (or (not oncep) (plusp index))
                          do (funcall *inner-exit-if-exhausted*)
-                       do (interpret-items client items))))))))
+                       do (interpret-item client clause))))))))
 
 (defmethod compile-item
     ((client client) (directive iteration-directive) &optional parameters)
@@ -430,9 +423,9 @@
          (iteration-limit (car parameters))
          (bind-iteration-limit-p (not (or (constantp iteration-limit)
                                           (symbolp iteration-limit))))
-         (items (aref (clauses directive) 0))
-         (oncep (colon-p (aref items (1- (length items))))))
-    (if (= (length items) 1)
+         (clause (first (clauses directive)))
+         (oncep (colon-p (terminator clause))))
+    (if (empty-clause-p clause)
         (if at-sign-p
             `((format-remaining-recursive-iteration ,(trinsic:client-form client) ,colon-p
                                                     ,oncep ,iteration-limit
@@ -441,7 +434,7 @@
                                                  ,oncep ,iteration-limit
                                                  ,(pop-argument-form 'format-control)
                                                  ,(pop-argument-form))))
-        (flet ((expand-loop (&aux (compiled-items (compile-items client items)))
+        (flet ((expand-loop (&aux (compiled-items (compile-item client clause)))
                  (when compiled-items
                    (with-unique-names (index limit)
                      `((loop ,@(when bind-iteration-limit-p

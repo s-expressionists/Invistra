@@ -139,10 +139,7 @@
     (directive at-most-one-modifier-mixin) nil)
 
 (defmethod specialize-directive ((client client) (char (eql #\Newline)) directive)
-  (change-class directive 'ignored-newline-directive))
-
-(defmethod parse-suffix
-    ((client client) directive (directive-character (eql #\Newline)))
+  (change-class directive 'ignored-newline-directive)
   (with-accessors ((control-string control-string)
                    (end end))
       directive

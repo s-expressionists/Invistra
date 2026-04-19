@@ -145,7 +145,7 @@
   (error 'illegal-default-modifier
          :client client
          :control-string (control-string directive)
-         :modifier-characters #\:
+         :modifier-characters '(#\:)
          :regions (list* (cons (start directive) (end directive))
                          (loop for i from (modifiers-start directive)
                                  below (character-start directive)
@@ -337,8 +337,8 @@
                   :directive-character #\;
                   :regions (list (cons (start directive) (structured-end directive)))))
           ((< maximum-count len)
-           (let* ((clause (aref (clauses directive) (1- maximum-count)))
-                  (separator (aref clause (1- (length clause)))))
+           (let* ((clause (nth (1- maximum-count) (clauses directive)))
+                  (separator (terminator clause)))
              (error 'excessive-clause-separators
                     :client client
                     :control-string (control-string directive)

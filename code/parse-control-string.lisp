@@ -175,7 +175,8 @@
             (append-clause client parent (nreverse items) directive)
             (return position))
            ((structured-separator-p directive)
-            (append-clause client parent (nreverse items) directive))
+            (append-clause client parent (nreverse items) directive)
+            (setf items nil))
            (directive
             (push directive items)))
      (go next)))

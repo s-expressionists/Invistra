@@ -37,7 +37,7 @@
                                   (make-first-capitalize-stream))
                                  (t
                                   (make-downcase-stream)))))
-      (interpret-items client (aref (clauses directive) 0)))))
+      (interpret-item client (first (clauses directive))))))
 
 (defmethod compile-item
     ((client client) (directive case-conversion-directive) &optional parameters)
@@ -53,7 +53,7 @@
                                      '(make-first-capitalize-stream))
                                     (t
                                      '(make-downcase-stream)))))
-        ,@(compile-items client (aref (clauses directive) 0))))))
+        ,@(compile-item client (first (clauses directive)))))))
 
 ;;; 22.3.8.3 ~p Plural
 

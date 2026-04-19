@@ -1,11 +1,11 @@
 (cl:in-package #:invistra)
 
 (defun interpret-items (client items)
-  (loop for item across items
+  (loop for item in items
         do (interpret-item client item)))
 
 (defun compile-items (client items)
-  (loop for item across items
+  (loop for item in items
         append (compile-item client item)))
 
 ;;; Runtime environment

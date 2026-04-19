@@ -130,6 +130,28 @@
                 :initarg :terminator
                 :initform nil)))
 
+(defun empty-clause-p (clause)
+  (null (items clause)))
+
+(defmethod calculate-argument-position (position (clause clause))
+  (setf position (reduce #'calculate-argument-position (items clause)
+                         :initial-value position))
+  (if (terminator clause)
+      (calculate-argument-position position (terminator clause))
+      position))
+
+(defmethod interpret-item ((client client) (clause clause) &optional parameters)
+  (declare (ignore parameters))
+  (loop for item in (items clause)
+        do (interpret-item client item))
+  (interpret-item client (terminator clause)))
+
+(defmethod compile-item ((client client) (clause clause) &optional parameters)
+  (declare (ignore parameters))
+  (nconc (loop for item in (items clause)
+               append (compile-item client item))
+         (compile-item client (terminator clause))))
+
 ;;; Mixin class for structured directives
 (defclass structured-directive-mixin ()
   ((%clauses :initarg :clauses
@@ -142,14 +164,11 @@
       (signal-illegal-clause-separator client terminator)
       (signal-illegal-clause-terminator client terminator)))
 
-(defmethod append-clause
-    ((client client) (directive structured-directive-mixin) items (terminator null)))
-
-(defmethod append-final-clause :after
+(defmethod append-clause :after
     ((client client) (directive structured-directive-mixin) items terminator)
   (setf (clauses directive)
         (nconc (clauses directive)
-               (list (make-instance 'clause :iterms items :terminator terminator)))))
+               (list (make-instance 'clause :items items :terminator terminator)))))
 
 (defmethod structured-start-p ((directive structured-directive-mixin))
   t)
@@ -163,10 +182,8 @@
   t)
 
 (defmethod structured-end ((directive structured-directive-mixin))
-  (or (loop with clauses = (clauses directive)
-            for i from (1- (length clauses)) downto 0
-            unless (zerop (length (aref clauses i)))
-              return (structured-end (aref (aref clauses i) (1- (length (aref clauses i))))))
+  (if (clauses directive)
+      (end (terminator (car (last (clauses directive)))))
       (end directive)))
 
 (defmethod calculate-argument-position (position (item directive))
@@ -178,11 +195,12 @@
     ((client client) (directive structured-directive-mixin) global-layout local-layout parent
      &optional group position)
   (declare (ignore parent group position))
-  (loop for items across (clauses directive)
+  (loop for clause in (clauses directive)
         for group from 0
-        do (loop for item across items
+        do (loop for item in (items clause)
                  for position from 0
-                 do (check-item-syntax client item global-layout local-layout directive group position))))
+                 do (check-item-syntax client item global-layout local-layout directive group position))
+           (check-item-syntax client (terminator clause) global-layout local-layout directive group (length (items clause)))))
 
 3(defmethod check-item-syntax progn
     ((client client) (directive directive) global-layout local-layout parent &optional group position)
