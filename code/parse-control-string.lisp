@@ -1,5 +1,10 @@
 (cl:in-package #:invistra)
 
+(declaim (ftype (function (t directive) null) parse-parameters)
+         (ftype (function (t directive) t) parse-integer-parameter)
+         (ftype (function (t directive) null) parse-modifiers)
+         (ftype (function (t string fixnum) (values fixnum t t)) parse-next-directive))
+
 (defmethod parse-parameter ((client client) directive (character (eql #\,)))
   (with-accessors ((end end)
                    (parameters parameters))
@@ -148,18 +153,22 @@
          (go next)))))
 
 (defun parse-next-directive (client control-string start)
-  (loop for position from start below (length control-string)
-        for (next-position directive) = (multiple-value-list (parse-directive client (char control-string position)
-                                         control-string position))
-        when directive
-          do (return (values next-position
-                             (when (< start position)
-                               (subseq control-string start position))
-                             directive))
-        finally (return (values (length control-string)
-                                (when (< start (length control-string))
-                                  (subseq control-string start))
-                                nil))))
+  (prog ((position start))
+   next
+     (multiple-value-bind (next-position directive)
+         (parse-directive client (char control-string position)
+                          control-string position)
+       (when directive
+         (return (values next-position
+                         (when (< start position)
+                           (subseq control-string start position))
+                         directive)))
+       (when (< (incf position) (length control-string))
+         (go next))
+       (return (values position
+                       (when (< start position)
+                         (subseq control-string start position))
+                       nil)))))
 
 (defun parse-clauses (client control-string parent)
   (prog ((position (end parent))
@@ -167,7 +176,8 @@
          (directive nil)
          items)
    next
-     (setf (values position text directive) (parse-next-directive client control-string position))
+     (setf (values position text directive)
+           (parse-next-directive client control-string position))
      (when text
        (push text items))
      (cond ((or (null directive) (structured-separator-p directive))
@@ -199,12 +209,10 @@
       (incf end)
       (setf suffix-start end)
       (specialize-directive client directive-character directive)
-      (cond ((structured-start-p directive)
-             (values (parse-clauses client control-string directive)
-                     directive))
-            (t
-             (values (end directive)
-                     directive))))))
+      (values (if (structured-start-p directive)
+                  (parse-clauses client control-string directive)
+                  (end directive))
+              directive))))
 
 (defun parse-items (client control-string)
   (prog ((position 0)
@@ -213,7 +221,8 @@
          items)
    next
      (when (< position (length control-string))
-       (setf (values position text directive) (parse-next-directive client control-string position))
+       (setf (values position text directive)
+             (parse-next-directive client control-string position))
        (when text
          (push text items))
        (when directive

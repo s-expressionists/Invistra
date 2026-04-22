@@ -164,22 +164,6 @@
   (format stream "Missing ~~~c directive." (directive-character condition)))
 
 (defmethod acclimation:report-condition
-    ((condition missing-end-logical-block-or-end-justification) stream (language acclimation:english))
-  (write-string "Missing end of justification (~>) or end of logical block (~:>) directive."  stream))
-
-(defmethod acclimation:report-condition
-    ((condition missing-end-conditional) stream (language acclimation:english))
-  (write-string "Missing end of conditional (~]) directive." stream))
-
-(defmethod acclimation:report-condition
-    ((condition missing-end-case-conversion) stream (language acclimation:english))
-  (write-string "Missing end of case conversion (~)) directive." stream))
-
-(defmethod acclimation:report-condition
-    ((condition missing-end-iteration) stream (language acclimation:english))
-  (write-string "Missing end of iteration (~}) directive." stream))
-
-(defmethod acclimation:report-condition
     ((condition missing-clause-separator) stream (language acclimation:english))
   (write-string "Not enough clauses in directive, i.e. missing clause separator (~;) directive." stream))
 

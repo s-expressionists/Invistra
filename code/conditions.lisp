@@ -278,46 +278,6 @@
          :directive-character character
          :regions (list (cons (start directive) (structured-end directive)))))
 
-(define-condition missing-end-logical-block-or-end-justification (missing-directive)
-  ())
-
-(defun signal-missing-end-logical-block-or-end-justification (client directive)
-  (error 'missing-end-logical-block-or-end-justification
-         :client client
-         :control-string (control-string directive)
-         :directive-character #\>
-         :regions (list (cons (start directive) (structured-end directive)))))
-
-(define-condition missing-end-conditional (missing-directive)
-  ())
-
-(defun signal-missing-end-conditional (client directive)
-  (error 'missing-end-conditional
-         :client client
-         :control-string (control-string directive)
-         :directive-character #\]
-         :regions (list (cons (start directive) (structured-end directive)))))
-
-(define-condition missing-end-case-conversion (missing-directive)
-  ())
-
-(defun signal-missing-end-case-conversion (client directive)
-  (error 'missing-end-case-conversion
-         :client client
-         :control-string (control-string directive)
-         :directive-character #\)
-         :regions (list (cons (start directive) (structured-end directive)))))
-
-(define-condition missing-end-iteration (missing-directive)
-  ())
-
-(defun signal-missing-end-iteration (client directive)
-  (error 'missing-end-iteration
-         :client client
-         :control-string (control-string directive)
-         :directive-character #\}
-         :regions (list (cons (start directive) (structured-end directive)))))
-
 (define-condition missing-clause-separator (missing-directive)
   ())
 

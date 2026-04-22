@@ -326,10 +326,47 @@
 (defmethod specialize-directive ((client client) (char (eql #\/)) directive)
   (change-class directive 'call-function-directive)
   (with-accessors ((control-string control-string)
-                   (end end))
+                   (start start)
+                   (suffix-start suffix-start)
+                   (end end)
+                   (colon-p colon-p))
       directive
     (setf end (1+ (or (position #\/ control-string :start end)
-                      (signal-end-of-control-string client directive))))))
+                      (signal-end-of-control-string client directive))))
+    ;; The HyperSpec says that all the characters of the function
+    ;; name are treated as if they were upper-case.
+    (let* ((position-of-package-marker
+             (position #\: control-string :start suffix-start :end (1- end)))
+           (package-name
+             (if (null position-of-package-marker)
+                 "COMMON-LISP-USER"
+                 (string-upcase
+                  (subseq control-string
+                          suffix-start
+                          position-of-package-marker))))
+           (internalp (or (null position-of-package-marker)
+                          (char= #\: (char control-string (1+ position-of-package-marker)))))
+           (symbol-start (cond ((null position-of-package-marker)
+                                suffix-start)
+                               (internalp
+                                (+ 2 position-of-package-marker))
+                               (t
+                                (1+ position-of-package-marker))))
+           (symbol-end (1- end))
+           (symbol-name (string-upcase (subseq control-string symbol-start symbol-end)))
+           (package (find-package package-name)))
+      (when (null package)
+        (signal-no-such-package client directive package-name suffix-start position-of-package-marker))
+      (if (eq *package* package)
+          (setf (function-name directive) (intern symbol-name package))
+          (multiple-value-bind (symbol status)
+              (find-symbol symbol-name package)
+            (when (null symbol)
+              (signal-no-such-symbol client directive symbol-name symbol-start symbol-end))
+            (when (and (not internalp)
+                       (not (eql status :external)))
+              (signal-symbol-not-external client directive symbol symbol-start symbol-end))
+            (setf (function-name directive) symbol))))))
 
 (defmethod parameter-specifications ((client client) (directive call-function-directive))
   '((:type (or null character integer)
@@ -337,7 +374,7 @@
      :bind t
      :rest t)))
 
-(defmethod check-item-syntax progn
+#+(or)(defmethod check-item-syntax progn
     ((client client) (directive call-function-directive) global-layout local-layout parent
      &optional group position)
   (declare (ignore global-layout local-layout parent group position))
