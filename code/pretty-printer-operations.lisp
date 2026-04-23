@@ -196,7 +196,7 @@
     (let* ((last-clause (car (last clauses)))
            (colon-p (colon-p directive))
            (at-sign-p (at-sign-p directive))
-           (*newline-kind* (if (at-sign-p (aref last-clause (1- (length last-clause))))
+           (*newline-kind* (if (at-sign-p (terminator last-clause))
                                :fill
                                nil))
            (prefix (cond ((cdr clauses)
@@ -274,9 +274,9 @@
                                     (when (< position index)
                                       (funcall my-pop-argument-hook)
                                       (go next))))))))
-                 ,@(compile-items client (if (cdr clauses)
-                                             (second clauses)
-                                             (first clauses)))))
+                 ,@(compile-item client (if (cdr clauses)
+                                            (second clauses)
+                                            (first clauses)))))
              :prefix ,prefix :suffix ,suffix
              :per-line-prefix-p ,per-line-prefix-p)))))))
 

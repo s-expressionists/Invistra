@@ -126,8 +126,7 @@
                     parent group position))
 
 (defmethod calculate-argument-position (position (directive justification-directive))
-  (reduce (lambda (position clauses)
-            (reduce #'calculate-argument-position clauses :initial-value position))
+  (reduce #'calculate-argument-position
           (clauses directive)
           :initial-value (call-next-method)))
 
