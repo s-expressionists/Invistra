@@ -4,7 +4,7 @@
     (#-sicl inravina-intrinsic:client #+sicl incless-intrinsic:client invistra:client)
   ())
 
-(defclass client-impl (client quaviver/schubfach:client) ())
+(defclass client-impl (client quaviver/schubfach:client quaviver/liebler:client) ())
 
 (setf incless-intrinsic:*client* (make-instance 'client-impl))
 

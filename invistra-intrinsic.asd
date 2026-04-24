@@ -1,6 +1,6 @@
 (cl:in-package #:asdf-user)
 
-(defsystem :invistra-intrinsic
+(defsystem "invistra-intrinsic"
   :description "System for loading Invistra intrinsically into an implementation."
   :license "BSD"
   :author ("Robert Strandh"
@@ -10,7 +10,12 @@
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
   :depends-on ("invistra"
+<<<<<<< HEAD
                "inravina-intrinsic")
+=======
+               "inravina-intrinsic"
+               "quaviver/liebler")
+>>>>>>> 3f00aaf (Update dependencies)
   :components ((:module code
                 :pathname "code/intrinsic/"
                 :serial t

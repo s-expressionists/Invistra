@@ -54,24 +54,32 @@
 (defun trim-fractional
     (client value significand exponent sign digit-count fractional-position d)
   (let ((l (max 0 (- digit-count fractional-position))))
-    (cond ((< l d)
-           (if (zerop significand)
-               (setf fractional-position (- d))
-               (setf significand
-                     (* significand
-                        (expt 10
-                              (+ (max 0
-                                      (- fractional-position digit-count))
-                                 (- d l))))
-                     digit-count (quaviver.math:count-digits 10 significand))))
+    (cond ((= l d)
+           (values significand
+                   digit-count
+                   fractional-position))
           ((> l d)
-           (when (minusp fractional-position)
-             (setf fractional-position
-                   (max fractional-position (- 1 d))))
            (setf significand (round-away-from-zero client value significand exponent sign
-                                                   (expt 10 (- l d)))
-                 digit-count (quaviver.math:count-digits 10 significand))))
-    (values significand digit-count fractional-position)))
+                                                   (expt 10 (- l d))))
+           (values significand
+                   (quaviver.math:count-digits 10 significand)
+                   (if (minusp fractional-position)
+                       (max fractional-position (- 1 d))
+                       fractional-position)))
+          ((zerop significand)
+           (values significand
+                   digit-count
+                   (- d)))
+          (t
+           (setf significand
+                 (* significand
+                    (expt 10
+                          (+ (max 0
+                                  (- fractional-position digit-count))
+                             (- d l)))))
+           (values significand
+                   (quaviver.math:count-digits 10 significand)
+                   fractional-position)))))
 
 ;;; 22.3.3.1 ~f Fixed-format floating point.
 

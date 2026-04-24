@@ -10,7 +10,8 @@
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
   :depends-on ("invistra-extension"
-               "inravina-extension-extrinsic")
+               "inravina-extension-extrinsic"
+               "quaviver/liebler")
   :components ((:module code
                 :pathname "code/extension-extrinsic/"
                 :serial t
