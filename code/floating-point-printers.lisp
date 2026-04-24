@@ -33,14 +33,26 @@
           client coerced-value
           (quaviver:float-triple client 10 coerced-value)))))
 
-(defun round-away-from-zero (x n)
+(defun round-away-from-zero (client value significand exponent sign n)
   (multiple-value-bind (q r)
-      (truncate x n)
-    (if (>= (* 2 r) n)
-        (1+ q)
-        q)))
+      (truncate significand n)
+    (let ((d (* 2 r)))
+      (cond ((< d n)
+             q)
+            ((> d 10)
+             (1+ q))
+            ((< (abs (- (quaviver:triple-float client (type-of value) 10 (+ significand 5)
+                                               exponent sign)
+                        value))
+                (abs (- value
+                        (quaviver:triple-float client (type-of value) 10 (- significand 5)
+                                               exponent sign))))
+             (1+ q))
+            (t
+             q)))))
 
-(defun trim-fractional (significand digit-count fractional-position d)
+(defun trim-fractional
+    (client value significand exponent sign digit-count fractional-position d)
   (let ((l (max 0 (- digit-count fractional-position))))
     (cond ((< l d)
            (if (zerop significand)
@@ -56,10 +68,10 @@
            (when (minusp fractional-position)
              (setf fractional-position
                    (max fractional-position (- 1 d))))
-           (setf significand (round-away-from-zero significand
+           (setf significand (round-away-from-zero client value significand exponent sign
                                                    (expt 10 (- l d)))
-                 digit-count (quaviver.math:count-digits 10 significand)))))
-  (values significand digit-count fractional-position))
+                 digit-count (quaviver.math:count-digits 10 significand))))
+    (values significand digit-count fractional-position)))
 
 ;;; 22.3.3.1 ~f Fixed-format floating point.
 
@@ -114,7 +126,7 @@
                  (null d)
                  (> (compute-width) w))
         (multiple-value-setq (my-significand digit-count fractional-position)
-          (trim-fractional my-significand digit-count fractional-position
+          (trim-fractional client value my-significand exponent sign digit-count fractional-position
                            (min (max 0 (- digit-count fractional-position))
                                 (max 0
                                      (- w
@@ -124,7 +136,7 @@
           (setf fractional-position 1)))
       (when d
         (multiple-value-setq (my-significand digit-count fractional-position)
-          (trim-fractional my-significand digit-count fractional-position d)))
+          (trim-fractional client value my-significand exponent sign digit-count fractional-position d)))
       (when (and (>= fractional-position digit-count)
                  (null d)
                  (or (null w)
@@ -244,7 +256,7 @@
                 exp-count)))
       (when d
         (multiple-value-setq (my-significand digit-count fractional-position)
-          (trim-fractional my-significand digit-count fractional-position
+          (trim-fractional client value my-significand exponent sign digit-count fractional-position
                            (cond ((zerop k)
                                   d)
                                  ((plusp k)
@@ -255,7 +267,7 @@
                  (null d)
                  (> (compute-width) w))
         (multiple-value-setq (my-significand digit-count fractional-position)
-          (trim-fractional my-significand digit-count fractional-position
+          (trim-fractional client value my-significand exponent sign digit-count fractional-position
                            (max 0
                                 (- w
                                    (max 0 fractional-position)
@@ -444,7 +456,7 @@
                 leading-zeros
                 digit-count)))
       (multiple-value-setq (my-significand digit-count fractional-position)
-        (trim-fractional my-significand digit-count fractional-position d))
+        (trim-fractional client value my-significand exponent sign digit-count fractional-position d))
       (setf leading-zeros (max 0 (- n (max 0 fractional-position))))
       (cond ((> (compute-width) (if w (max w 100) 100))
              (%format-exponential-float client value significand exponent sign

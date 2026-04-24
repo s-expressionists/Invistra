@@ -171,23 +171,29 @@
                        nil)))))
 
 (defun parse-clauses (client control-string parent)
-  (prog ((position (end parent))
-         (text nil)
-         (directive nil)
-         items)
+  (prog* ((position (end parent))
+          (text nil)
+          (directive nil)
+          (head (cons nil nil))
+          (tail head))
+     (declare (dynamic-extent head)
+              (cons head tail))
    next
      (setf (values position text directive)
            (parse-next-directive client control-string position))
      (when text
-       (push text items))
+       (setf (cdr tail) (cons text nil)
+             tail (cdr tail)))
      (cond ((or (null directive) (structured-separator-p directive))
-            (append-clause client parent (nreverse items) directive)
-            (setf items nil))
+            (append-clause client parent (cdr head) directive)
+            (setf (cdr head) nil
+                  tail head))
            ((structured-end-p directive)
-            (append-clause client parent (nreverse items) directive)
+            (append-clause client parent (cdr head) directive)
             (return position))
            (directive
-            (push directive items)))
+            (setf (cdr tail) (cons directive nil)
+                  tail (cdr tail))))
      (go next)))
 
 (defmethod parse-directive
@@ -215,20 +221,25 @@
               directive))))
 
 (defun parse-items (client control-string)
-  (prog ((position 0)
-         (text nil)
-         (directive nil)
-         items)
+  (prog* ((position 0)
+          (text nil)
+          (directive nil)
+          (head (cons nil nil))
+          (tail head))
+     (declare (dynamic-extent head)
+              (cons head tail))
    next
      (when (< position (length control-string))
        (setf (values position text directive)
              (parse-next-directive client control-string position))
        (when text
-         (push text items))
+         (setf (cdr tail) (cons text nil)
+               tail (cdr tail)))
        (when directive
-         (push directive items))
+         (setf (cdr tail) (cons directive nil)
+               tail (cdr tail)))
        (go next))
-     (return (nreverse items))))
+     (return (cdr head))))
 
 (defun parse-control-string (client control-string)
   (loop with items = (parse-items client control-string)
