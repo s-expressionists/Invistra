@@ -9,14 +9,9 @@
   :version (:read-file-form "version.sexp")
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
-<<<<<<< HEAD
   :depends-on ("invistra-extension"
-               "inravina-extension-intrinsic")
-=======
-  :depends-on ("invistra"
                "inravina-extension-intrinsic"
                "quaviver/liebler")
->>>>>>> 3f00aaf (Update dependencies)
   :components ((:module code
                 :pathname "code/extension-intrinsic/"
                 :serial t

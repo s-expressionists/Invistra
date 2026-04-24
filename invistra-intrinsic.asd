@@ -10,12 +10,8 @@
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
   :depends-on ("invistra"
-<<<<<<< HEAD
-               "inravina-intrinsic")
-=======
                "inravina-intrinsic"
                "quaviver/liebler")
->>>>>>> 3f00aaf (Update dependencies)
   :components ((:module code
                 :pathname "code/intrinsic/"
                 :serial t
