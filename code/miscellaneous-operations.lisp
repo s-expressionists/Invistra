@@ -15,6 +15,9 @@
 
 (defclass case-conversion-directive (directive structured-directive-mixin) ())
 
+(defmethod calculate-argument-position (position (directive case-conversion-directive))
+  (calculate-argument-position position (first (clauses directive))))
+
 (defmethod specialize-directive ((client client) (char (eql #\()) directive)
   (change-class directive 'case-conversion-directive))
 
