@@ -59,13 +59,20 @@
                    digit-count
                    fractional-position))
           ((> l d)
-           (setf significand (round-away-from-zero client value significand exponent sign
-                                                   (expt 10 (- l d))))
-           (values significand
-                   (quaviver.math:count-digits 10 significand)
-                   (if (minusp fractional-position)
-                       (max fractional-position (- 1 d))
-                       fractional-position)))
+           (let* ((expected-digit-count (+ digit-count (- l) d))
+                  (sig (round-away-from-zero client value significand exponent sign
+                                             (expt 10 (- l d))))
+                  (dc (quaviver.math:count-digits 10 sig)))
+             (when (> dc expected-digit-count)
+               (incf l (- dc expected-digit-count))
+               (setf sig (round-away-from-zero client value significand exponent sign
+                                               (expt 10 (- l d)))
+                     dc (quaviver.math:count-digits 10 sig)))
+             (values sig
+                     dc
+                     (if (minusp fractional-position)
+                         (max fractional-position (- 1 d))
+                         fractional-position))))
           ((zerop significand)
            (values significand
                    digit-count
