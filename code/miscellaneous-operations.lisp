@@ -15,8 +15,8 @@
 
 (defclass case-conversion-directive (directive structured-directive-mixin) ())
 
-(defmethod calculate-argument-position (position (directive case-conversion-directive))
-  (calculate-argument-position position (first (clauses directive))))
+(defmethod traverse-item ((client client) (directive case-conversion-directive))
+  (traverse-item client (first (clauses directive))))
 
 (defmethod specialize-directive ((client client) (char (eql #\()) directive)
   (change-class directive 'case-conversion-directive))
@@ -70,10 +70,9 @@
 (defmethod specialize-directive ((client client) (char (eql #\P)) directive)
   (change-class directive 'plural-directive))
 
-(defmethod calculate-argument-position (position (directive plural-directive))
-  (if (or (colon-p directive) (null position))
-      position
-      (1+ position)))
+(defmethod traverse-item ((client client) (directive plural-directive))
+  (unless (colon-p directive)
+    (go-to-argument 1)))
 
 (defmethod interpret-item
     ((client client) (directive plural-directive) &optional parameters)

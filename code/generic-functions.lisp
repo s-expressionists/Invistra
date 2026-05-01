@@ -68,10 +68,9 @@
 
 (defgeneric make-argument-cursor (client object))
 
-(defgeneric calculate-argument-position (position item)
-  (:method (position item)
-    (declare (ignore item))
-    position))
+(defgeneric traverse-item (client item)
+  (:method (client item)
+    (declare (ignore client item))))
 
 (defgeneric end (directive))
 

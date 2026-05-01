@@ -68,7 +68,7 @@
       (expand-function ,client-form form 1))
 
     (define-compiler-macro ,invalid-method-error-sym (&whole form &rest args)
-      (declare (ignore method args))
+      (declare (ignore args))
       (expand-function ,client-form form 2))
 
     (define-compiler-macro ,method-combination-error-sym (&whole form &rest args)

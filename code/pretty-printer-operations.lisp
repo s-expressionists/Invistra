@@ -63,15 +63,13 @@
   (declare (ignore items))
   (change-class directive 'logical-block-directive))
 
-(defmethod calculate-argument-position (position (directive logical-block-directive))
-  (setf position (call-next-method))
-  (cond ((at-sign-p directive)
-         (calculate-argument-position (if (cdr (clauses directive))
-                                          (second (clauses directive))
-                                          (first (clauses directive)))
-                                      position))
-        (position
-         (1+ position))))
+(defmethod traverse-item ((client client) (directive logical-block-directive))
+  (if (at-sign-p directive)
+      (traverse-item client
+                     (if (cdr (clauses directive))
+                                (second (clauses directive))
+                                (first (clauses directive))))
+      (go-to-argument 1)))
 
 (defmethod check-item-syntax :around
     ((client client) (directive logical-block-directive) global-layout local-layout

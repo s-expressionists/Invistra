@@ -118,8 +118,8 @@
      :default #\Space
      :bind nil)))
 
-(defmethod calculate-argument-position (position (directive fixed-format-directive))
-  (1+ (call-next-method)))
+(defmethod traverse-item ((client client) (directive fixed-format-directive))
+  (go-to-argument 1))
 
 (defun %format-fixed-format-float
     (client colon-p at-sign-p w d k overflowchar padchar value significand exponent sign)
@@ -244,8 +244,8 @@
      :default nil
      :bind nil)))
 
-(defmethod calculate-argument-position (position (directive exponential-directive))
-  (1+ (call-next-method)))
+(defmethod traverse-item ((client client) (directive exponential-directive))
+  (go-to-argument 1))
 
 (defun %format-exponential-float
     (client colon-p at-sign-p w d e k overflowchar padchar exponentchar value significand
@@ -386,8 +386,8 @@
      :default nil
      :bind nil)))
 
-(defmethod calculate-argument-position (position (directive general-directive))
-  (1+ (call-next-method)))
+(defmethod traverse-item ((client client) (directive general-directive))
+  (go-to-argument 1))
 
 (defun %format-general-float
     (client colon-p at-sign-p w d e k overflowchar padchar exponentchar value significand
@@ -454,9 +454,6 @@
      :type character
      :default #\Space
      :bind nil)))
-
-(defmethod calculate-argument-position (position (directive monetary-directive))
-  (1+ (call-next-method)))
 
 (defun %format-monetary-float
     (client colon-p at-sign-p d n w padchar value significand exponent sign)

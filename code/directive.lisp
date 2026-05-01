@@ -55,9 +55,8 @@
 (defclass argument-reference-parameter (parameter)
   ())
 
-(defmethod calculate-argument-position (position (item argument-reference-parameter))
-  (when position
-    (1+ position)))
+(defmethod traverse-item ((client client) (item argument-reference-parameter))
+  (go-to-argument 1))
 
 (defclass remaining-argument-count-parameter (parameter)
   ())
@@ -133,12 +132,10 @@
 (defun empty-clause-p (clause)
   (null (items clause)))
 
-(defmethod calculate-argument-position (position (clause clause))
-  (setf position (reduce #'calculate-argument-position (items clause)
-                         :initial-value position))
-  (if (terminator clause)
-      (calculate-argument-position position (terminator clause))
-      position))
+(defmethod traverse-item ((client client) (clause clause))
+  (loop for item in (items clause)
+        do (traverse-item client item)
+        finally (traverse-item client (terminator clause))))
 
 (defmethod interpret-item ((client client) (clause clause) &optional parameters)
   (declare (ignore parameters))
@@ -186,8 +183,9 @@
       (end (terminator (car (last (clauses directive)))))
       (end directive)))
 
-(defmethod calculate-argument-position (position (item directive))
-  (reduce #'calculate-argument-position (parameters item) :initial-value position))
+(defmethod traverse-item :before ((client client) (item directive))
+  (loop for parameter in (parameters item)
+        do (traverse-item client parameter)))
 
 ;;; Checking syntax, interpreting, and compiling directives.
 
