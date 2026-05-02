@@ -1277,6 +1277,7 @@
 
 ;; Test that going beyond the first or last argument
 ;; gives an error.
+#-(or abcl clasp ecl cmucl)
 (define-argument-fail-test go-to.12
   (fmt nil "~c~c~*" #\a #\b))
 
@@ -1289,6 +1290,7 @@
 (define-control-fail-test go-to.15
   (fmt nil "~c~-1@*~0@*~c" #\a #\b #\c))
 
+#-(or abcl clasp ecl cmucl)
 (define-argument-fail-test go-to.16
   (fmt nil "~c~4@*~0@*~c" #\a #\b #\c))
 
