@@ -129,7 +129,7 @@
 
 (defun %format-fixed-format-float
     (client colon-p at-sign-p w d k overflowchar padchar value significand exponent sign)
-  (declare (ignore client colon-p))
+  (declare (ignore colon-p))
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
          (digit-count (quaviver.math:count-digits 10 significand))
@@ -256,7 +256,7 @@
 (defun %format-exponential-float
     (client colon-p at-sign-p w d e k overflowchar padchar exponentchar value significand
      exponent sign)
-  (declare (ignore client colon-p))
+  (declare (ignore colon-p))
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
          (digit-count (quaviver.math:count-digits 10 significand))
