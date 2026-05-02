@@ -34,23 +34,28 @@
           (quaviver:float-triple client 10 coerced-value)))))
 
 (defun round-away-from-zero (client value significand exponent sign n)
+  (declare (ignore sign))
   (multiple-value-bind (q r)
       (truncate significand n)
     (let ((d (* 2 r)))
-      (cond ((< d n)
+      (cond ((< d n) ; rounding down
              q)
-            ((> d 10)
+            ((> d 10) ; we are rounding up on a digit that is not a 5 in the ones place.
              (1+ q))
-            (t
-             (multiple-value-bind (sig2 exp2)
+            ((minusp exponent)
+             (multiple-value-bind (significand2 exponent2)
                  (quaviver:float-triple client 2 value)
-               (if (if (minusp exp2)
-                       (< (ash significand (- exp2))
-                          (* sig2 (expt 10 (- exponent))))
-                       (< (* significand (expt 10 exponent))
-                          (ash sig2 exp2)))
-                   (1+ q)
-                   q)))))))
+               (if (<= (ash significand (- exponent2))
+                       (* significand2 (expt 10 (- exponent))))
+                   (1+ q) ; base-10 significand was underestimate so round up
+                   q))) ; base-10 significand was overestimate so round down
+            (t
+             (multiple-value-bind (significand2 exponent2)
+                 (quaviver:float-triple client 2 value)
+               (if (<= (* significand (expt 10 exponent))
+                       (ash significand2 exponent2))
+                   (1+ q) ; base-10 significand was underestimate so round up
+                   q))))))) ; base-10 significand was overestimate so round down
 
 (defun trim-fractional
     (client value significand exponent sign digit-count fractional-position d)
