@@ -41,15 +41,16 @@
              q)
             ((> d 10)
              (1+ q))
-            ((< (abs (- (quaviver:triple-float client (type-of value) 10 (+ significand 5)
-                                               exponent sign)
-                        value))
-                (abs (- value
-                        (quaviver:triple-float client (type-of value) 10 (- significand 5)
-                                               exponent sign))))
-             (1+ q))
             (t
-             q)))))
+             (multiple-value-bind (sig2 exp2)
+                 (quaviver:float-triple client 2 value)
+               (let ((rat (/ (if (minusp exp2)
+                                 (/ sig2 (ash 1 (- exp2)))
+                                 (ash sig2 exp2))
+                             (expt 10 exponent))))
+                 (if (< significand rat)
+                     (1+ q)
+                     q))))))))
 
 (defun trim-fractional
     (client value significand exponent sign digit-count fractional-position d)
