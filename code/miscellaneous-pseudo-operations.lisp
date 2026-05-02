@@ -77,6 +77,25 @@
                  (not (colon-p parent))))
     (signal-illegal-outer-modifier client directive)))
 
+(defmethod traverse-item
+    ((client client) (directive escape-upward-directive))
+  (when (every (lambda (parameter)
+                 (typep parameter 'literal-parameter))
+               (parameters directive))
+    (let ((p1 (parameter-value (first (parameters directive))))
+          (p2 (parameter-value (second (parameters directive))))
+          (p3 (parameter-value (third (parameters directive)))))
+      (cond ((and (null p1) (null p2) (null p3))
+             (funcall *inner-exit-if-exhausted*))
+            ((or (and p3
+                      (<= p1 p2 p3))
+                 (and (null p3)
+                      (or (and (null p2)
+                               (eql p1 0))
+                          (and p2
+                               (eql p1 p2)))))
+             (funcall *inner-exit*))))))
+
 (defmethod interpret-item
     ((client client) (directive escape-upward-directive) &optional parameters)
   (with-accessors ((colon-p colon-p))

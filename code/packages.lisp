@@ -93,6 +93,7 @@
            #:start
            #:suffix-start
            #:symbol-not-external
+           #:traverse-item
            #:unknown-directive-character
            #:write-cardinal-numeral
            #:write-old-roman-numeral

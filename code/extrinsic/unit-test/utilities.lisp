@@ -62,7 +62,7 @@
 (defmacro define-argument-fail-test (name form)
   `(define-test ,name
      :compile-at :execute
-     (fail (macrolet ((fmt (destination control-string &rest args)
+     (fail-compile (macrolet ((fmt (destination control-string &rest args)
                                 `(invistra-extrinsic:format ,destination ,control-string ,@args)))
                      ,form))
      (fail (macrolet ((fmt (destination control-string &rest args)

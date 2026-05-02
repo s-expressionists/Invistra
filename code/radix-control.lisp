@@ -23,10 +23,8 @@
      :bind nil
      :default 3)))
 
-(defmethod calculate-argument-position (position (directive base-radix-directive))
-  (setf position (call-next-method))
-  (when position
-    (1+ position)))
+(defmethod traverse-item ((client client) (directive base-radix-directive))
+  (go-to-argument 1))
 
 (defun format-radix-numeral
     (client colon-p at-sign-p radix mincol padchar commachar comma-interval value)

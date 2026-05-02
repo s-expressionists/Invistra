@@ -125,10 +125,9 @@
                                   :dynamic (colon-p (terminator (first (clauses directive)))))
                     parent group position))
 
-(defmethod calculate-argument-position (position (directive justification-directive))
-  (reduce #'calculate-argument-position
-          (clauses directive)
-          :initial-value (call-next-method)))
+(defmethod traverse-item ((client client) (directive justification-directive))
+  (loop for clause in (clauses directive)
+        do (traverse-item client clause)))
 
 (defun str-line-length (stream)
   (or *print-right-margin*

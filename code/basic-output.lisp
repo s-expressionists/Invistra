@@ -10,10 +10,8 @@
 (defmethod specialize-directive ((client client) (char (eql #\C)) directive)
   (change-class directive 'character-directive))
 
-(defmethod calculate-argument-position (position (item character-directive))
-  (setf position (call-next-method))
-  (when position
-    (1+ position)))
+(defmethod traverse-item ((client client) (directive character-directive))
+  (go-to-argument 1))
 
 (defun format-char (client colon-p at-sign-p char)
   (cond (colon-p

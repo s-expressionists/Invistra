@@ -27,10 +27,8 @@
      :bind nil
      :default #\Space)))
 
-(defmethod calculate-argument-position (position (directive aesthetic-directive))
-  (setf position (call-next-method))
-  (when position
-    (1+ position)))
+(defmethod traverse-item ((client client) (directive aesthetic-directive))
+  (go-to-argument 1))
 
 (defun format-aesthetic (client colon-p at-sign-p mincol colinc minpad padchar value)
   (flet ((write-value ()
@@ -114,10 +112,8 @@
      :bind nil
      :default #\Space)))
 
-(defmethod calculate-argument-position (position (directive standard-directive))
-  (setf position (call-next-method))
-  (when position
-    (1+ position)))
+(defmethod traverse-item ((client client) (directive standard-directive))
+  (go-to-argument 1))
 
 (defun format-standard (client colon-p at-sign-p mincol colinc minpad padchar value)
   (flet ((write-value ()
@@ -186,10 +182,8 @@
                     (merge-layout client directive global-layout local-layout :logical-block t)
                     parent group position))
 
-(defmethod calculate-argument-position (position (directive write-directive))
-  (setf position (call-next-method))
-  (when position
-    (1+ position)))
+(defmethod traverse-item ((client client) (directive write-directive))
+  (go-to-argument 1))
 
 (defun format-write (client colon-p at-sign-p value)
   (cond ((and colon-p at-sign-p)

@@ -10,8 +10,7 @@
   :homepage "https://github.com/s-expressionists/Invistra"
   :bug-tracker "https://github.com/s-expressionists/Invistra/issues"
   :depends-on ("invistra"
-               "inravina-extrinsic"
-               "quaviver/liebler")
+               "inravina-extrinsic")
   :in-order-to ((asdf:test-op (asdf:test-op "invistra-extrinsic/ansi-test")))
   :components ((:module code
                 :pathname "code/extrinsic/"

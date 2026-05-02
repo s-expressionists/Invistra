@@ -2,7 +2,7 @@
 
 (defclass client (inravina-extrinsic:client invistra:client) ())
 
-(defclass client-impl (client quaviver/schubfach:client quaviver/liebler:client) ())
+(defclass client-impl (client quaviver/schubfach:client) ())
 
 (change-class incless-extrinsic:*client* 'client-impl)
 

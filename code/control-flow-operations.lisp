@@ -16,16 +16,16 @@
      :bind nil
      :default nil)))
 
-(defmethod calculate-argument-position (position (item go-to-directive))
-  (when (and position
-             (typep (car (parameters item)) 'literal-parameter))
-    (let ((n (parameter-value (car (parameters item)))))
-      (cond ((colon-p item)
-             (- position (or n 1)))
-            ((at-sign-p item)
-             (or n 0))
-            (t
-             (+ position (or n 1)))))))
+(defmethod traverse-item ((client client) (item go-to-directive))
+  (if (not (typep (car (parameters item)) 'literal-parameter))
+      (go-to-argument nil t)
+      (let ((n (parameter-value (car (parameters item)))))
+        (cond ((colon-p item)
+               (go-to-argument (- (or n 1))))
+              ((at-sign-p item)
+               (go-to-argument (or n 0) t))
+              (t
+               (go-to-argument (or n 1)))))))
 
 (defmethod interpret-item
     ((client client) (directive go-to-directive) &optional parameters)
@@ -121,45 +121,48 @@
      :bind nil
      :default nil)))
 
-(defmethod calculate-argument-position (position (directive conditional-expression-directive))
-  (setf position (call-next-method))
-  (when position
-    (cond ((at-sign-p directive)
+(defmethod traverse-item ((client client) (directive conditional-expression-directive))
+  (let ((index (funcall *argument-index*)))
+    (cond ((null index))
+          ((at-sign-p directive)
+           (traverse-item client (first (clauses directive)))
            ;; consequent must consume 1 argument.
-           (when (eql (1+ position)
-                      (calculate-argument-position position (first (clauses directive))))
-             (1+ position)))
+           (unless (= (1+ index) (funcall *argument-index*))
+             (go-to-argument nil)))
           ((colon-p directive)
-           ;; alternative and consequent must consume the same number of arguments.
-           (incf position)
-           (let ((pos0 (calculate-argument-position position (first (clauses directive))))
-                 (pos1 (calculate-argument-position position (second (clauses directive)))))
-             (when (eql pos0 pos1)
-               pos0)))
+           (go-to-argument 1)
+           (let ((pos0 (funcall *argument-index*)))
+             (traverse-item client (first (clauses directive)))
+             (let ((pos1 (funcall *argument-index*)))
+               (go-to-argument pos0 t)
+               (traverse-item client (second (clauses directive)))
+               ;; alternative and consequent must consume the same number of arguments.
+               (unless (eql pos1 (funcall *argument-index*))
+                 (go-to-argument nil)))))
           ((typep (car (parameters directive)) 'argument-reference-parameter)
-           nil)
+           (go-to-argument nil))
           ((and (typep (car (parameters directive)) 'literal-parameter)
                 (parameter-value (car (parameters directive))))
            (let ((value (parameter-value (car (parameters directive)))))
              (cond ((< -1 value (length (clauses directive)))
-                    (calculate-argument-position position (nth value (clauses directive))))
+                    (traverse-item client (nth value (clauses directive))))
                    ((last-clause-is-default-p directive)
-                    (calculate-argument-position position
-                                                 (nth (1- (length (clauses directive)))
-                                                      (clauses directive))))
-                   (t
-                    position))))
+                    (traverse-item client
+                                   (nth (1- (length (clauses directive)))
+                                        (clauses directive)))))))
           (t
            (when (typep (car (parameters directive)) 'literal-parameter)
-             (incf position))
-           (let ((new-position (if (last-clause-is-default-p directive)
-                                   (calculate-argument-position position (first (clauses directive)))
-                                   position)))
-             (when (every (lambda (clause)
-                            (eql new-position
-                                 (calculate-argument-position position clause)))
-                          (clauses directive))
-                      new-position))))))
+             (go-to-argument 1))
+           (let ((start-index (funcall *argument-index*)))
+             (when (last-clause-is-default-p directive)
+               (traverse-item client (car (last (clauses directive)))))
+             (let ((end-index (funcall *argument-index*)))
+               (loop for clause in (clauses directive)
+                     do (go-to-argument start-index t)
+                        (traverse-item client clause)
+                     unless (eql (funcall *argument-index*) end-index)
+                       do (go-to-argument nil)
+                       and return nil)))))))
 
 (defmethod check-item-syntax progn
     ((client client) (directive conditional-expression-directive) global-layout
@@ -290,10 +293,13 @@
      :type (or null (integer 0))
      :default nil)))
 
-(defmethod calculate-argument-position (position (directive iteration-directive))
-  (unless (at-sign-p directive)
-    (+ position
-       (if (empty-clause-p (first (clauses directive))) 2 1))))
+(defmethod traverse-item ((client client) (directive iteration-directive))
+  (go-to-argument (cond ((at-sign-p directive)
+                         nil)
+                        ((empty-clause-p (first (clauses directive)))
+                         2)
+                        (t
+                         1))))
 
 (defun format-single-recursive-iteration (client colon-p oncep iteration-limit control arg)
   (if colon-p
@@ -481,9 +487,10 @@
 (defmethod specialize-directive ((client client) (char (eql #\?)) directive)
   (change-class directive 'recursive-processing-directive))
 
-(defmethod calculate-argument-position (position (directive recursive-processing-directive))
-  (unless (at-sign-p directive)
-    (1+ position)))
+(defmethod traverse-item ((client client) (directive recursive-processing-directive))
+  (if (at-sign-p directive)
+      (go-to-argument nil t)
+      (go-to-argument 2)))
 
 (defmethod interpret-item
     ((client client) (directive recursive-processing-directive) &optional parameters)

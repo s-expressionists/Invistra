@@ -34,22 +34,28 @@
           (quaviver:float-triple client 10 coerced-value)))))
 
 (defun round-away-from-zero (client value significand exponent sign n)
+  (declare (ignore sign))
   (multiple-value-bind (q r)
       (truncate significand n)
     (let ((d (* 2 r)))
-      (cond ((< d n)
+      (cond ((< d n) ; rounding down
              q)
-            ((> d 10)
+            ((> d 10) ; we are rounding up on a digit that is not a 5 in the ones place.
              (1+ q))
-            ((< (abs (- (quaviver:triple-float client (type-of value) 10 (+ significand 5)
-                                               exponent sign)
-                        value))
-                (abs (- value
-                        (quaviver:triple-float client (type-of value) 10 (- significand 5)
-                                               exponent sign))))
-             (1+ q))
+            ((minusp exponent)
+             (multiple-value-bind (significand2 exponent2)
+                 (quaviver:float-triple client 2 value)
+               (if (<= (ash significand (- exponent2))
+                       (* significand2 (expt 10 (- exponent))))
+                   (1+ q) ; base-10 significand was underestimate so round up
+                   q))) ; base-10 significand was overestimate so round down
             (t
-             q)))))
+             (multiple-value-bind (significand2 exponent2)
+                 (quaviver:float-triple client 2 value)
+               (if (<= (* significand (expt 10 exponent))
+                       (ash significand2 exponent2))
+                   (1+ q) ; base-10 significand was underestimate so round up
+                   q))))))) ; base-10 significand was overestimate so round down
 
 (defun trim-fractional
     (client value significand exponent sign digit-count fractional-position d)
@@ -118,12 +124,12 @@
      :default #\Space
      :bind nil)))
 
-(defmethod calculate-argument-position (position (directive fixed-format-directive))
-  (1+ (call-next-method)))
+(defmethod traverse-item ((client client) (directive fixed-format-directive))
+  (go-to-argument 1))
 
 (defun %format-fixed-format-float
     (client colon-p at-sign-p w d k overflowchar padchar value significand exponent sign)
-  (declare (ignore client colon-p))
+  (declare (ignore colon-p))
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
          (digit-count (quaviver.math:count-digits 10 significand))
@@ -244,13 +250,13 @@
      :default nil
      :bind nil)))
 
-(defmethod calculate-argument-position (position (directive exponential-directive))
-  (1+ (call-next-method)))
+(defmethod traverse-item ((client client) (directive exponential-directive))
+  (go-to-argument 1))
 
 (defun %format-exponential-float
     (client colon-p at-sign-p w d e k overflowchar padchar exponentchar value significand
      exponent sign)
-  (declare (ignore client colon-p))
+  (declare (ignore colon-p))
   (let* ((sign-char (cond ((minusp sign) #\-)
                           ((and at-sign-p (plusp sign)) #\+)))
          (digit-count (quaviver.math:count-digits 10 significand))
@@ -386,8 +392,8 @@
      :default nil
      :bind nil)))
 
-(defmethod calculate-argument-position (position (directive general-directive))
-  (1+ (call-next-method)))
+(defmethod traverse-item ((client client) (directive general-directive))
+  (go-to-argument 1))
 
 (defun %format-general-float
     (client colon-p at-sign-p w d e k overflowchar padchar exponentchar value significand
@@ -454,9 +460,6 @@
      :type character
      :default #\Space
      :bind nil)))
-
-(defmethod calculate-argument-position (position (directive monetary-directive))
-  (1+ (call-next-method)))
 
 (defun %format-monetary-float
     (client colon-p at-sign-p d n w padchar value significand exponent sign)
